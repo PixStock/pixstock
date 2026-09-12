@@ -5,7 +5,7 @@ export type ScannerState =
   | { status: "idle" }
   | { status: "starting" }
   | { status: "scanning"; received: number; total: number; ignored: number }
-  | { status: "done"; payload: Uint8Array; elapsedMs: number }
+  | { status: "done"; payload: Uint8Array; sid: string; elapsedMs: number }
   | { status: "error"; message: string };
 
 /** No camera, no decode loop — the phone gave up waiting. */
@@ -36,7 +36,12 @@ export function useFrameScanner() {
   const pushText = useCallback((text: string): AssemblerProgress => {
     const progress = assembler.current.push(text);
     if (progress.done && progress.payload) {
-      setState({ status: "done", payload: progress.payload, elapsedMs: 0 });
+      setState({
+        status: "done",
+        payload: progress.payload,
+        sid: assembler.current.sessionId!,
+        elapsedMs: 0,
+      });
     } else {
       setState({
         status: "scanning",
@@ -106,6 +111,7 @@ export function useFrameScanner() {
             setState({
               status: "done",
               payload: progress.payload,
+              sid: assembler.current.sessionId!,
               elapsedMs: Math.round(performance.now() - startedAt),
             });
             return;

@@ -142,3 +142,26 @@ h2 { font-size: 19px; margin: 0; letter-spacing: -0.01em; }
   padding: 10px;
   resize: vertical;
 }
+
+.field { display: grid; gap: 6px; }
+.field > span { font-size: 14px; color: var(--ink-2); }
+.field input {
+  font: inherit;
+  font-size: 16px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  padding: 11px 13px;
+}
+.field input:focus-visible { outline: 2px solid var(--ink-3); outline-offset: 1px; }
+
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.qr { width: 100%; max-width: 320px; height: auto; border-radius: 8px; background: #fff; }
+
+@media print {
+  body { background: #fff; color: #000; }
+  .airgap, .btn, .row, header .lede { display: none; }
+  .qr { max-width: 420px; }
+}

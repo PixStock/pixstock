@@ -7,13 +7,14 @@ import {
   CHUNK_SIZES,
   DEFAULT_FPS,
   encodeFrames,
-  newSessionId,
   type FrameSize,
 } from "@pixstock/agqp";
 
 export interface AnimatedQrProps {
   /** The bytes to send across the gap. */
   payload: Uint8Array;
+  /** Session id these frames belong to. The reply carries it back. */
+  sid: Uint8Array;
   size?: FrameSize;
   fps?: number;
   /** Rendered edge length in CSS pixels. 520 keeps a module at ~7px. */
@@ -28,7 +29,7 @@ export interface AnimatedQrProps {
  * missed comes back on the next pass. Error correction is fixed at M, which
  * is what the capacity budget in docs/AGQP-SPEC.md §1 assumes.
  */
-export function AnimatedQr({ payload, size = "M", fps = DEFAULT_FPS, px = 520, onCycle }: AnimatedQrProps) {
+export function AnimatedQr({ payload, sid, size = "M", fps = DEFAULT_FPS, px = 520, onCycle }: AnimatedQrProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   // Held in a ref so a new callback identity does not restart the cycle.
   const onCycleRef = useRef(onCycle);
@@ -40,16 +41,15 @@ export function AnimatedQr({ payload, size = "M", fps = DEFAULT_FPS, px = 520, o
   }, [onCycle]);
 
   // Encoding is pure and cheap, so it happens during render rather than in an
-  // effect. A new payload is a new session: the id goes in the frames here
-  // and, once the CBOR layer lands, inside the payload too, so the vault can
-  // check the two agree.
+  // effect. Once the CBOR layer lands the same session id goes inside the
+  // payload too, so the vault can check the two agree.
   const encoded = useMemo(() => {
     try {
-      return { frames: encodeFrames(payload, { sid: newSessionId(), size }), error: null };
+      return { frames: encodeFrames(payload, { sid, size }), error: null };
     } catch (err) {
       return { frames: [] as string[], error: (err as Error).message };
     }
-  }, [payload, size]);
+  }, [payload, sid, size]);
 
   const { frames } = encoded;
 

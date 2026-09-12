@@ -47,6 +47,18 @@ export function encodeSessionId(sid: Uint8Array): string {
   return toBase45(sid);
 }
 
+/** Decodes a session id from its 5-character Base45 form. */
+export function decodeSessionId(sid: string): Uint8Array {
+  if (sid.length !== SID_CHARS) {
+    throw new Error(`agqp: a session id is ${SID_CHARS} characters, got ${sid.length}`);
+  }
+  const bytes = fromBase45(sid);
+  if (bytes.length !== SID_BYTES) {
+    throw new Error(`agqp: a session id decodes to ${SID_BYTES} bytes, got ${bytes.length}`);
+  }
+  return bytes;
+}
+
 /** A fresh random session id. */
 export function newSessionId(): Uint8Array {
   const sid = new Uint8Array(SID_BYTES);

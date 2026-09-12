@@ -27,6 +27,15 @@ export class FrameAssembler {
   ignored = 0;
 
   /**
+   * The session this assembler locked onto, or null before the first valid
+   * frame. The reply carries it back so the sender can tell a stale signature
+   * from the one it is waiting for.
+   */
+  get sessionId(): string | null {
+    return this.sid;
+  }
+
+  /**
    * Feeds one decoded QR string in.
    *
    * The first valid frame locks the session id; every later frame carrying a

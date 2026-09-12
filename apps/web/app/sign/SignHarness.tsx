@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CHUNK_SIZES, DEFAULT_FPS, type FrameSize } from "@pixstock/agqp";
+import { CHUNK_SIZES, DEFAULT_FPS, encodeSessionId, newSessionId, type FrameSize } from "@pixstock/agqp";
 import { AnimatedQr } from "@/components/AnimatedQr";
+import { SignatureScanner } from "@/components/SignatureScanner";
 
 /** Measured payload sizes from docs/AGQP-SPEC.md §3. */
 const PRESETS = [
@@ -29,7 +30,13 @@ export function SignHarness() {
   const [size, setSize] = useState<FrameSize>("M");
   const [fps, setFps] = useState<number>(DEFAULT_FPS);
 
-  const payload = useMemo(() => syntheticPayload(bytes), [bytes]);
+  // An order is a payload and its session id, minted together: the vault
+  // echoes the id back, and a reply carrying any other one answers a
+  // different order and must not be broadcast.
+  const order = useMemo(
+    () => ({ payload: syntheticPayload(bytes), sid: newSessionId() }),
+    [bytes]
+  );
   const frameCount = Math.ceil(bytes / CHUNK_SIZES[size]);
 
   return (
@@ -66,7 +73,16 @@ export function SignHarness() {
         a phone decoding at 15–30 fps captures everything in one or two cycles.
       </p>
 
-      <AnimatedQr payload={payload} size={size} fps={fps} />
+      <AnimatedQr payload={order.payload} sid={order.sid} size={size} fps={fps} />
+
+      <div style={{ display: "grid", gap: 12, borderTop: "1px solid var(--rule)", paddingTop: 24 }}>
+        <span className="eyebrow">Return channel</span>
+        <p style={{ margin: 0, color: "var(--ink-2)" }}>
+          The vault answers with a single static QR holding sixty-four bytes.
+          Hold it up to the webcam.
+        </p>
+        <SignatureScanner expectedSid={encodeSessionId(order.sid)} />
+      </div>
     </div>
   );
 }

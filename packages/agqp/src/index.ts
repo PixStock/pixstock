@@ -24,12 +24,21 @@ export {
   buildFrame,
   parseFrame,
   encodeSessionId,
+  decodeSessionId,
   newSessionId,
   type Frame,
   type FrameSize,
 } from "./frame.js";
 
 export { FrameAssembler, type AssemblerProgress } from "./session.js";
+export {
+  RESPONSE_MAGIC,
+  SIGNATURE_BYTES,
+  MAX_SIGNATURES,
+  encodeSignatureResponse,
+  parseSignatureResponse,
+  type SignatureResponse,
+} from "./response.js";
 export { AnimatedQrScheduler, DEFAULT_FPS } from "./scheduler.js";
 
 import { CHUNK_SIZES, MAX_FRAMES, buildFrame, encodeSessionId, type FrameSize } from "./frame.js";

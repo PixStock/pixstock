@@ -5,7 +5,7 @@ const hex = (bytes: Uint8Array, limit = 32) =>
   Array.from(bytes.slice(0, limit), (b) => b.toString(16).padStart(2, "0")).join(" ") +
   (bytes.length > limit ? " …" : "");
 
-export function Scan() {
+export function Scan({ onScanned }: { onScanned: (payload: Uint8Array, sid: string) => void }) {
   const { videoRef, state, start, stop, reset, pushText } = useFrameScanner();
   const [pasted, setPasted] = useState("");
 
@@ -60,10 +60,18 @@ export function Scan() {
             .
           </p>
           <pre className="bytes">{hex(state.payload)}</pre>
+          <div className="row">
+            <button
+              type="button"
+              className="btn btn--solid"
+              onClick={() => onScanned(state.payload, state.sid)}
+            >
+              Continue
+            </button>
+          </div>
           <p className="muted">
-            Next: decode the CBOR payload, verify the Pyth signature, run the
-            policy, then show the order ticket. None of that exists yet — see
-            docs/ARCHITECTURE.md.
+            The CBOR decode, the Pyth check and the signing policy belong here,
+            between the scan and the signature — see docs/ARCHITECTURE.md.
           </p>
         </div>
       )}
