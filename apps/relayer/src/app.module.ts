@@ -6,6 +6,7 @@ import { AppController } from './app.controller';
 import { DatabaseModule } from './database/database.module';
 import { HealthModule } from './modules/health/health.module';
 import { MarketModule } from './modules/market/market.module';
+import { OrdersModule } from './modules/orders/orders.module';
 import { QuotesModule } from './modules/quotes/quotes.module';
 import { appConfig, databaseConfig, solanaConfig, relayerConfig } from './config';
 
@@ -19,9 +20,10 @@ import { appConfig, databaseConfig, solanaConfig, relayerConfig } from './config
     DatabaseModule,
     HealthModule,
     MarketModule,
+    OrdersModule,
     QuotesModule,
-    // Still to come — see docs/ARCHITECTURE.md: OrdersModule, TxBuilderModule,
-    // PythModule, NoncesModule, RelayerModule, VaultsModule.
+    // Still to come — see docs/ARCHITECTURE.md: PythModule, NoncesModule,
+    // RelayerModule (co-signing and broadcast), VaultsModule.
   ],
   controllers: [AppController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

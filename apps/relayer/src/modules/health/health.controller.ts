@@ -25,11 +25,13 @@ export class HealthController {
       .catch(() => 'down' as const);
 
     const relayerKey = this.config.get<string>('relayer.secretKey') ? 'set' : 'missing';
+    const relayerPublicKey = this.config.get<string>('relayer.publicKey') || null;
     const pythToken = this.config.get<string>('relayer.pythProToken') ? 'set' : 'missing';
 
     const missing = [
       database === 'down' && 'database',
       relayerKey === 'missing' && 'relayer key: cannot co-sign or broadcast',
+      !this.config.get<string>('relayer.publicKey') && 'relayer public key: cannot build orders',
       pythToken === 'missing' && 'pyth token: prices cannot be attested',
       !VERIFIER_IMPLEMENTED && 'pyth verifier: an attestation cannot be checked',
     ].filter(Boolean);
@@ -39,6 +41,7 @@ export class HealthController {
       cluster: this.config.get<string>('solana.cluster'),
       database,
       relayerKey,
+      relayerPublicKey,
       pythToken,
       missing,
     };

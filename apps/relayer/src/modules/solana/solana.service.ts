@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AddressLookupTableAccount, Connection, PublicKey } from '@solana/web3.js';
 
@@ -22,6 +22,15 @@ export class SolanaService {
     return this.connection;
   }
 
+  /** The endpoint's host, for error messages. Never the key in the query. */
+  private get endpointName(): string {
+    try {
+      return new URL(this.connection.rpcEndpoint).host;
+    } catch {
+      return 'the configured RPC';
+    }
+  }
+
   /**
    * Resolves address lookup tables by address.
    *
@@ -35,9 +44,20 @@ export class SolanaService {
     const missing = addresses.filter((address) => !this.lookupTables.has(address));
 
     if (missing.length > 0) {
-      const accounts = await this.connection.getMultipleAccountsInfo(
-        missing.map((address) => new PublicKey(address)),
-      );
+      let accounts;
+      try {
+        accounts = await this.connection.getMultipleAccountsInfo(
+          missing.map((address) => new PublicKey(address)),
+        );
+      } catch (err) {
+        // An unconfigured RPC fails here, and the message it produces on its
+        // own — "401 Unauthorized: missing api key" surfacing as a 500 — says
+        // nothing about what to do next.
+        throw new ServiceUnavailableException(
+          `Cannot read address lookup tables from ${this.endpointName}: ${(err as Error).message}. ` +
+            'Set SOLANA_RPC_URL to a working endpoint.',
+        );
+      }
 
       missing.forEach((address, i) => {
         const account = accounts[i];
