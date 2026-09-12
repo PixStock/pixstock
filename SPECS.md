@@ -118,7 +118,7 @@ cartes empilées, le widget d'échange devient un panneau ancré en bas d'écran
 | Widget d'échange, achat/vente en un clic (`EF-34` à `EF-36`) | ❌ pas commencé |
 | Tableau de bord d'audience émetteur (`EF-39`, `EF-40`) | ❌ pas commencé |
 | Connexion par portefeuille (`EF-26`) | ❌ pas commencé |
-| Internationalisation FR/EN (`ENF-25`) | ❌ pas commencé (anglais uniquement) |
+| Internationalisation | 🚫 hors périmètre — le site est en anglais uniquement |
 
 Le détail complet des exigences fonctionnelles (`EF-01` à `EF-44`) est au CDC
 `§6`. Tout ce qui touche la mise, la réputation et la résolution (`EF-10` et
@@ -159,7 +159,7 @@ WebSocket : `token:{mint}:price`, `token:{mint}:trades`, `token:{mint}:chat`,
 | `ENF-06` | 800 000 pages indexables sans dégradation du budget d'exploration |
 | `ENF-07` | Conformité WCAG 2.2 niveau AA sur les parcours de consultation, de mise et d'échange |
 | `ENF-08` | Aucune information portée par la couleur seule |
-| `ENF-25` | Interface externalisée en fichiers de traduction : FR/EN au Lot 1, zh/ko au Lot 3 |
+| `ENF-25` | ~~Interface multilingue~~ — abandonné : PixStock est en anglais uniquement |
 
 ## Roadmap — ce que le frontend livre par lot
 
@@ -167,7 +167,7 @@ WebSocket : `token:{mint}:price`, `token:{mint}:trades`, `token:{mint}:chat`,
 |---|---|---|
 | Lot 1 | 10 sem. | Annuaire, pages token, classements non stakés, panneau de sécurité, messagerie, widget d'échange, tableau de bord émetteur, connexion portefeuille |
 | Lot 2 | 14 sem. (+ 4 audit) | Bloc d'état du round, ouverture de position Boost avec acquittement du barème, verdict, leaderboard, profil de curateur, back-office |
-| Lot 3 | 12 sem. | Ouverture de position Challenge, bandeau de contestation, copie de position (signature individuelle, jamais de délégation), i18n zh/ko |
+| Lot 3 | 12 sem. | Ouverture de position Challenge, bandeau de contestation, copie de position (signature individuelle, jamais de délégation) |
 
 Détail complet, gates et indicateurs de succès : voir la page `/roadmap` de ce
 site (déjà à jour avec le CDC `§1.5` et `§15`), ou `../pixstock-backend/SPECS.md`.

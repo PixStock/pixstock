@@ -6,28 +6,19 @@ import { SiteScript } from "@/components/SiteScript";
 import { HeroCanvas } from "@/components/HeroCanvas";
 import { PlatformMarks } from "@/components/PlatformMarks";
 import { ProblemCarousel } from "@/components/ProblemCarousel";
-import { hasLocale, locales } from "@/i18n/config";
-import { getDictionary } from "@/i18n/getDictionary";
-import { localeHref } from "@/i18n/paths";
-import { notFound } from "next/navigation";
+import { content } from "@/content/site";
 
-export function generateStaticParams() {
-  return locales.map((locale) => ({ locale }));
-}
-
-export async function generateMetadata({ params }: PageProps<"/[locale]">): Promise<Metadata> {
-  const { locale } = await params;
-  if (!hasLocale(locale)) notFound();
-  const dict = await getDictionary(locale);
+export function generateMetadata(): Metadata {
+  const dict = content;
 
   return {
     title: dict.home.meta.title,
     description: dict.home.meta.description,
-    alternates: { canonical: localeHref(locale, "/") },
+    alternates: { canonical: "/" },
     openGraph: {
       title: dict.home.meta.title,
       description: dict.home.meta.description,
-      url: localeHref(locale, "/"),
+      url: "/",
     },
     twitter: {
       title: dict.home.meta.title,
@@ -36,17 +27,14 @@ export async function generateMetadata({ params }: PageProps<"/[locale]">): Prom
   };
 }
 
-export default async function Home({ params }: PageProps<"/[locale]">) {
-  const { locale } = await params;
-  if (!hasLocale(locale)) notFound();
-  const dict = await getDictionary(locale);
+export default function Home() {
+  const dict = content;
   const home = dict.home;
-  const href = (path: string) => localeHref(locale, path);
 
   return (
     <>
       <SiteScript a11y={dict.common} />
-      <Header locale={locale} dict={dict} dark />
+      <Header dict={dict} dark />
 
       <main id="main">
         <div id="top" />
@@ -144,7 +132,7 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
             <p className="note appear" style={{ marginTop: 34 }}>
               {home.mechanicSection.note}
             </p>
-            <Link className="more appear" href={href("/mechanic")}>
+            <Link className="more appear" href="/mechanic">
               {home.mechanicSection.more}<i>&rarr;</i>
             </Link>
           </div>
@@ -174,7 +162,7 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
                 ))}
               </div>
             </div>
-            <Link className="more appear" href={href("/mechanic#resolution")}>
+            <Link className="more appear" href="/mechanic#resolution">
               {home.round.more}<i>&rarr;</i>
             </Link>
           </div>
@@ -193,7 +181,7 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
                 </details>
               ))}
             </div>
-            <Link className="more appear" href={href("/faq")}>
+            <Link className="more appear" href="/faq">
               {home.objections.more}<i>&rarr;</i>
             </Link>
           </div>
@@ -218,7 +206,7 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
         </section>
       </main>
 
-      <Footer locale={locale} dict={dict} />
+      <Footer dict={dict} />
     </>
   );
 }

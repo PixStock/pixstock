@@ -1026,32 +1026,6 @@ html:not(.js-anim) .wordmark .rise { transform: none; opacity: 1; }
 :root.light .theme .sun { display: block; }
 :root.light .theme .moon { display: none; }
 
-/* ---------------------------------------------------------- locale switch */
-.locale-switch {
-  display: inline-flex;
-  flex: none;
-  border: 1px solid var(--rule);
-  border-radius: 999px;
-  padding: 3px;
-  gap: 2px;
-}
-.locale-switch-item {
-  appearance: none;
-  border: none;
-  background: none;
-  color: var(--ink-3);
-  font-family: var(--ui);
-  font-size: 11.5px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  padding: 5px 10px;
-  border-radius: 999px;
-  cursor: pointer;
-  transition: background 0.2s var(--ease-io), color 0.2s var(--ease-io);
-}
-.locale-switch-item:hover { color: var(--ink); }
-.locale-switch-item[aria-current="true"] { background: var(--ink); color: var(--ground); }
-
 /* --------------------------------------------------------------- severity */
 .sev--1, .sev--2 { color: var(--warn); }
 .sev--3 { color: var(--crit); }

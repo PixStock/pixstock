@@ -69,8 +69,11 @@ streaming ou des route handlers, lire le guide correspondant dans
   côté architecture cible (`§8.1`) pour les chandeliers de la page token
   (`EF-07`) — pas installé.
 - **Aucun widget d'échange (Jupiter).** `EF-34` à `EF-36`, Lot 1.
-- **Aucune internationalisation.** Le site est en anglais uniquement, sans
-  fichiers de traduction externalisés. `ENF-25` exige FR/EN dès le Lot 1.
+- **Pas d'internationalisation — et c'est volontaire.** Le site est en
+  anglais uniquement. Tout le contenu vit dans `content/site.json` (source
+  unique, importée via `content/site.ts`). Ne pas réintroduire de routes
+  `[locale]`, de middleware de négociation de langue ni de sélecteur de
+  langue.
 - **Aucun test.** Pas de Jest, pas de Playwright, pas de test d'accessibilité
   automatisé — à mettre en place avant la première page qui manipule un
   compte ou une mise (voir les exigences de recette `ENF-07` et le chapitre

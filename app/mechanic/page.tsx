@@ -1,49 +1,37 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { SiteScript } from "@/components/SiteScript";
 import { ReputationChart } from "@/components/ReputationChart";
-import { hasLocale, locales } from "@/i18n/config";
-import { getDictionary } from "@/i18n/getDictionary";
-import { localeHref } from "@/i18n/paths";
+import { content } from "@/content/site";
 
-export function generateStaticParams() {
-  return locales.map((locale) => ({ locale }));
-}
-
-export async function generateMetadata({ params }: PageProps<"/[locale]/mechanic">): Promise<Metadata> {
-  const { locale } = await params;
-  if (!hasLocale(locale)) notFound();
-  const dict = await getDictionary(locale);
+export function generateMetadata(): Metadata {
+  const dict = content;
   const m = dict.mechanic.meta;
 
   return {
     title: m.title,
     description: m.description,
-    alternates: { canonical: localeHref(locale, "/mechanic") },
+    alternates: { canonical: "/mechanic" },
     openGraph: {
       title: m.ogTitle,
       description: m.description,
-      url: localeHref(locale, "/mechanic"),
+      url: "/mechanic",
     },
   };
 }
 
-export default async function MechanicPage({ params }: PageProps<"/[locale]/mechanic">) {
-  const { locale } = await params;
-  if (!hasLocale(locale)) notFound();
-  const dict = await getDictionary(locale);
+export default function MechanicPage() {
+  const dict = content;
   const mechanic = dict.mechanic;
-  const href = (path: string) => localeHref(locale, path);
 
   const breadcrumbJsonLd = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: dict.site.siteName, item: `https://pixstock.xyz${href("/")}` },
-      { "@type": "ListItem", position: 2, name: mechanic.breadcrumbName, item: `https://pixstock.xyz${href("/mechanic")}` },
+      { "@type": "ListItem", position: 1, name: dict.site.siteName, item: `https://pixstock.xyz/` },
+      { "@type": "ListItem", position: 2, name: mechanic.breadcrumbName, item: `https://pixstock.xyz/mechanic` },
     ],
   };
 
@@ -51,7 +39,7 @@ export default async function MechanicPage({ params }: PageProps<"/[locale]/mech
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
       <SiteScript a11y={dict.common} />
-      <Header locale={locale} dict={dict} current="mechanic" />
+      <Header dict={dict} current="mechanic" />
 
       <main id="main">
         <div className="head-spacer" id="head-spacer" />
@@ -247,11 +235,11 @@ export default async function MechanicPage({ params }: PageProps<"/[locale]/mech
         <section className="band band--tight">
           <div className="shell">
             <div className="pager">
-              <Link href={href("/roadmap")}>
+              <Link href="/roadmap">
                 <span className="k">{mechanic.pager.next.label}</span><span className="t">{mechanic.pager.next.title}</span>
                 <span className="d">{mechanic.pager.next.desc}</span>
               </Link>
-              <Link href={href("/faq")}>
+              <Link href="/faq">
                 <span className="k">{mechanic.pager.also.label}</span><span className="t">{mechanic.pager.also.title}</span>
                 <span className="d">{mechanic.pager.also.desc}</span>
               </Link>
@@ -260,7 +248,7 @@ export default async function MechanicPage({ params }: PageProps<"/[locale]/mech
         </section>
       </main>
 
-      <Footer locale={locale} dict={dict} />
+      <Footer dict={dict} />
     </>
   );
 }

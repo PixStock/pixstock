@@ -1,10 +1,8 @@
 import Link from "next/link";
 import { Logo } from "./Logo";
-import { localeHref } from "@/i18n/paths";
-import type { Locale } from "@/i18n/config";
-import type { Dictionary } from "@/i18n/getDictionary";
+import type { Content } from "@/content/site";
 
-export function Footer({ locale, dict }: { locale: Locale; dict: Dictionary }) {
+export function Footer({ dict }: { dict: Content }) {
   const footer = dict.common.footer;
   const columns = [footer.columns.product, footer.columns.protocol, footer.columns.company];
 
@@ -13,7 +11,7 @@ export function Footer({ locale, dict }: { locale: Locale; dict: Dictionary }) {
       <div className="shell">
         <div className="foot-cols">
           <div>
-            <Link className="brand" href={localeHref(locale, "/")} style={{ marginBottom: 16 }}>
+            <Link className="brand" href="/" style={{ marginBottom: 16 }}>
               <Logo />
               <span className="brand-name">PixStock</span>
             </Link>
@@ -28,7 +26,7 @@ export function Footer({ locale, dict }: { locale: Locale; dict: Dictionary }) {
                     {link.external ? (
                       <a href={link.href}>{link.label}</a>
                     ) : (
-                      <Link href={localeHref(locale, link.href)}>{link.label}</Link>
+                      <Link href={link.href}>{link.label}</Link>
                     )}
                   </li>
                 ))}

@@ -39,6 +39,7 @@ app/
 ├── globals.css               Jetons de conception (thème clair/sombre, typo, composants CSS)
 ├── sitemap.ts, robots.ts       Route handlers Next
 components/                     Header, Footer, SiteScript (chrome interactif), HeroCanvas, ReputationChart...
+content/site.json                 Tout le texte du site, en anglais (importé via content/site.ts)
 ```
 
 À terme (voir `SPECS.md §Écrans cibles`), la structure suivra le découpage
@@ -59,6 +60,9 @@ n'existe encore.
 - Toute valeur numérique tirée du CDC (formule, barème, seuils, délais) doit
   rester identique au CDC et à `../pixstock-backend/SPECS.md` — une divergence
   est un bug, pas une variante créative.
+- **Le site est en anglais uniquement.** Pas de routes `[locale]`, pas de
+  middleware de langue, pas de sélecteur : le texte vient de
+  `content/site.json` via `import { content } from "@/content/site"`.
 - Nouvelles métadonnées de page : suivre le patron déjà en place
   (`Metadata` + JSON-LD `BreadcrumbList`, `openGraph`, `twitter`) plutôt que
   d'improviser une structure différente par page.

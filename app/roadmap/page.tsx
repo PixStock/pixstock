@@ -1,48 +1,36 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { SiteScript } from "@/components/SiteScript";
-import { hasLocale, locales } from "@/i18n/config";
-import { getDictionary } from "@/i18n/getDictionary";
-import { localeHref } from "@/i18n/paths";
+import { content } from "@/content/site";
 
-export function generateStaticParams() {
-  return locales.map((locale) => ({ locale }));
-}
-
-export async function generateMetadata({ params }: PageProps<"/[locale]/roadmap">): Promise<Metadata> {
-  const { locale } = await params;
-  if (!hasLocale(locale)) notFound();
-  const dict = await getDictionary(locale);
+export function generateMetadata(): Metadata {
+  const dict = content;
   const m = dict.roadmap.meta;
 
   return {
     title: m.title,
     description: m.description,
-    alternates: { canonical: localeHref(locale, "/roadmap") },
+    alternates: { canonical: "/roadmap" },
     openGraph: {
       title: m.ogTitle,
       description: m.description,
-      url: localeHref(locale, "/roadmap"),
+      url: "/roadmap",
     },
   };
 }
 
-export default async function RoadmapPage({ params }: PageProps<"/[locale]/roadmap">) {
-  const { locale } = await params;
-  if (!hasLocale(locale)) notFound();
-  const dict = await getDictionary(locale);
+export default function RoadmapPage() {
+  const dict = content;
   const roadmap = dict.roadmap;
-  const href = (path: string) => localeHref(locale, path);
 
   const breadcrumbJsonLd = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: dict.site.siteName, item: `https://pixstock.xyz${href("/")}` },
-      { "@type": "ListItem", position: 2, name: roadmap.breadcrumbName, item: `https://pixstock.xyz${href("/roadmap")}` },
+      { "@type": "ListItem", position: 1, name: dict.site.siteName, item: `https://pixstock.xyz/` },
+      { "@type": "ListItem", position: 2, name: roadmap.breadcrumbName, item: `https://pixstock.xyz/roadmap` },
     ],
   };
 
@@ -50,7 +38,7 @@ export default async function RoadmapPage({ params }: PageProps<"/[locale]/roadm
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
       <SiteScript a11y={dict.common} />
-      <Header locale={locale} dict={dict} current="roadmap" />
+      <Header dict={dict} current="roadmap" />
 
       <main id="main">
         <div className="head-spacer" id="head-spacer" />
@@ -156,11 +144,11 @@ export default async function RoadmapPage({ params }: PageProps<"/[locale]/roadm
         <section className="band band--tight">
           <div className="shell">
             <div className="pager">
-              <Link href={href("/mechanic")}>
+              <Link href="/mechanic">
                 <span className="k">{roadmap.pager.back.label}</span><span className="t">{roadmap.pager.back.title}</span>
                 <span className="d">{roadmap.pager.back.desc}</span>
               </Link>
-              <Link href={href("/faq")}>
+              <Link href="/faq">
                 <span className="k">{roadmap.pager.also.label}</span><span className="t">{roadmap.pager.also.title}</span>
                 <span className="d">{roadmap.pager.also.desc}</span>
               </Link>
@@ -169,7 +157,7 @@ export default async function RoadmapPage({ params }: PageProps<"/[locale]/roadm
         </section>
       </main>
 
-      <Footer locale={locale} dict={dict} />
+      <Footer dict={dict} />
     </>
   );
 }

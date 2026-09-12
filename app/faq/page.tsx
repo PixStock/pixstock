@@ -1,41 +1,29 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { SiteScript } from "@/components/SiteScript";
-import { hasLocale, locales } from "@/i18n/config";
-import { getDictionary } from "@/i18n/getDictionary";
-import { localeHref } from "@/i18n/paths";
+import { content } from "@/content/site";
 
-export function generateStaticParams() {
-  return locales.map((locale) => ({ locale }));
-}
-
-export async function generateMetadata({ params }: PageProps<"/[locale]/faq">): Promise<Metadata> {
-  const { locale } = await params;
-  if (!hasLocale(locale)) notFound();
-  const dict = await getDictionary(locale);
+export function generateMetadata(): Metadata {
+  const dict = content;
   const m = dict.faq.meta;
 
   return {
     title: m.title,
     description: m.description,
-    alternates: { canonical: localeHref(locale, "/faq") },
+    alternates: { canonical: "/faq" },
     openGraph: {
       title: m.ogTitle,
       description: m.description,
-      url: localeHref(locale, "/faq"),
+      url: "/faq",
     },
   };
 }
 
-export default async function FaqPage({ params }: PageProps<"/[locale]/faq">) {
-  const { locale } = await params;
-  if (!hasLocale(locale)) notFound();
-  const dict = await getDictionary(locale);
+export default function FaqPage() {
+  const dict = content;
   const faq = dict.faq;
-  const href = (path: string) => localeHref(locale, path);
 
   const faqJsonLd = {
     "@context": "https://schema.org",
@@ -51,8 +39,8 @@ export default async function FaqPage({ params }: PageProps<"/[locale]/faq">) {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: dict.site.siteName, item: `https://pixstock.xyz${href("/")}` },
-      { "@type": "ListItem", position: 2, name: faq.breadcrumbName, item: `https://pixstock.xyz${href("/faq")}` },
+      { "@type": "ListItem", position: 1, name: dict.site.siteName, item: `https://pixstock.xyz/` },
+      { "@type": "ListItem", position: 2, name: faq.breadcrumbName, item: `https://pixstock.xyz/faq` },
     ],
   };
 
@@ -61,7 +49,7 @@ export default async function FaqPage({ params }: PageProps<"/[locale]/faq">) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
       <SiteScript a11y={dict.common} />
-      <Header locale={locale} dict={dict} current="faq" />
+      <Header dict={dict} current="faq" />
 
       <main id="main">
         <div className="head-spacer" id="head-spacer" />
@@ -98,11 +86,11 @@ export default async function FaqPage({ params }: PageProps<"/[locale]/faq">) {
         <section className="band band--tight">
           <div className="shell">
             <div className="pager">
-              <Link href={href("/mechanic")}>
+              <Link href="/mechanic">
                 <span className="k">{faq.pager.back.label}</span><span className="t">{faq.pager.back.title}</span>
                 <span className="d">{faq.pager.back.desc}</span>
               </Link>
-              <Link href={href("/roadmap")}>
+              <Link href="/roadmap">
                 <span className="k">{faq.pager.also.label}</span><span className="t">{faq.pager.also.title}</span>
                 <span className="d">{faq.pager.also.desc}</span>
               </Link>
@@ -111,7 +99,7 @@ export default async function FaqPage({ params }: PageProps<"/[locale]/faq">) {
         </section>
       </main>
 
-      <Footer locale={locale} dict={dict} />
+      <Footer dict={dict} />
     </>
   );
 }

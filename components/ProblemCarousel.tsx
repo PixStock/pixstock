@@ -1,11 +1,11 @@
-import type { Dictionary } from "@/i18n/getDictionary";
+import type { Content } from "@/content/site";
 
 export function ProblemCarousel({
   dict,
   previous,
   next,
 }: {
-  dict: Dictionary["home"]["problem"];
+  dict: Content["home"]["problem"];
   previous: string;
   next: string;
 }) {
