@@ -19,14 +19,38 @@
     "nav": {
       "protocol": "Protocol",
       "protocolMenu": [
-        { "href": "/protocol", "title": "The optical channel", "desc": "AGQP: how an order crosses the air gap as animated QR." },
-        { "href": "/protocol#policy", "title": "Signing policy", "desc": "The ten rules the phone applies before it signs." },
-        { "href": "/protocol#pyth", "title": "Offline price guard", "desc": "How a signed Pyth message is checked with no network." },
-        { "href": "/protocol#paper-vault", "title": "Paper-Vault", "desc": "An encrypted key on paper, restorable on any offline device." }
+        {
+          "href": "/protocol",
+          "title": "The optical channel",
+          "desc": "AGQP: how an order crosses the air gap as animated QR."
+        },
+        {
+          "href": "/protocol#policy",
+          "title": "Signing policy",
+          "desc": "The ten rules the phone applies before it signs."
+        },
+        {
+          "href": "/protocol#pyth",
+          "title": "Offline price guard",
+          "desc": "How a signed Pyth message is checked with no network."
+        },
+        {
+          "href": "/protocol#paper-vault",
+          "title": "Paper-Vault",
+          "desc": "An encrypted key on paper, restorable on any offline device."
+        }
       ],
       "links": [
-        { "key": "trade", "href": "/trade", "label": "Trade" },
-        { "key": "vault", "href": "/vault", "label": "Vault" }
+        {
+          "key": "trade",
+          "href": "/trade",
+          "label": "Trade"
+        },
+        {
+          "key": "vault",
+          "href": "/vault",
+          "label": "Vault"
+        }
       ]
     },
     "footer": {
@@ -35,28 +59,76 @@
         "product": {
           "title": "Product",
           "links": [
-            { "href": "/trade", "label": "Trade a stock", "external": false },
-            { "href": "/basket", "label": "Build a basket", "external": false },
-            { "href": "/vault", "label": "Pair a vault", "external": false },
-            { "href": "/#flow", "label": "How it works", "external": false }
+            {
+              "href": "/trade",
+              "label": "Trade a stock",
+              "external": false
+            },
+            {
+              "href": "/basket",
+              "label": "Build a basket",
+              "external": false
+            },
+            {
+              "href": "/vault",
+              "label": "Pair a vault",
+              "external": false
+            },
+            {
+              "href": "/#flow",
+              "label": "How it works",
+              "external": false
+            }
           ]
         },
         "protocol": {
           "title": "Protocol",
           "links": [
-            { "href": "/protocol", "label": "AGQP spec", "external": false },
-            { "href": "/protocol#policy", "label": "Signing policy", "external": false },
-            { "href": "/protocol#pyth", "label": "Offline price guard", "external": false },
-            { "href": "https://github.com/PixStock/pixstock/blob/main/docs/THREAT-MODEL.md", "label": "Threat model", "external": true }
+            {
+              "href": "/protocol",
+              "label": "AGQP spec",
+              "external": false
+            },
+            {
+              "href": "/protocol#policy",
+              "label": "Signing policy",
+              "external": false
+            },
+            {
+              "href": "/protocol#pyth",
+              "label": "Offline price guard",
+              "external": false
+            },
+            {
+              "href": "https://github.com/PixStock/pixstock/blob/main/docs/THREAT-MODEL.md",
+              "label": "Threat model",
+              "external": true
+            }
           ]
         },
         "company": {
           "title": "Project",
           "links": [
-            { "href": "https://github.com/PixStock/pixstock", "label": "Source on GitHub", "external": true },
-            { "href": "/#try", "label": "Try it with your phone", "external": false },
-            { "href": "mailto:hello@pixstock.xyz", "label": "Contact", "external": true },
-            { "href": "/legal", "label": "Legal", "external": false }
+            {
+              "href": "https://github.com/PixStock/pixstock",
+              "label": "Source on GitHub",
+              "external": true
+            },
+            {
+              "href": "/#try",
+              "label": "Try it with your phone",
+              "external": false
+            },
+            {
+              "href": "mailto:hello@pixstock.xyz",
+              "label": "Contact",
+              "external": true
+            },
+            {
+              "href": "/legal",
+              "label": "Legal",
+              "external": false
+            }
           ]
         }
       },
@@ -83,10 +155,22 @@
       "ctaSeeMechanic": "See how it works",
       "ctaRequestAccess": "Try it with your phone",
       "stats": [
-        { "value": "0 SOL", "label": "Held by the signing device" },
-        { "value": "943 B", "label": "Three stocks, one signature" },
-        { "value": "± 1 %", "label": "Max drift from the signed price" },
-        { "value": "0", "label": "Network calls in the vault app" }
+        {
+          "value": "0 SOL",
+          "label": "Held by the signing device"
+        },
+        {
+          "value": "943 B",
+          "label": "Three stocks, one signature"
+        },
+        {
+          "value": "± 1 %",
+          "label": "Max drift from the signed price"
+        },
+        {
+          "value": "0",
+          "label": "Network calls in the vault app"
+        }
       ]
     },
     "statement": "The only signer that checks the market price before it signs.",
@@ -179,10 +263,22 @@
         "title": "Three stocks, one signature",
         "claim": "An equal-weight basket of AAPLx, NVDAx and MSFTx routes through Jupiter inside a single transaction of 943 bytes — measured, not estimated — and crosses the air gap in five frames.",
         "kv": [
-          { "k": "Legs in one message", "v": "3" },
-          { "k": "Transaction size", "v": "943 B" },
-          { "k": "Frames, at 8 fps", "v": "5" },
-          { "k": "Signatures asked of you", "v": "1" }
+          {
+            "k": "Legs in one message",
+            "v": "3"
+          },
+          {
+            "k": "Transaction size",
+            "v": "943 B"
+          },
+          {
+            "k": "Frames, at 8 fps",
+            "v": "5"
+          },
+          {
+            "k": "Signatures asked of you",
+            "v": "1"
+          }
         ],
         "note": "Versioned transactions and address lookup tables keep the whole allocation inside one message, so one scan and one approval settle all three positions."
       },
@@ -191,10 +287,22 @@
         "title": "A vault you can print",
         "claim": "The key is sealed with AES-GCM-256 behind an Argon2id password and exported as a QR you print on one sheet. Restore it on any offline device; nothing is ever stored with us.",
         "kv": [
-          { "k": "Cipher", "v": "AES-256-GCM" },
-          { "k": "Key derivation", "v": "Argon2id" },
-          { "k": "Backup medium", "v": "1 sheet" },
-          { "k": "Copies we hold", "v": "0" }
+          {
+            "k": "Cipher",
+            "v": "AES-256-GCM"
+          },
+          {
+            "k": "Key derivation",
+            "v": "Argon2id"
+          },
+          {
+            "k": "Backup medium",
+            "v": "1 sheet"
+          },
+          {
+            "k": "Copies we hold",
+            "v": "0"
+          }
         ],
         "note": "The decrypted key exists only in memory, and is zeroed as soon as the signature is produced. The encrypted blob never leaves the device except as that sheet of paper."
       }
@@ -204,12 +312,32 @@
       "title": "Four steps. The key crosses nothing but light.",
       "lede": "The browser never sees a key, the phone never sees a network, and the two only ever exchange pictures.",
       "steps": [
-        { "t": "01", "n": "Build", "d": "Pick a stock or a basket on the web app. The order and its signed Pyth price are packed into AGQP frames." },
-        { "t": "02", "n": "Show", "d": "The browser plays the frames as an animated QR at 8 fps. The phone reads them with its camera, still in airplane mode." },
-        { "t": "03", "n": "Verify", "d": "The phone reassembles the order, checks the attested price and the ten rules, and prints the ticket for you to read." },
-        { "t": "04", "n": "Settle", "d": "Biometric approval, signature back by QR to the webcam. The relayer pays the fee and broadcasts. Solscan link in about a second." }
+        {
+          "t": "01",
+          "n": "Build",
+          "d": "Pick a stock or a basket on the web app. The order and its signed Pyth price are packed into AGQP frames."
+        },
+        {
+          "t": "02",
+          "n": "Show",
+          "d": "The browser plays the frames as an animated QR at 8 fps. The phone reads them with its camera, still in airplane mode."
+        },
+        {
+          "t": "03",
+          "n": "Verify",
+          "d": "The phone reassembles the order, checks the attested price and the ten rules, and prints the ticket for you to read."
+        },
+        {
+          "t": "04",
+          "n": "Settle",
+          "d": "Biometric approval, signature back by QR to the webcam. The relayer pays the fee and broadcasts. Solscan link in about a second."
+        }
       ],
-      "phases": ["Online · no keys", "Air-gapped · the key never leaves the phone", "Relayer"],
+      "phases": [
+        "Online · no keys",
+        "Air-gapped · the key never leaves the phone",
+        "Relayer"
+      ],
       "more": "Read the protocol spec"
     },
     "objections": {
@@ -243,5 +371,227 @@
       "requestAccess": "Open the vault",
       "readMechanic": "Read the code"
     }
+  },
+  "protocol": {
+    "meta": {
+      "title": "The protocol",
+      "ogTitle": "PixStock | AGQP, the signing policy and the offline price guard",
+      "description": "How an order crosses an air gap as animated QR codes, what the phone checks before it signs, and why a corrupted browser cannot lie to it about the price."
+    },
+    "breadcrumbName": "Protocol",
+    "pageHead": {
+      "eyebrow": "AGQP v1",
+      "title": "How an order crosses the gap",
+      "lede": "No cable, no radio, no pairing. A laptop shows animated QR codes, a phone reads them with its camera, and sixty-four bytes of signature come back the same way."
+    },
+    "channel": {
+      "title": "The optical channel",
+      "body": [
+        "A Solana transaction, the price attestation that guards it and a readable description of the order add up to more than one QR code can hold. AGQP splits them into indexed frames that cycle on screen forever, so the phone can join the sequence at any point and a frame it missed comes back on the next pass. Nothing is timed and nothing is clicked.",
+        "Each frame carries a CRC of its own chunk. QR codes already carry Reed-Solomon correction, so a frame either decodes or it does not; the CRC covers what happens after, when the bytes are reassembled. A corrupted frame is dropped in silence and the cycle reissues it.",
+        "Frames are Base45, the encoding behind EU digital certificates. The browser API that reads a QR hands back a string, not bytes, so raw binary would be mangled in transit. Base45 costs about three percent over raw bytes, against thirty-three for Base64, and keeps every frame inside the QR alphanumeric character set — which is what keeps the codes small enough to read across a desk."
+      ],
+      "headers": {
+        "field": "Field",
+        "width": "Characters",
+        "role": "Role"
+      },
+      "fields": {
+        "magic": "Protocol marker. Anything else is ignored without a sound.",
+        "sid": "Session id. The phone locks onto the first valid frame and ignores every other session after that.",
+        "counters": "Position and count, up to {max} frames.",
+        "crc": "Integrity of this chunk, uppercase hex.",
+        "chunk": "A slice of the payload, Base45."
+      },
+      "sizes": "The header is {header} characters. The frame size is adjustable — {s}, {m} or {l} bytes per frame — because screen contrast, camera quality and distance all move the optimum, and the right setting is the one measured on the phone in the room. At {fps} frames per second, a five-frame order cycles in well under a second."
+    },
+    "policy": {
+      "title": "What the phone checks before it signs",
+      "body": [
+        "A hardware wallet that shows you a hash is asking you to trust the screen that produced it. The phone decompiles the transaction itself: it reads the accounts, names the programs, pulls the amounts out of the swap instruction and derives your own token accounts to confirm the output is really coming to you.",
+        "The order description that travels alongside is never the source of truth. Every figure shown to you comes from the decompiled instructions; the description is only ever compared against them, and a disagreement is a refusal, not a warning."
+      ],
+      "headers": {
+        "rule": "Rule",
+        "statement": "What it requires",
+        "state": "State"
+      },
+      "enforced": "Enforced",
+      "notEnforced": "Not yet",
+      "honesty": "A rule that is not implemented is not a rule that passes. While {unevaluated} is unenforced the policy refuses to return a clean verdict at all, and says which rule is missing. A green tick that skipped a check is worse than no tick.",
+      "cap": "Slippage is capped at {cap} basis points in the phone itself, whatever an order asks for."
+    },
+    "pyth": {
+      "title": "The offline price guard",
+      "body": [
+        "This is the part no hardware wallet does today. A signed price message from Pyth travels with the order, and the phone verifies its Ed25519 signature against trusted keys it already holds — with no network, in a few milliseconds.",
+        "If the order's implied price drifts more than one percent from the signed one, the phone refuses to sign and says why. A browser that has been tampered with can show you any number it likes; it cannot forge a signature from an oracle whose keys are already on your phone.",
+        "The guard degrades honestly. If no attested price is available, the order ticket says the price is unattested rather than quietly signing anyway."
+      ]
+    },
+    "paperVault": {
+      "title": "Paper-Vault",
+      "body": [
+        "Your key is encrypted with AES-GCM-256 under a key derived from your master password with Argon2id, and the whole record — parameters, salt, nonce, ciphertext, public key — fits in a single QR code you print on one sheet.",
+        "The cost parameters are stored inside the record, so raising them later never orphans a backup printed today. Paper alone cannot spend: without the password it is an encrypted blob, and nothing about it ever touches a cloud."
+      ]
+    },
+    "source": {
+      "text": "Every number on this page is read from the packages that implement it, so it cannot drift. The full specification lives in the repository:",
+      "label": "docs/AGQP-SPEC.md",
+      "href": "https://github.com/PixStock/pixstock/blob/main/docs/AGQP-SPEC.md"
+    }
+  },
+  "legal": {
+    "meta": {
+      "title": "Legal",
+      "ogTitle": "PixStock | Legal",
+      "description": "Eligibility restrictions on tokenized stocks, the absence of investment advice, and what this demonstration is and is not."
+    },
+    "breadcrumbName": "Legal",
+    "pageHead": {
+      "eyebrow": "Legal",
+      "title": "What this is, and who it is not for",
+      "lede": "Read this before connecting a vault or sending an order."
+    },
+    "sections": [
+      {
+        "title": "Tokenized stocks are not available everywhere",
+        "body": [
+          "The xStocks referenced here are issued by Backed Finance. They are not offered to US, UK, Canadian or Australian persons, and eligibility rules elsewhere vary by jurisdiction. PixStock does not issue, custody or redeem them, and being able to load this page is not a statement that you are eligible to hold them.",
+          "Determining your own eligibility is your responsibility. If you are unsure, do not proceed."
+        ]
+      },
+      {
+        "title": "Nothing here is investment advice",
+        "body": [
+          "PixStock is signing infrastructure. It does not recommend assets, it does not construct portfolios for you, and the basket presets are illustrations of a mechanism, not suggestions. No part of this site is a recommendation to buy, sell or hold anything.",
+          "Prices shown come from third-party sources. Tokenized equities can lose value, can trade away from the underlying, and can become illiquid."
+        ]
+      },
+      {
+        "title": "This is a demonstration",
+        "body": [
+          "PixStock was built for the Stocklana hackathon and is early software. It has not been audited. Parts of the signing policy are not yet enforced, and the interface says so where that is the case.",
+          "Use amounts you are willing to lose entirely, and prefer a devnet vault for anything exploratory."
+        ]
+      },
+      {
+        "title": "Keys and custody",
+        "body": [
+          "PixStock never transmits, stores or has access to your private key. It is generated on your device, encrypted with your master password, and stays there. Nobody — including us — can recover it if you lose that password.",
+          "No PixStock contributor or process will ever ask for your seed phrase, your master password or your private key. Any message that does is fraudulent."
+        ]
+      },
+      {
+        "title": "Open source, no warranty",
+        "body": [
+          "The source is published under the MIT licence. It is provided as is, without warranty of any kind, and the authors accept no liability for any claim, damage or loss arising from its use."
+        ]
+      }
+    ],
+    "security": {
+      "text": "Found a vulnerability? Do not open a public issue —",
+      "label": "report it privately",
+      "href": "https://github.com/PixStock/pixstock/blob/main/SECURITY.md"
+    }
+  },
+  "trade": {
+    "meta": {
+      "title": "Trade",
+      "ogTitle": "PixStock | Trade a tokenized stock",
+      "description": "Pick a tokenized stock, set an amount, and send the order to a phone that has never been online."
+    },
+    "breadcrumbName": "Trade",
+    "pageHead": {
+      "eyebrow": "Trade",
+      "title": "Buy a tokenized stock",
+      "lede": "Choose an asset and an amount. The order is built here, signed on a device that has no network, and broadcast from here."
+    },
+    "form": {
+      "assetLabel": "Asset",
+      "amountLabel": "Amount to spend",
+      "amountUnit": "USDC",
+      "sideBuy": "Buy",
+      "sideSell": "Sell",
+      "submit": "Send to vault",
+      "assetHeaders": {
+        "symbol": "Symbol",
+        "name": "Name",
+        "mint": "Mint",
+        "program": "Token program",
+        "feed": "Pyth feed"
+      }
+    },
+    "pending": {
+      "title": "No live quote yet",
+      "body": "Routing and pricing come from the relayer, which is not deployed. The asset table below is real — mints, decimals, token program and Pyth feed ids are the mainnet values the vault will verify against. What is missing is the quote, and this page will not invent one."
+    },
+    "channel": {
+      "title": "What crosses the gap",
+      "body": "An order of this shape encodes into the frames below. You can watch the channel run right now with a synthetic payload of the same size.",
+      "framesLabel": "frames at",
+      "perFrame": "bytes per frame",
+      "tryLabel": "Open the optical channel"
+    }
+  },
+  "basket": {
+    "meta": {
+      "title": "Baskets",
+      "ogTitle": "PixStock | Build a basket",
+      "description": "Several tokenized stocks, one amount, one transaction, one signature."
+    },
+    "breadcrumbName": "Baskets",
+    "pageHead": {
+      "eyebrow": "Index baskets",
+      "title": "Several stocks, one signature",
+      "lede": "A basket is several swaps stacked into a single Solana transaction. It crosses the gap once and is approved once — not once per line."
+    },
+    "presets": {
+      "label": "Start from",
+      "custom": "Custom"
+    },
+    "builder": {
+      "amountLabel": "Total to spend",
+      "amountUnit": "USDC",
+      "allocationLabel": "Allocation",
+      "totalLabel": "Total allocated",
+      "addLabel": "Add a line",
+      "removeLabel": "Remove",
+      "submit": "Send to vault",
+      "mustTotal": "Allocations must add up to 100%."
+    },
+    "pending": {
+      "title": "Sizing is real, quoting is not",
+      "body": "The per-line amounts below are computed from your allocation, and the frame count is what the optical channel would actually produce. The routes and prices come from the relayer, which is not deployed."
+    }
+  },
+  "vault": {
+    "meta": {
+      "title": "Your vault",
+      "ogTitle": "PixStock | Pair a vault",
+      "description": "Pair an offline signer by showing its code to your webcam. Watch-only: this page never holds a key."
+    },
+    "breadcrumbName": "Vault",
+    "pageHead": {
+      "eyebrow": "Vault",
+      "title": "Pair your offline signer",
+      "lede": "Open the vault on a phone in airplane mode and show its pairing code to this webcam. This page learns a public key and nothing else."
+    },
+    "pairing": {
+      "title": "Pairing",
+      "body": "The vault displays a code holding its public key, a label and the network it is set to. Scanning it teaches this browser where to send orders and whose balances to show. It carries no secret, so a photograph of it is harmless.",
+      "scanLabel": "Scan with webcam",
+      "stopLabel": "Stop"
+    },
+    "pending": {
+      "title": "Pairing needs the payload layer",
+      "body": "The frame codec and the reassembler are built and tested; the structured payload that carries a pairing record is not. The scanner below runs, and reports what it reads, but cannot yet turn it into a paired vault."
+    },
+    "watchOnly": {
+      "title": "Watch-only, by construction",
+      "body": "Nothing on this page can move an asset. It shows balances and order history; every instruction that spends is signed on the phone, and the phone is the only thing that holds a key."
+    },
+    "noVault": "No vault paired yet."
   }
 }

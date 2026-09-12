@@ -84,8 +84,13 @@ export interface PolicyResult {
 }
 
 /** Implemented today. The rest are listed so nothing looks checked that is not. */
-const EVALUATED: PolicyRule[] = ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P9", "P10"];
-const UNEVALUATED: PolicyRule[] = ["P8"];
+export const EVALUATED_RULES: readonly PolicyRule[] = [
+  "P1", "P2", "P3", "P4", "P5", "P6", "P7", "P9", "P10",
+];
+export const UNEVALUATED_RULES: readonly PolicyRule[] = ["P8"];
+
+const EVALUATED = EVALUATED_RULES as PolicyRule[];
+const UNEVALUATED = UNEVALUATED_RULES as PolicyRule[];
 
 export interface PolicyInput {
   message: CompiledMessage;

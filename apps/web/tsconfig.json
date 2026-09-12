@@ -1,6 +1,8 @@
 {
   "compilerOptions": {
-    "target": "ES2017",
+    // ES2020 for BigInt: every Solana amount is a u64, so bigint literals
+    // turn up throughout. Well inside what any browser running React 19 supports.
+    "target": "ES2020",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
