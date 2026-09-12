@@ -1,124 +1,144 @@
-# PixStock — PixStock Frontend
+<div align="center">
 
-Site public pour PixStock — marché de curation décentralisé pour
-l'écosystème Solana : un classement de tokens (« Top Trending ») où la
-position se gagne avec du capital réel misé (Staked Ranking), pas avec du
-budget publicitaire.
+# PixStock
 
-Stack : Next.js (App Router) · React · TypeScript · Tailwind CSS
+**<!-- TODO: one-line pitch. What PixStock does, for whom, in under 15 words. -->**
 
-Voir aussi :
-- [`SPECS.md`](./SPECS.md) — résumé fonctionnel du CDC côté frontend (mécanique, écrans cibles, API consommée, lots)
-- [`RULES.md`](./RULES.md) — ce que l'interface doit afficher et ne jamais faire
-- [`SKILLS.md`](./SKILLS.md) — choix techniques et ce qui n'est pas encore implémenté
-- [`CLAUDE.md`](./CLAUDE.md) — conventions de développement
-- [`GIT.md`](./GIT.md) — conventions Git détaillées (branches, commits, PR)
-- [`../pixstock-backend/`](../pixstock-backend/) — API et services (même documentation en miroir)
-- [`../CDC-PixStock.pdf`](../CDC-PixStock.pdf) — cahier des charges, source de vérité
+[![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](./LICENSE)
+[![Built on Solana](https://img.shields.io/badge/Built%20on-Solana-14F195.svg)](https://solana.com)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black.svg)](https://nextjs.org)
 
-> **État actuel** : site vitrine statique. Quatre pages (`/`, `/mechanic`,
-> `/roadmap`, `/faq`) qui présentent la mécanique et la feuille de route ;
-> aucune fonctionnalité applicative (compte, portefeuille, mise, données de
-> marché) n'est encore implémentée. Voir `SPECS.md` pour le périmètre cible
-> du Lot 1 et `SKILLS.md` pour l'état exact.
+[Live demo](#) · [Video](#) · [Backend repo](https://github.com/PixStock/pixstock-backend)
+
+</div>
 
 ---
 
-## Prérequis
+## The problem
 
-| Outil | Version minimale |
+<!-- TODO — 3 to 5 sentences, concrete and specific.
+     What is broken today? Who is hurt by it? Why does it matter now?
+     Judges read this paragraph first and decide whether to keep reading. -->
+
+## What we built
+
+<!-- TODO — what the product actually does, in plain language.
+     Lead with the user-visible outcome, not the architecture. -->
+
+## How it works
+
+<!-- TODO — the mechanism, in 3 to 5 bullet points or a short diagram.
+     This is where the technical judges look for substance:
+     what is on-chain, what is off-chain, and why that split. -->
+
+## Demo
+
+| | |
 |---|---|
-| Node.js | 20.x |
-| npm | 10.x |
+| Live app | <!-- TODO: URL --> |
+| Demo video | <!-- TODO: URL --> |
+| API | <!-- TODO: URL --> |
+| Network | <!-- TODO: devnet / mainnet-beta --> |
+
+<!-- TODO: 2-3 screenshots or a GIF. A jury that cannot run your project
+     still has to see it work. -->
 
 ---
 
-## Installation locale
+## Tech stack
+
+| Layer | Choice |
+|---|---|
+| Framework | Next.js 16 (App Router, Turbopack) |
+| UI | React 19, TypeScript strict |
+| Styling | Tailwind CSS v4 + design tokens in `app/globals.css` |
+| Content | Single English source in `content/site.json` |
+| Rendering | Fully static prerender — every route is `○ (Static)` |
+| API | [`pixstock-backend`](https://github.com/PixStock/pixstock-backend) (NestJS · Prisma · PostgreSQL) |
+
+## Quickstart
+
+Requires **Node.js 20+** and **npm 10+**.
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/PixStock/pixstock-frontend
 cd pixstock-frontend
 npm install
-cp .env.example .env   # rien à renseigner pour l'instant, voir SKILLS.md
+cp .env.example .env
 npm run dev
 ```
 
-Le site est disponible sur [http://localhost:3000](http://localhost:3000).
+The site runs at **http://localhost:3000**. No environment variable is
+required at this stage — `.env.example` is empty on purpose.
 
----
-
-## Commandes utiles
+### Commands
 
 ```bash
-npm run dev     # dev watch (Next.js)
-npm run build   # build de production
-npm run start   # sert le build compilé
-npm run lint    # ESLint (config eslint-config-next)
+npm run dev     # dev server (Turbopack)
+npm run build   # production build
+npm run start   # serve the production build
+npm run lint    # ESLint
 ```
 
----
-
-## Structure du projet
+## Project structure
 
 ```
 app/
-├── layout.tsx        # Layout racine : métadonnées globales, thème avant premier paint, JSON-LD Organization/WebSite
-├── page.tsx           # Accueil
-├── mechanic/page.tsx   # La mécanique : formule de poids, résolution, barème, réputation
-├── roadmap/page.tsx    # Feuille de route : lots, indicateurs de succès, conformité
-├── faq/page.tsx        # Objections, avec JSON-LD FAQPage
-├── globals.css         # Jetons de conception (thème clair/sombre, typographie, composants CSS)
-├── sitemap.ts           # Plan de site (route handler Next)
-└── robots.ts             # robots.txt (route handler Next)
+├── layout.tsx          Root layout: metadata, theme-before-paint, Organization/WebSite JSON-LD
+├── page.tsx            Home
+├── mechanic/page.tsx   How the mechanism works
+├── roadmap/page.tsx    Delivery plan
+├── faq/page.tsx        Objections, FAQPage JSON-LD
+├── globals.css         Design tokens (light/dark theme, type scale, CSS components)
+├── sitemap.ts          Sitemap route handler
+└── robots.ts           robots.txt route handler
 components/
 ├── Header.tsx, Footer.tsx, Logo.tsx, SkipLink.tsx
-├── SiteScript.tsx         # Chrome interactif (scroll reveals, thème, timeline...), "use client"
-├── HeroCanvas.tsx          # Champ de particules décoratif du hero
-├── ReputationChart.tsx      # Courbe SVG de la formule de multiplicateur
-├── PlatformMarks.tsx         # Marquee des plateformes
-└── ProblemCarousel.tsx        # Carrousel des problèmes adressés
+├── SiteScript.tsx      Interactive chrome (scroll reveals, theme, timeline) — "use client"
+├── HeroCanvas.tsx      Hero particle field
+├── ReputationChart.tsx SVG curve of the multiplier formula
+├── PlatformMarks.tsx   Platform marquee
+└── ProblemCarousel.tsx Problem carousel
+content/
+├── site.json           Every string on the site, in English
+└── site.ts             Typed export — `import { content } from "@/content/site"`
 ```
 
-Découpage cible par écran (page token, classements, staking...) : voir
-`SPECS.md §Écrans cibles`, pas encore créé au stade actuel du dépôt.
+**The site is English only.** There is no i18n layer: no `[locale]` routes,
+no language middleware, no language switcher. Copy lives in
+`content/site.json`.
+
+## Current status
+
+Static marketing site: four pages (`/`, `/mechanic`, `/roadmap`, `/faq`).
+No application feature yet — no wallet connection, no market data, no
+staking UI. See [`SKILLS.md`](./SKILLS.md) for the precise gap analysis and
+[`SPECS.md`](./SPECS.md) for the target scope.
 
 ---
 
-## Variables d'environnement
+## Documentation
 
-Aucune variable requise pour l'instant (`.env` et `.env.example` sont vides).
-À venir avec le Lot 1 (voir `SPECS.md`) : clés publiques Jupiter/Birdeye pour
-le widget d'échange et les chandeliers, URL de l'API `pixstock-backend`. Aucune
-clé privée ne doit jamais figurer côté frontend.
+The team's working documents are in French:
 
----
-
-## Branches et workflow Git
-
-Résumé (détails complets dans [`GIT.md`](./GIT.md)) :
-
-```
-main        ← production, jamais de commit direct
-develop     ← intégration, toutes les features mergent ici
-```
-
-| Préfixe | Usage |
+| File | Contents |
 |---|---|
-| `feature/` | Nouvelle fonctionnalité |
-| `fix/` | Correction de bug sur develop |
-| `hotfix/` | Correction urgente en prod |
-| `release/` | Préparation d'une release |
-| `chore/` | Maintenance, deps, config |
+| [`SPECS.md`](./SPECS.md) | Functional and technical specs for the frontend |
+| [`RULES.md`](./RULES.md) | What the interface must show, and must never do |
+| [`SKILLS.md`](./SKILLS.md) | Technical choices and what is not implemented yet |
+| [`CLAUDE.md`](./CLAUDE.md) | Development conventions |
+| [`GIT.md`](./GIT.md) | Branch, commit and PR conventions |
 
-```bash
-git checkout develop
-git pull origin develop
-git checkout -b feature/nom-de-la-feature
-# ... travail, commits en anglais (feat(scope): ...) ...
-git checkout develop
-git merge --no-ff feature/nom-de-la-feature
-```
+## Contributing
 
-Commits et PR en anglais, format `<type>(<scope>): <description>` — voir
-`GIT.md` pour la liste des types, des scopes recommandés et les règles de
-versioning SemVer.
+See [`CONTRIBUTING.md`](./CONTRIBUTING.md). Branches off `develop`, commits
+in English as `<type>(<scope>): <description>`.
+
+## Security
+
+Never open a public issue for a vulnerability — see
+[`SECURITY.md`](./SECURITY.md).
+
+## License
+
+[MIT](./LICENSE) © 2026 PixStock

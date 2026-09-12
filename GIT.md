@@ -90,9 +90,17 @@ git branch -d release/1.2.0
 
 ## Conventions de commit
 
-**Les messages de commit s'écrivent en anglais.** La documentation, les
-commentaires de code et les échanges d'équipe restent en français : seul ce
-qui part sur GitHub, commits et pull requests, est en anglais.
+**Les messages de commit s'écrivent en anglais.** Les commentaires de code
+et les échanges d'équipe restent en français : ce qui part sur GitHub est en
+anglais.
+
+Sont donc en anglais : les commits, les pull requests, et les fichiers que
+GitHub expose publiquement — `README.md`, `CONTRIBUTING.md`, `SECURITY.md`,
+les templates d'issue et de PR. Un jury de hackathon lit le README avant tout
+le reste.
+
+Restent en français, ce sont les documents de travail de l'équipe :
+`SPECS.md`, `RULES.md`, `SKILLS.md`, `CLAUDE.md`, `GIT.md`.
 
 Format :
 
