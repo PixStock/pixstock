@@ -123,6 +123,15 @@ function text(value: unknown, field: string): string {
 /* ── encoding ─────────────────────────────────────────────────────────── */
 
 export function encodePayload(payload: Payload): Uint8Array {
+  // cbor-x hands back a Buffer that views a reused internal arena, so a caller
+  // holding one while anything else encodes would watch its bytes change. Copy
+  // into a plain Uint8Array: callers keep payloads across await points, and a
+  // Buffer also compares unequal to the Uint8Array that comes back off the
+  // wire.
+  return Uint8Array.from(encodeBody(payload));
+}
+
+function encodeBody(payload: Payload): Uint8Array {
   switch (payload.kind) {
     case "SIGN":
       return cborEncode({

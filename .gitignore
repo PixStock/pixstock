@@ -31,3 +31,8 @@ yarn-debug.log*
 
 # os
 .DS_Store
+
+# playwright
+test-results/
+playwright-report/
+blob-report/

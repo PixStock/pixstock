@@ -124,10 +124,18 @@ point.
 npm run build            # packages, then all three apps
 npm run build:packages   # shared packages only (run this after changing one)
 npm run dev:packages     # watch mode for the packages
-npm test                 # vitest across packages/*
+
+npm test                 # unit + integration — offline, deterministic
+npm run test:live        # against the real Jupiter API and an RPC node
+npm run test:system      # Playwright, both apps in a browser
+npm run test:all         # all three
+
 npm run typecheck        # project-wide type check
 npm run lint             # every workspace that defines a linter
 ```
+
+What each layer catches, and why the live suite is separate:
+[`docs/TESTING.md`](./docs/TESTING.md).
 
 ## Status
 
@@ -150,6 +158,7 @@ spec section that defines it, so nothing fails silently.
 | [`docs/AGQP-SPEC.md`](./docs/AGQP-SPEC.md) | The optical protocol, frame by frame |
 | [`docs/THREAT-MODEL.md`](./docs/THREAT-MODEL.md) | What each component may never do, policies P1..P10 |
 | [`docs/DEMO.md`](./docs/DEMO.md) | How to reproduce the demo end to end |
+| [`docs/TESTING.md`](./docs/TESTING.md) | The four test layers and what each one catches |
 | [`CLAUDE.md`](./CLAUDE.md) | Development conventions (French — team working document) |
 | [`GIT.md`](./GIT.md) | Branch, commit and PR conventions (French) |
 

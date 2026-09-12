@@ -1,0 +1,100 @@
+import { expect, test } from "@playwright/test";
+
+const WEB = "http://localhost:3000";
+
+/**
+ * The public site, as a judge meets it.
+ *
+ * Chiefly: every route the navigation and the sitemap promise must exist. All
+ * five once returned 404 while the build was green, because nothing checks an
+ * href against a route.
+ */
+const ROUTES = ["/", "/trade", "/basket", "/vault", "/sign", "/protocol", "/legal"];
+
+test.describe("the public site", () => {
+  for (const route of ROUTES) {
+    test(`${route} answers`, async ({ page }) => {
+      const response = await page.goto(`${WEB}${route}`);
+      expect(response?.status(), route).toBe(200);
+    });
+  }
+
+  test("every internal link in the navigation and footer resolves", async ({ page, request }) => {
+    await page.goto(`${WEB}/`);
+
+    const hrefs = await page.evaluate(() =>
+      [...document.querySelectorAll("a[href]")]
+        .map((a) => a.getAttribute("href")!)
+        .filter((href) => href.startsWith("/") && !href.startsWith("//")),
+    );
+    expect(hrefs.length).toBeGreaterThan(5);
+
+    for (const href of new Set(hrefs)) {
+      const path = href.split("#")[0] || "/";
+      const response = await request.get(`${WEB}${path}`);
+      expect(response.status(), `${href} is linked from the landing page`).toBe(200);
+    }
+  });
+
+  test("the sitemap lists only pages that exist", async ({ request }) => {
+    const body = await (await request.get(`${WEB}/sitemap.xml`)).text();
+    const urls = [...body.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]!);
+    expect(urls.length).toBeGreaterThan(0);
+
+    for (const url of urls) {
+      const path = new URL(url).pathname;
+      expect((await request.get(`${WEB}${path}`)).status(), url).toBe(200);
+    }
+  });
+});
+
+test.describe("the optical channel on screen", () => {
+  test("cycles QR frames and reports the real frame count", async ({ page }) => {
+    await page.goto(`${WEB}/sign`);
+
+    await expect(page.getByRole("heading", { name: "Send to vault" })).toBeVisible();
+    // The measured three-leg basket: five frames at the default size.
+    await expect(page.getByText(/5 frames/)).toBeVisible();
+    await expect(page.getByRole("img", { name: /Order frame/ })).toBeVisible();
+
+    const first = await page.getByRole("img", { name: /Order frame/ }).getAttribute("aria-label");
+    await page.waitForTimeout(700);
+    const later = await page.getByRole("img", { name: /Order frame/ }).getAttribute("aria-label");
+    expect(later, "the frames must keep cycling").not.toBe(first);
+  });
+
+  test("changing the frame size changes the frame count", async ({ page }) => {
+    await page.goto(`${WEB}/sign`);
+    await page.getByRole("button", { name: /^S ·/ }).click();
+    // 1330 bytes at 200 per frame.
+    await expect(page.getByText(/7 frames/)).toBeVisible();
+  });
+});
+
+test.describe("the protocol page", () => {
+  test("reports P8 as unenforced, because the code says so", async ({ page }) => {
+    await page.goto(`${WEB}/protocol`);
+
+    const row = page.locator("tr", { has: page.locator("code", { hasText: /^P8$/ }) });
+    await expect(row).toContainText("Not yet");
+
+    const enforced = page.locator("tr", { has: page.locator("code", { hasText: /^P1$/ }) });
+    await expect(enforced).toContainText("Enforced");
+  });
+
+  test("says the offline price guard is not built", async ({ page }) => {
+    await page.goto(`${WEB}/protocol`);
+    await expect(page.getByText(/Not built yet/)).toBeVisible();
+  });
+});
+
+test.describe("the basket builder", () => {
+  test("computes per-leg amounts that add up", async ({ page }) => {
+    await page.goto(`${WEB}/basket`);
+
+    // The CDC preset: 40 / 30 / 30 of 500 USDC.
+    await expect(page.getByText("200 USDC")).toBeVisible();
+    await expect(page.getByText("150 USDC").first()).toBeVisible();
+    await expect(page.getByText("100%")).toBeVisible();
+  });
+});

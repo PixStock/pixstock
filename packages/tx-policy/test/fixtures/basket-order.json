@@ -1,0 +1,49 @@
+{
+  "capturedAt": "2026-09-12T11:56:47.814Z",
+  "note": "A three-leg Tech Giant Index basket, built by the relayer against live mainnet routes. The vault seed is a throwaway with no funds; it exists so the test can sign for real.",
+  "vault": "4s8jx6pbWRME3RRkBTjWkt5CixLx1zBxr5rZxTPdL3NG",
+  "vaultSeed": "Y39NY+4j535b59H3hTmo+KN9KFxuBKvsrMVLy0OhJgg=",
+  "testPassword": "correct horse battery staple",
+  "storedBlob": "AQEBAAAAAAQAAAF0DyPhyMy03InBBpPLHCI17c7vpnEEU9LSbLO2e+vyXo1ejy9ylx3FTqRTtmAQrABp1xrq6PCmljdiy/iTlSdDAhCvPPOlA7bLhqPYOWrafJhwmmoYDrYQbiBHR3eKye7QvRKFB0PYZD9uyBH/PaVqAAAAAA==",
+  "feePayer": "2GZLeCEW9EthAXNkmpU27s5RnioEeEwYvYK59hZUkDFG",
+  "kind": "BASKET",
+  "sizes": [
+    1008
+  ],
+  "expiry": "blockhash",
+  "messages": [
+    "gAIBBQ8S1/boTqDzLqdSEvM30jC8Lk/ouPfXpV4sqAKyfWGUUzlq2nyYcJpqGA62EG4gR0d3isnu0L0ShQdD2GQ/bsgRAtalsNMOIIkZFYHMog0btMo5tfmO7zPfJRtWiloA1MezFdBFH7Kaz6vELMxeKKaKTL9usbEs2xvuZMYhnxNqzrH9DzmgMgnd+4K2x8VcA4BZE3kyUsAwndkZ04c1yybAiCSaS+lhANvKhJV7aBlxBqBtMM1mAjk8vEcll1PbvNTkK2uCPtdto89FyBLBZ5VyNegGJj+xm/Ee3Ku7VbMPJ89yUYs7HhJQcHrA7vCviO0tI5sH/+boMDwuZQsaZZtyfh11de8cC1a7ZcMGzHyMSu31IxrM1/xaZegJ8R+F23ow94MmxIPdLqxPYkTzN00wW+KXw8gwj/lToCRgX1GQmgMGRm/lIRcy/+ytunLDm+e8jOW7xfcSayxDmzpAAAAAjJclj04kifG7PRApFI4NgwtaE5na/xCEBI572Nvp+FkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAR51VvyMcBu7nTFbs5oFQf9sbLeo/SOUQKxzaJWvBOPtD/6J/XX9kp0wJsfKVh53ksJqzbfyd1RSzIap7OM5egAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAcKAAUCsHELAAsGAAIBHwwgAQELBgADAScMIAEBCwYABAEoDCABAQ0bIAEFAg0fDQ4NIQEiDwUCEBESIyAkJR8TBhQNI+UXy5d6460qAQAAAChkAAEAwusLAAAAADAokQMAAAAAZAAADRkgAQUDDScNDg0mICMkARUnJQMWBRcHCAkYJeUXy5d6460qAQAAAC8AAGQAAYDR8AgAAAAARwYSBAAAAABkAAANGiABBQQNKA0ODSEBIhkFBBobHCMgJCUoHR4NI+UXy5d6460qAQAAAChkAAGA0fAIAAAAAHQtywEAAAAAZAAAA6d98Kpf9X01WG421wPgR1KfDd/2ZRTUOLHbkWiXTgblBpSZkZCVsgiSCAqWBwscGhVtKBCEWgkDGgGpOaMjq7w19V9tPZz+cUOJjee5LhsXBEM4N0IBOblsboLe1mZEucMn0o8CVw9mRancgsTuwS/mE2QbviOLBtLLzdHX1gHU"
+  ],
+  "legs": [
+    {
+      "inMint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "outMint": "XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp",
+      "inAmount": "200000000",
+      "expectedOutAmount": "59844656",
+      "minOutAmount": "59246210",
+      "route": [
+        "Raydium CLMM"
+      ]
+    },
+    {
+      "inMint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "outMint": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
+      "inAmount": "150000000",
+      "expectedOutAmount": "68290119",
+      "minOutAmount": "67607218",
+      "route": [
+        "Whirlpool"
+      ]
+    },
+    {
+      "inMint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "outMint": "XspzcW1PRtgf6Wj92HCiZdjzKCyFekVD8P5Ueh3dRMX",
+      "inAmount": "150000000",
+      "expectedOutAmount": "30092660",
+      "minOutAmount": "29791734",
+      "route": [
+        "Raydium CLMM"
+      ]
+    }
+  ]
+}

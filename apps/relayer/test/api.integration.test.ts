@@ -1,0 +1,156 @@
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { ConfigModule } from "@nestjs/config";
+import { Test, type TestingModule } from "@nestjs/testing";
+import { ValidationPipe, type INestApplication } from "@nestjs/common";
+import request from "supertest";
+import { ASSETS, USDC_MINT } from "@pixstock/shared";
+import { AppController } from "../src/app.controller";
+import { appConfig, databaseConfig, relayerConfig, solanaConfig } from "../src/config";
+import { DatabaseModule } from "../src/database/database.module";
+import { HealthModule } from "../src/modules/health/health.module";
+import { MarketModule } from "../src/modules/market/market.module";
+import { QuotesModule } from "../src/modules/quotes/quotes.module";
+import { JupiterService, type Quote } from "../src/modules/quotes/jupiter.service";
+
+/**
+ * The HTTP surface, through the real stack: routing, dependency injection,
+ * the validation pipe and the controllers.
+ *
+ * Jupiter is replaced by a stub holding a recorded response, so these are
+ * deterministic and offline. Whether the real Jupiter still answers this
+ * shape is a different question, asked by the live suite.
+ */
+const RECORDED_QUOTE: Quote = {
+  inputMint: USDC_MINT,
+  outputMint: ASSETS.find((a) => a.symbol === "TSLAx")!.mint,
+  inAmount: "50000000",
+  outAmount: "13685977",
+  otherAmountThreshold: "13549118",
+  slippageBps: 100,
+  priceImpactPct: "0.000159",
+  route: ["Whirlpool"],
+  raw: {},
+};
+
+class StubJupiter {
+  calls: unknown[] = [];
+  async quote(input: unknown): Promise<Quote> {
+    this.calls.push(input);
+    return RECORDED_QUOTE;
+  }
+  sweep(): void {}
+}
+
+describe("the relayer HTTP surface", () => {
+  let app: INestApplication;
+  let jupiter: StubJupiter;
+
+  beforeAll(async () => {
+    jupiter = new StubJupiter();
+
+    const moduleRef: TestingModule = await Test.createTestingModule({
+      imports: [
+        ConfigModule.forRoot({
+          isGlobal: true,
+          ignoreEnvFile: true,
+          load: [appConfig, databaseConfig, solanaConfig, relayerConfig],
+        }),
+        DatabaseModule,
+        HealthModule,
+        MarketModule,
+        QuotesModule,
+      ],
+      controllers: [AppController],
+    })
+      .overrideProvider(JupiterService)
+      .useValue(jupiter)
+      .compile();
+
+    app = moduleRef.createNestApplication();
+    app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
+    await app.init();
+  });
+
+  afterAll(async () => {
+    await app?.close();
+  });
+
+  describe("GET /v1/assets", () => {
+    it("serves every asset with the fields the vault checks against", async () => {
+      const { body } = await request(app.getHttpServer()).get("/v1/assets").expect(200);
+
+      expect(body.quoteMint).toBe(USDC_MINT);
+      expect(body.assets).toHaveLength(ASSETS.length);
+
+      for (const asset of body.assets) {
+        expect(asset).toMatchObject({
+          symbol: expect.any(String),
+          mint: expect.any(String),
+          decimals: expect.any(Number),
+          tokenProgram: expect.any(String),
+          pythFeedId: expect.any(Number),
+        });
+      }
+    });
+
+    it("agrees with the shared table the vault derives its accounts from", async () => {
+      const { body } = await request(app.getHttpServer()).get("/v1/assets");
+      const tesla = body.assets.find((a: { symbol: string }) => a.symbol === "TSLAx");
+      expect(tesla.mint).toBe(ASSETS.find((a) => a.symbol === "TSLAx")!.mint);
+    });
+  });
+
+  describe("GET /v1/quotes", () => {
+    const query = {
+      in: USDC_MINT,
+      out: ASSETS.find((a) => a.symbol === "TSLAx")!.mint,
+      amount: "50000000",
+    };
+
+    it("returns a quote with both sides named", async () => {
+      const { body } = await request(app.getHttpServer()).get("/v1/quotes").query(query).expect(200);
+
+      expect(body.in).toMatchObject({ symbol: "USDC", amount: "50000000" });
+      expect(body.out).toMatchObject({ symbol: "TSLAx", amount: "13685977" });
+      expect(body.minOutAmount).toBe("13549118");
+      expect(body.route).toEqual(["Whirlpool"]);
+    });
+
+    it("defaults the slippage to one percent", async () => {
+      await request(app.getHttpServer()).get("/v1/quotes").query(query).expect(200);
+      expect(jupiter.calls.at(-1)).toMatchObject({ slippageBps: 100 });
+    });
+
+    it.each([
+      ["a mint that is not base58", { ...query, in: "nope" }],
+      ["a missing amount", { in: query.in, out: query.out }],
+      ["a zero amount", { ...query, amount: "0" }],
+      ["slippage past the cap the vault enforces", { ...query, slippageBps: "500" }],
+    ])("rejects %s with 400", async (_label, bad) => {
+      await request(app.getHttpServer()).get("/v1/quotes").query(bad).expect(400);
+    });
+  });
+
+  describe("GET /healthz", () => {
+    it("names what is missing instead of answering ok", async () => {
+      const { body } = await request(app.getHttpServer()).get("/healthz").expect(200);
+
+      expect(body.status).toBe("degraded");
+      expect(body.relayerKey).toBe("missing");
+      expect(body.missing).toEqual(
+        expect.arrayContaining([
+          expect.stringContaining("relayer key"),
+          expect.stringContaining("pyth verifier"),
+        ]),
+      );
+    });
+  });
+
+  describe("GET /", () => {
+    it("identifies the service and points at its health", async () => {
+      const { body } = await request(app.getHttpServer()).get("/").expect(200);
+      expect(body.service).toBe("pixstock-relayer");
+      expect(body.health).toBe("/healthz");
+    });
+  });
+});
