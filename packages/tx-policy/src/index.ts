@@ -13,6 +13,23 @@
 
 import type { OrderManifest } from "@pixstock/shared";
 
+export {
+  BLOCKHASH_BYTES,
+  PUBKEY_BYTES,
+  SIGNATURE_BYTES,
+  decodeMessage,
+  feePayerOf,
+  isSigner,
+  isWritable,
+  parseTransaction,
+  programIdOf,
+  type AddressTableLookup,
+  type CompiledInstruction,
+  type CompiledMessage,
+  type ParsedTransaction,
+} from "./message.js";
+export { decodeShortVec, encodeShortVec, type ShortVec } from "./shortvec.js";
+
 export interface DecodedInstruction {
   programId: string;
   kind: "jupiter-swap" | "token-transfer" | "create-ata" | "advance-nonce" | "compute-budget" | "unknown";
