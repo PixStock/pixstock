@@ -1,6 +1,6 @@
-# Conventions Git — PixStock Frontend
+# Conventions Git — PixStock
 
-Mêmes conventions que `../pixstock-backend/GIT.md` (même équipe, mêmes
+Conventions du monorepo (même équipe, mêmes
 réflexes) — reproduites ici pour que ce dépôt reste autonome.
 
 ---
@@ -128,27 +128,27 @@ Format :
 
 ### Scopes recommandés
 
-`marketing` · `token-page` · `rankings` · `staking-ui` · `wallet` · `charts` ·
-`chat` · `swap` · `dashboard` · `design-system` · `seo` · `a11y` · `deps`
+`agqp` · `vault` · `web` · `relayer` · `policy` · `pyth` · `basket` ·
+`paper-vault` · `design-system` · `docs` · `ci` · `deps`
 
-Ces scopes suivent le découpage en écrans attendus par le CDC (`SPECS.md
-§Écrans clés`, `§Pages livrées vs pages cibles`), pas encore tous pertinents
-au stade actuel du dépôt (site vitrine uniquement — `marketing`,
-`design-system`, `seo` et `a11y` sont les seuls scopes réellement utilisés
-aujourd'hui).
+Les scopes suivent le découpage du monorepo : un paquet de `packages/` ou
+une app de `apps/`, plus quelques transverses. `agqp` couvre le protocole
+optique des deux côtés du canal — c'est justement l'intérêt du monorepo :
+un seul commit change le format, l'encodeur et le décodeur.
 
 ### Exemples valides
 
 ```
-feat(marketing): add the roadmap page
-feat(design-system): port dark/light theme tokens from landing-page
-fix(a11y): missing aria-current on active nav link
-fix(seo): breadcrumb JSON-LD pointing at the wrong canonical url
-chore(deps): bump Next.js 16.3.4 to 16.4.0
-docs: add SPECS.md and RULES.md summarizing the CDC for the frontend
-refactor(marketing): extract ProblemCarousel from page.tsx
-perf(marketing): lazy-load HeroCanvas below the fold
-ci: add a GitHub Actions workflow
+feat(agqp): encode a payload into indexed base45 frames
+feat(vault): read frames from the rear camera and show assembly progress
+feat(policy): reject a transaction whose fee payer is the vault
+feat(pyth): verify the solana message against the trusted signers
+fix(relayer): release the nonce account when an order expires
+fix(web): animated qr stops cycling when the tab loses focus
+test(agqp): add the rfc 9285 base45 vectors
+docs(agqp): freeze the v1 frame envelope
+chore(deps): bump next 16.3.4 to 16.4.0
+ci: add lint, typecheck and vitest on pull requests
 ```
 
 ### Règles
@@ -156,7 +156,7 @@ ci: add a GitHub Actions workflow
 - Description en minuscules, sans point final
 - Max 72 caractères pour la première ligne
 - Utiliser l'impératif ou le substantif, pas le passé
-  - ✅ `feat(marketing): add the faq page`
+  - ✅ `feat(web): add the basket builder`
   - ❌ `feat(marketing): I added the faq page`
 - Un commit = une seule intention (ne pas mélanger fix + refactor)
 - `BREAKING CHANGE` dans le footer si changement d'API publique exposée par

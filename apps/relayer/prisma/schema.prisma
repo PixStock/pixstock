@@ -1,0 +1,66 @@
+// PixStock relayer — see docs/ARCHITECTURE.md.
+//
+// The relayer never stores a user key. It is fee payer and nonce authority,
+// nothing else. Every row here is operational state: an order in flight, a
+// nonce account, an audit event.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OrderStatus {
+  BUILT
+  AWAITING_SIGNATURE
+  SIGNED
+  BROADCAST
+  CONFIRMED
+  FAILED
+  EXPIRED
+}
+
+enum OrderKind {
+  BUY
+  SELL
+  BASKET
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  vault         String
+  kind          OrderKind
+  manifest      Json
+  txMessages    String[] // base64, unsigned v0 messages
+  messageHashes String[] // sha256 of each message, checked on return
+  attestation   String? // Pyth `solana` message, base64
+  nonceAccount  String
+  status        OrderStatus @default(BUILT)
+  vaultSigs     String[]
+  txSignatures  String[]
+  error         String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([vault, createdAt])
+}
+
+model NonceAccount {
+  pubkey    String   @id
+  inUse     Boolean  @default(false)
+  orderId   String?
+  lastValue String?
+  updatedAt DateTime @updatedAt
+}
+
+// Audit trail: co-signatures, policy refusals, balance alerts.
+model RelayerEvent {
+  id        String   @id @default(cuid())
+  orderId   String?
+  type      String
+  detail    Json
+  createdAt DateTime @default(now())
+}

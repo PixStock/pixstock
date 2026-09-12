@@ -1,89 +1,70 @@
-@AGENTS.md
+# PixStock — CLAUDE.md
 
-# PixStock Frontend — CLAUDE.md
+Monorepo du hackathon **Stocklana** (11 → 18 sept. 2026). Signature hors
+ligne par canal optique pour actions tokenisées sur Solana.
 
-Source de vérité fonctionnelle : `../CDC-PixStock.pdf` (voir `SPECS.md` pour
-le résumé côté frontend, `RULES.md` pour ce que l'interface doit respecter).
-
-## Stack
-
-- Next.js 16 (App Router) + React 19 + TypeScript strict
-- Tailwind CSS v4, jetons de conception dans `app/globals.css`
-- (à venir, Lot 1) Wallet Standard (Phantom/Solflare/Backpack), client API vers `pixstock-backend`
-- (à venir, Lot 1) Widget d'échange Jupiter, chandeliers TradingView Lightweight Charts
-
-⚠️ **La version installée (Next 16) n'est pas celle des données
-d'entraînement d'un modèle, ni exactement celle visée par le CDC (Next 15).**
-`AGENTS.md` (régénéré par `next dev`, ne pas éditer à la main) le rappelle à
-chaque lancement : lire `node_modules/next/dist/docs/` avant d'écrire du code
-qui suppose des conventions de Next 13-14.
-
-## État actuel
-
-Le dépôt est un site vitrine statique : quatre pages (`/`, `/mechanic`,
-`/roadmap`, `/faq`), aucune fonctionnalité applicative. Tous les chiffres
-affichés (formule de poids, barème, cascade du pot, réputation) sont ceux du
-CDC codés en dur dans le JSX — voir `SPECS.md §État actuel du dépôt`. Rien du
-Lot 1 (annuaire, page token, portefeuille, échange) n'est encore construit —
-c'est le travail à venir.
+Sources de vérité : `../cahier_des_charges_pixstock.md` (CDC) et
+`../PLAN_INTEGRATION.md` (plan détaillé, décisions D1..D11) — tous deux hors
+dépôt. Résumés versionnés dans `docs/`.
 
 ## Structure
 
 ```
-app/
-├── layout.tsx           Layout racine : métadonnées, thème avant premier paint, JSON-LD Organization/WebSite
-├── page.tsx              Accueil
-├── mechanic/page.tsx      Formule de poids, résolution, barème, réputation
-├── roadmap/page.tsx        Lots, indicateurs de succès, conformité
-├── faq/page.tsx             Objections, JSON-LD FAQPage
-├── globals.css               Jetons de conception (thème clair/sombre, typo, composants CSS)
-├── sitemap.ts, robots.ts       Route handlers Next
-components/                     Header, Footer, SiteScript (chrome interactif), HeroCanvas, ReputationChart...
-content/site.json                 Tout le texte du site, en anglais (importé via content/site.ts)
+apps/web       Next.js 16 · App Router · dApp en ligne
+apps/vault     Vite + React · PWA hors ligne · le signataire
+apps/relayer   NestJS 10 · Prisma · fee payer, nonces, quotes, broadcast
+packages/      agqp · tx-policy · pyth-verify · vault-crypto · shared
+docs/          ARCHITECTURE · AGQP-SPEC · THREAT-MODEL · DEMO
 ```
 
-À terme (voir `SPECS.md §Écrans cibles`), la structure suivra le découpage
-par écran attendu par le CDC : page token, classements, ouverture de
-position, verdict, profil de curateur, tableau de bord émetteur — aucun
-n'existe encore.
+npm workspaces. Les paquets se compilent vers `dist/` : après avoir modifié
+un paquet, `npm run build:packages` (ou `npm run dev:packages` en watch),
+sinon les apps consomment l'ancienne version.
 
-## Conventions
+## Règles non négociables
 
-- Composants serveur par défaut ; `"use client"` réservé à ce qui a
-  vraiment besoin d'interactivité navigateur (voir `SiteScript.tsx`) —
-  ne pas convertir une page entière en client component pour un seul bouton.
-- Les composants ne nomment jamais une couleur en dur : ils utilisent les
-  variables CSS/rôles définis dans `app/globals.css` (`--ink`, `--ground`,
-  `.sev--1/2/3`...), pour que le thème clair/sombre reste automatique.
-- Tout montant affiché utilise la classe `.num` (chiffres tabulaires) —
-  voir `SPECS.md §Direction artistique`.
-- Toute valeur numérique tirée du CDC (formule, barème, seuils, délais) doit
-  rester identique au CDC et à `../pixstock-backend/SPECS.md` — une divergence
-  est un bug, pas une variante créative.
-- **Le site est en anglais uniquement.** Pas de routes `[locale]`, pas de
-  middleware de langue, pas de sélecteur : le texte vient de
-  `content/site.json` via `import { content } from "@/content/site"`.
-- Nouvelles métadonnées de page : suivre le patron déjà en place
-  (`Metadata` + JSON-LD `BreadcrumbList`, `openGraph`, `twitter`) plutôt que
-  d'improviser une structure différente par page.
+- **`apps/vault` ne touche jamais le réseau.** Aucun `fetch`, aucun
+  `XMLHttpRequest`, aucun WebSocket, aucun script tiers. C'est la promesse
+  du produit — si elle tombe, il ne reste rien.
+- **La graine déchiffrée ne vit qu'en mémoire**, et est remise à zéro
+  (`fill(0)`) dès la signature produite.
+- **Le relayer ne signe que fee payer et nonce authority.** Jamais un
+  transfert de token, jamais une clé utilisateur en base.
+- **Le manifest n'est jamais la source de vérité.** La fiche d'ordre se
+  dérive des instructions décompilées ; le manifest ne sert qu'au contrôle
+  croisé.
+- **Aucun hash brut présenté à l'utilisateur** au moment de signer.
 
-## Sécurité obligatoire (dès qu'une page manipule un compte ou une mise)
+## Conventions de code
 
-Voir `RULES.md` pour le détail complet. Les points non négociables :
+- Composants serveur par défaut dans `apps/web` ; `"use client"` réservé à
+  la caméra, aux QR et à l'état d'ordre.
+- Les composants ne nomment jamais une couleur en dur : variables et rôles
+  CSS de `apps/web/app/globals.css` (`--ink`, `--ground`, `.sev--1/2/3`).
+- Tout montant affiché utilise la classe `.num` (chiffres tabulaires) et
+  passe par `formatAmount` de `@pixstock/shared`.
+- **Le produit est en anglais uniquement** (décision D11) : interface web,
+  PWA vault, messages d'erreur de l'API, README. Pas de routes `[locale]`,
+  pas de middleware de langue, pas de sélecteur. Le contenu du site vit dans
+  `apps/web/content/site.json`.
+- Les adresses de `@pixstock/shared` (mints, program ids, feed ids) ont été
+  vérifiées sur mainnet le 12 sept. 2026 — ne pas les modifier sans
+  revérifier.
+- Une fonction publique non encore écrite `throw` avec un renvoi vers la
+  section de spec qui la définit. Pas de `return null` silencieux.
 
-- Aucune clé privée utilisateur transmise, stockée ou manipulée, à aucun
-  moment (`ENF-13`).
-- Aucune signature de transaction déclenchée sans action explicite de
-  l'utilisateur dans son portefeuille.
-- La copie de position (Lot 3) ne doit jamais reposer sur une délégation de
-  signature — chaque transaction copiée reste signée individuellement.
-- Le barème de confiscation et le poids simulé sont affichés et acquittés
-  avant toute signature, jamais renvoyés aux CGU (`EF-18`).
-
-## Commandes utiles
+## Commandes
 
 ```bash
-npm run dev      # dev watch
-npm run build    # build de production
-npm run lint     # ESLint
+npm install
+npm run build:packages            # après toute modification d'un paquet
+npm run dev -w @pixstock/relayer  # :4000
+npm run dev -w @pixstock/web      # :3000
+npm run dev -w @pixstock/vault    # :5173
+npm test                          # vitest sur packages/*
+npm run typecheck
 ```
+
+⚠️ `apps/web/AGENTS.md` est régénéré par `next dev` : Next 16 n'est pas
+Next 15, lire `node_modules/next/dist/docs/` avant de supposer des
+conventions de Next 13-14.

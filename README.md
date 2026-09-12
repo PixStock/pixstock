@@ -2,13 +2,16 @@
 
 # PixStock
 
-**<!-- TODO: one-line pitch. What PixStock does, for whom, in under 15 words. -->**
+**Ledger-grade security for tokenized stocks, using the phone already in your drawer.**
+
+The only signer that checks the market price offline before it signs.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](./LICENSE)
 [![Built on Solana](https://img.shields.io/badge/Built%20on-Solana-14F195.svg)](https://solana.com)
-[![Next.js](https://img.shields.io/badge/Next.js-16-black.svg)](https://nextjs.org)
 
-[Live demo](#) · [Video](#) · [Backend repo](https://github.com/PixStock/pixstock-backend)
+[Live demo](#) · [Vault PWA](#) · [Demo video](#) · [AGQP spec](./docs/AGQP-SPEC.md)
+
+<!-- TODO: fill the three links above once deployed. -->
 
 </div>
 
@@ -16,123 +19,148 @@
 
 ## The problem
 
-<!-- TODO — 3 to 5 sentences, concrete and specific.
-     What is broken today? Who is hurt by it? Why does it matter now?
-     Judges read this paragraph first and decide whether to keep reading. -->
+Tokenized stocks trade on Solana today, but holding them safely does not.
+A retail investor outside the US has two options, and both are bad: leave the
+keys on an exchange and inherit its counterparty risk, or buy a hardware
+wallet — a purchase, a shipment, a seed phrase ceremony, and a device that
+still shows you a hash and asks you to trust it.
+
+There is a third option nobody has built: **the old smartphone in your
+drawer**. Put it in airplane mode permanently and it is already an air-gapped
+signer with a camera, a screen, a secure element and a biometric sensor.
 
 ## What we built
 
-<!-- TODO — what the product actually does, in plain language.
-     Lead with the user-visible outcome, not the architecture. -->
+PixStock turns any spare phone into an offline signer for tokenized stocks.
+The phone never touches a network again — no Wi-Fi, no Bluetooth, no cable.
+Transactions cross the gap **optically**, as animated QR codes read by the
+camera, and the signature comes back the same way through the laptop's webcam.
 
-## How it works
-
-<!-- TODO — the mechanism, in 3 to 5 bullet points or a short diagram.
-     This is where the technical judges look for substance:
-     what is on-chain, what is off-chain, and why that split. -->
-
-## Demo
+Five things make it usable rather than a demo:
 
 | | |
 |---|---|
-| Live app | <!-- TODO: URL --> |
-| Demo video | <!-- TODO: URL --> |
-| API | <!-- TODO: URL --> |
-| Network | <!-- TODO: devnet / mainnet-beta --> |
+| **Zero-SOL cold storage** | The web dApp is the fee payer. Your vault can hold 0.00 SOL and still trade — no one has to learn what a lamport is. |
+| **No blind signing** | The phone decompiles the transaction itself and shows a readable order ticket: assets, exact amounts in and out, counterparty. Never a hash. |
+| **A basket in one scan** | Three Jupiter swaps in a single transaction — 40% AAPLx / 30% NVDAx / 30% MSFTx for one USDC amount, signed once. |
+| **Offline price check** | The phone verifies an Ed25519-signed Pyth price and **refuses to sign** if the order drifts more than 1% from it. A corrupted browser cannot lie to it. |
+| **Paper-Vault** | The encrypted key exports as a printable QR. No cloud, no vendor. |
 
-<!-- TODO: 2-3 screenshots or a GIF. A jury that cannot run your project
-     still has to see it work. -->
+## How it works
+
+```
+  Web dApp (online)                         Vault (airplane mode)
+        │                                            │
+        │ 1. build order, inject fee payer + nonce   │
+        │ 2. attach the Pyth signed price            │
+        │ 3. AGQP encode ──── animated QR ──────────►│ 4. camera, CRC32 reassembly
+        │                                            │ 5. verify Pyth signature
+        │                                            │ 6. readable order ticket
+        │                                            │ 7. biometric confirmation
+        │ 9. webcam ◄───── static QR (64 bytes) ─────┘ 8. Ed25519 signature
+        │ 10. broadcast
+        ▼
+     Solana
+```
+
+The split matters: the vault holds the only key that can move your assets and
+has no code path that can reach a network. The relayer pays fees and advances
+a durable nonce — it can never move a token. The web app displays and scans,
+and signs nothing.
+
+**Why Solana specifically:** the fee payer is separate from the signer
+natively, durable nonces exist precisely so a signature can be produced
+offline without a clock running, xStocks are Token-2022 with real liquidity,
+Jupiter routes the swaps and Pyth publishes signed prices that verify with a
+single Ed25519 check.
 
 ---
 
-## Tech stack
+## Repository layout
 
-| Layer | Choice |
-|---|---|
-| Framework | Next.js 16 (App Router, Turbopack) |
-| UI | React 19, TypeScript strict |
-| Styling | Tailwind CSS v4 + design tokens in `app/globals.css` |
-| Content | Single English source in `content/site.json` |
-| Rendering | Fully static prerender — every route is `○ (Static)` |
-| API | [`pixstock-backend`](https://github.com/PixStock/pixstock-backend) (NestJS · Prisma · PostgreSQL) |
+```
+apps/
+├── web/        Next.js 16 — the online dApp: trade, basket builder, QR display and webcam return
+├── vault/      Vite + React PWA — the offline signer. No fetch, no network, ever.
+└── relayer/    NestJS — quotes, transaction building, fee payer, nonce pool, broadcast
+packages/
+├── agqp/           The optical protocol: frames, Base45, CRC32, session assembler
+├── tx-policy/      v0 message decompilation, instruction decoding, P1..P10 signing policy
+├── pyth-verify/    Offline Pyth Pro parsing and Ed25519 verification
+├── vault-crypto/   Key generation, AES-GCM-256, Argon2id, Paper-Vault, signing
+└── shared/         Asset table, program ids, order types
+docs/           ARCHITECTURE · AGQP-SPEC · THREAT-MODEL · DEMO
+```
 
 ## Quickstart
 
-Requires **Node.js 20+** and **npm 10+**.
+Requires **Node.js 20+** and **npm 10+**. PostgreSQL 15+ for the relayer.
 
 ```bash
-git clone https://github.com/PixStock/pixstock-frontend
-cd pixstock-frontend
+git clone https://github.com/PixStock/pixstock
+cd pixstock
 npm install
-cp .env.example .env
-npm run dev
+npm run build:packages
 ```
 
-The site runs at **http://localhost:3000**. No environment variable is
-required at this stage — `.env.example` is empty on purpose.
+Then, in three terminals:
+
+```bash
+npm run dev -w @pixstock/relayer   # API      → http://localhost:4000
+npm run dev -w @pixstock/web       # dApp     → http://localhost:3000
+npm run dev -w @pixstock/vault     # Vault    → http://localhost:5173
+```
+
+The relayer needs a database and a few keys — copy `apps/relayer/.env.example`
+to `apps/relayer/.env` and fill it in. The vault needs nothing: that is the
+point.
+
+> The camera and WebAuthn require HTTPS on a real phone. Use `mkcert` for a
+> trusted local certificate, or open the deployed vault URL.
 
 ### Commands
 
 ```bash
-npm run dev     # dev server (Turbopack)
-npm run build   # production build
-npm run start   # serve the production build
-npm run lint    # ESLint
+npm run build            # packages, then all three apps
+npm run build:packages   # shared packages only (run this after changing one)
+npm run dev:packages     # watch mode for the packages
+npm test                 # vitest across packages/*
+npm run typecheck        # project-wide type check
+npm run lint             # every workspace that defines a linter
 ```
 
-## Project structure
+## Status
 
-```
-app/
-├── layout.tsx          Root layout: metadata, theme-before-paint, Organization/WebSite JSON-LD
-├── page.tsx            Home
-├── mechanic/page.tsx   How the mechanism works
-├── roadmap/page.tsx    Delivery plan
-├── faq/page.tsx        Objections, FAQPage JSON-LD
-├── globals.css         Design tokens (light/dark theme, type scale, CSS components)
-├── sitemap.ts          Sitemap route handler
-└── robots.ts           robots.txt route handler
-components/
-├── Header.tsx, Footer.tsx, Logo.tsx, SkipLink.tsx
-├── SiteScript.tsx      Interactive chrome (scroll reveals, theme, timeline) — "use client"
-├── HeroCanvas.tsx      Hero particle field
-├── ReputationChart.tsx SVG curve of the multiplier formula
-├── PlatformMarks.tsx   Platform marquee
-└── ProblemCarousel.tsx Problem carousel
-content/
-├── site.json           Every string on the site, in English
-└── site.ts             Typed export — `import { content } from "@/content/site"`
-```
+Day 1 of the hackathon. The monorepo, the shared package boundaries and the
+three app shells are in place; `crc32` and Base45 are implemented and tested
+against the RFC 9285 vectors. Everything else — the frame format, the policy
+engine, the Pyth verifier, the vault screens, the relayer domain modules — is
+the week's work, tracked in `docs/ARCHITECTURE.md`.
 
-**The site is English only.** There is no i18n layer: no `[locale]` routes,
-no language middleware, no language switcher. Copy lives in
-`content/site.json`.
-
-## Current status
-
-Static marketing site: four pages (`/`, `/mechanic`, `/roadmap`, `/faq`).
-No application feature yet — no wallet connection, no market data, no
-staking UI. See [`SKILLS.md`](./SKILLS.md) for the precise gap analysis and
-[`SPECS.md`](./SPECS.md) for the target scope.
+Every public function that is not written yet throws with a pointer to the
+spec section that defines it, so nothing fails silently.
 
 ---
 
 ## Documentation
 
-The team's working documents are in French:
-
 | File | Contents |
 |---|---|
-| [`SPECS.md`](./SPECS.md) | Functional and technical specs for the frontend |
-| [`RULES.md`](./RULES.md) | What the interface must show, and must never do |
-| [`SKILLS.md`](./SKILLS.md) | Technical choices and what is not implemented yet |
-| [`CLAUDE.md`](./CLAUDE.md) | Development conventions |
-| [`GIT.md`](./GIT.md) | Branch, commit and PR conventions |
+| [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) | Components, end-to-end flow, target timings |
+| [`docs/AGQP-SPEC.md`](./docs/AGQP-SPEC.md) | The optical protocol, frame by frame |
+| [`docs/THREAT-MODEL.md`](./docs/THREAT-MODEL.md) | What each component may never do, policies P1..P10 |
+| [`docs/DEMO.md`](./docs/DEMO.md) | How to reproduce the demo end to end |
+| [`CLAUDE.md`](./CLAUDE.md) | Development conventions (French — team working document) |
+| [`GIT.md`](./GIT.md) | Branch, commit and PR conventions (French) |
+
+## Open source components
+
+Jupiter Swap API · Pyth Pro (ex-Lazer) · Backed Finance xStocks ·
+`@solana/web3.js` · `zxing-wasm` · `@noble/curves` · `@noble/hashes`
 
 ## Contributing
 
-See [`CONTRIBUTING.md`](./CONTRIBUTING.md). Branches off `develop`, commits
-in English as `<type>(<scope>): <description>`.
+See [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
 ## Security
 

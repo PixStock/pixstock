@@ -1,19 +1,30 @@
-# Contributing to PixStock Frontend
+# Contributing to PixStock
 
 Thanks for taking the time. This file is the short version — the detailed
 internal conventions live in [`GIT.md`](./GIT.md) and
 [`CLAUDE.md`](./CLAUDE.md) (both in French, they are the team's working
-documents).
+documents), and the architecture is in [`docs/`](./docs/).
 
 ## Getting set up
 
 ```bash
-git clone https://github.com/PixStock/pixstock-frontend
-cd pixstock-frontend
+git clone https://github.com/PixStock/pixstock
+cd pixstock
 npm install
-cp .env.example .env
-npm run dev            # http://localhost:3000
+npm run build:packages
 ```
+
+Then, in three terminals:
+
+```bash
+npm run dev -w @pixstock/relayer   # API   → http://localhost:4000
+npm run dev -w @pixstock/web       # dApp  → http://localhost:3000
+npm run dev -w @pixstock/vault     # Vault → http://localhost:5173
+```
+
+This is an npm workspaces monorepo. The shared packages compile to `dist/`,
+so after changing one run `npm run build:packages` — or keep
+`npm run dev:packages` running in watch mode.
 
 See [`README.md`](./README.md) for the full quickstart.
 
@@ -50,17 +61,22 @@ commit history is part of what judges look at.
 ## Before opening a pull request
 
 ```bash
-npm run lint
+npm run typecheck
+npm test
 npm run build
 ```
 
-- The build passes and the linter is clean.
+- The build passes, the type check is clean and the tests are green.
 - No secret, private key, seed phrase or `.env` file is committed.
 - Any number taken from the spec (weights, thresholds, delays) matches
-  [`SPECS.md`](./SPECS.md) — a divergence is a bug, not a variation.
-- User-facing text is **English only**. The site has no i18n layer: copy lives in
-  `content/site.json`. Do not reintroduce `[locale]` routes, language
-  middleware or a language switcher.
+  [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) — a divergence is a bug,
+  not a variation.
+- User-facing text is **English only** (decision D11). No `[locale]` routes,
+  no language middleware, no language switcher. Site copy lives in
+  `apps/web/content/site.json`.
+- Nothing under `apps/vault` may reach the network — no `fetch`, no
+  `XMLHttpRequest`, no WebSocket, no third-party script. This is the product
+  promise, not a preference.
 
 ## Security
 

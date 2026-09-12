@@ -1,27 +1,27 @@
 {
-  "name": "pixstock-frontend",
+  "name": "pixstock",
   "version": "0.1.0",
   "private": true,
   "license": "MIT",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
-  },
-  "dependencies": {
-    "next": "16.3.4",
-    "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "build": "npm run build:packages && npm run build:apps",
+    "build:packages": "tsc -b packages/shared packages/agqp packages/vault-crypto packages/pyth-verify packages/tx-policy",
+    "build:apps": "npm run build -w @pixstock/web -w @pixstock/vault -w @pixstock/relayer",
+    "dev:packages": "tsc -b --watch packages/shared packages/agqp packages/vault-crypto packages/pyth-verify packages/tx-policy",
+    "typecheck": "tsc -b",
+    "test": "vitest run",
+    "lint": "npm run lint --workspaces --if-present",
+    "clean": "rm -rf packages/*/dist packages/*/*.tsbuildinfo apps/web/.next apps/vault/dist apps/relayer/dist"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.3.4",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }
