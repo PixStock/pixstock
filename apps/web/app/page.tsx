@@ -8,6 +8,9 @@ import { PlatformMarks } from "@/components/PlatformMarks";
 import { ProblemCarousel } from "@/components/ProblemCarousel";
 import { content } from "@/content/site";
 
+const GITHUB = "https://github.com/PixStock/pixstock";
+const VAULT = "https://vault.pixstock.xyz";
+
 export function generateMetadata(): Metadata {
   const dict = content;
 
@@ -54,8 +57,8 @@ export default function Home() {
               {home.hero.lede}
             </p>
             <div className="hero-cta appear" style={{ "--d": "240ms" }}>
-              <a className="btn btn--solid" href="#mechanic">{home.hero.ctaSeeMechanic}</a>
-              <a className="btn" href="#access">{home.hero.ctaRequestAccess}</a>
+              <a className="btn btn--solid" href="#flow">{home.hero.ctaSeeMechanic}</a>
+              <a className="btn" href="#try">{home.hero.ctaRequestAccess}</a>
             </div>
           </div>
 
@@ -80,95 +83,106 @@ export default function Home() {
 
         <ProblemCarousel dict={home.problem} previous={dict.common.previous} next={dict.common.next} />
 
-        {/* the two sides of the market */}
-        <section className="band" id="mechanic">
+        {/* the three proofs, in the order the phone runs them */}
+        <section className="band" id="proofs">
           <div className="shell">
-            <p className="eyebrow">{home.mechanicSection.eyebrow}</p>
-            <h2 className="title appear">{home.mechanicSection.title}</h2>
+            <p className="eyebrow">{home.proofs.eyebrow}</p>
+            <h2 className="title appear">{home.proofs.title}</h2>
             <p className="lede appear" style={{ "--d": "80ms" }}>
-              {home.mechanicSection.lede}
+              {home.proofs.lede}
             </p>
 
-            <div className="tickets">
-              <article className="ticket ticket--boost appear">
-                <div className="ticket-head">
-                  <div>
-                    <div className="ticket-side">{home.mechanicSection.boost.side}</div>
-                    <h3>{home.mechanicSection.boost.title}</h3>
+            <div className="lots">
+              {home.proofs.cards.map((card, i) => (
+                <article className="lot appear" style={i ? { "--d": `${i * 90}ms` } : undefined} key={card.title}>
+                  <div className="lot-top">
+                    <span className="ph">{card.ph}</span>
+                    <span className="wk num">{card.wk}</span>
                   </div>
-                </div>
-                <p className="claim">{home.mechanicSection.boost.claim}</p>
-                <dl>
-                  {home.mechanicSection.boost.kv.map((row) => (
-                    <div className="kv" key={row.k}><dt>{row.k}</dt><dd>{row.v}</dd></div>
-                  ))}
-                </dl>
-                <div className="outcome">
-                  <div><span className="g">RIGHT</span><span>{home.mechanicSection.boost.outcomeRight}</span></div>
-                  <div><span className="g">WRONG</span><span>{home.mechanicSection.boost.outcomeWrong}</span></div>
-                </div>
-              </article>
-
-              <article className="ticket ticket--challenge appear" style={{ "--d": "100ms" }}>
-                <div className="ticket-head">
-                  <div>
-                    <div className="ticket-side">{home.mechanicSection.challenge.side}</div>
-                    <h3>{home.mechanicSection.challenge.title}</h3>
-                  </div>
-                </div>
-                <p className="claim">{home.mechanicSection.challenge.claim}</p>
-                <dl>
-                  {home.mechanicSection.challenge.kv.map((row) => (
-                    <div className="kv" key={row.k}><dt>{row.k}</dt><dd>{row.v}</dd></div>
-                  ))}
-                </dl>
-                <div className="outcome">
-                  <div><span className="g">RIGHT</span><span>{home.mechanicSection.challenge.outcomeRight}</span></div>
-                  <div><span className="g">WRONG</span><span>{home.mechanicSection.challenge.outcomeWrong}</span></div>
-                </div>
-              </article>
+                  <h3>{card.title}</h3>
+                  <p className="goal">{card.goal}</p>
+                  <ul>
+                    {card.bullets.map((b) => (
+                      <li key={b}>{b}</li>
+                    ))}
+                  </ul>
+                  <p className="block">
+                    <b>{card.blockLabel}</b> {card.block}
+                  </p>
+                </article>
+              ))}
             </div>
-
-            <p className="note appear" style={{ marginTop: 34 }}>
-              {home.mechanicSection.note}
-            </p>
-            <Link className="more appear" href="/mechanic">
-              {home.mechanicSection.more}<i>&rarr;</i>
-            </Link>
           </div>
         </section>
 
-        {/* the round */}
-        <section className="band band--invert" id="round">
+        {/* the basket and the paper backup */}
+        <section className="band band--invert" id="pieces">
           <div className="shell">
-            <p className="eyebrow">{home.round.eyebrow}</p>
-            <h2 className="title appear">{home.round.title}</h2>
+            <p className="eyebrow">{home.pieces.eyebrow}</p>
+            <h2 className="title appear">{home.pieces.title}</h2>
             <p className="lede appear" style={{ "--d": "80ms" }}>
-              {home.round.lede}
+              {home.pieces.lede}
+            </p>
+
+            <div className="tickets">
+              {[home.pieces.basket, home.pieces.paper].map((piece, i) => (
+                <article
+                  className={`ticket appear${i ? " ticket--challenge" : ""}`}
+                  style={i ? { "--d": "100ms" } : undefined}
+                  key={piece.title}
+                >
+                  <div className="ticket-head">
+                    <div>
+                      <div className="ticket-side">{piece.side}</div>
+                      <h3>{piece.title}</h3>
+                    </div>
+                  </div>
+                  <p className="claim">{piece.claim}</p>
+                  <dl>
+                    {piece.kv.map((row) => (
+                      <div className="kv" key={row.k}><dt>{row.k}</dt><dd>{row.v}</dd></div>
+                    ))}
+                  </dl>
+                  <p className="note" style={{ marginTop: 0 }}>{piece.note}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* the loop, end to end */}
+        <section className="band" id="flow">
+          <div className="shell">
+            <p className="eyebrow">{home.flow.eyebrow}</p>
+            <h2 className="title appear">{home.flow.title}</h2>
+            <p className="lede appear" style={{ "--d": "80ms" }}>
+              {home.flow.lede}
             </p>
 
             <div className="tl appear" id="tl">
               <div className="tl-rail"><div className="tl-fill" id="tl-fill" /></div>
               <div className="tl-steps">
-                {home.round.steps.map((step, i) => (
+                {home.flow.steps.map((step, i) => (
                   <div className="tl-step" data-step={i} key={step.t}>
                     <span className="t">{step.t}</span><span className="n">{step.n}</span><span className="d">{step.d}</span>
                   </div>
                 ))}
               </div>
+              {/* the phases have to line up with the step columns above:
+                  steps 1-2 are online, step 3 is the air gap, step 4 the relayer */}
               <div className="tl-phase" aria-hidden="true">
-                {home.round.phases.map((phase) => (
-                  <div key={phase}>{phase}</div>
+                {home.flow.phases.map((phase, i) => (
+                  <div key={phase} style={{ flex: i === 0 ? 2 : 1 }}>{phase}</div>
                 ))}
               </div>
             </div>
-            <Link className="more appear" href="/mechanic#resolution">
-              {home.round.more}<i>&rarr;</i>
+            <Link className="more appear" href="/protocol">
+              {home.flow.more}<i>&rarr;</i>
             </Link>
           </div>
         </section>
 
-        {/* three objections, condensed */}
+        {/* four objections, answered on the page */}
         <section className="band" id="objections">
           <div className="shell">
             <p className="eyebrow">{home.objections.eyebrow}</p>
@@ -181,14 +195,14 @@ export default function Home() {
                 </details>
               ))}
             </div>
-            <Link className="more appear" href="/faq">
+            <a className="more appear" href={`${GITHUB}/blob/main/docs/THREAT-MODEL.md`}>
               {home.objections.more}<i>&rarr;</i>
-            </Link>
+            </a>
           </div>
         </section>
 
         {/* cta */}
-        <section className="band band--invert cta" id="access">
+        <section className="band band--invert cta" id="try">
           <div className="shell">
             <h2 className="appear">
               {home.cta.titlePrefix}<span className="accent">{home.cta.titleAccent}</span>{home.cta.titleSuffix}
@@ -197,10 +211,8 @@ export default function Home() {
               {home.cta.lede}
             </p>
             <div className="hero-cta appear" style={{ "--d": "160ms" }}>
-              <a className="btn btn--solid" href="mailto:hello@pixstock.xyz?subject=PixStock%20early%20access">
-                {home.cta.requestAccess}
-              </a>
-              <a className="btn" href="#mechanic">{home.cta.readMechanic}</a>
+              <a className="btn btn--solid" href={VAULT}>{home.cta.requestAccess}</a>
+              <a className="btn" href={GITHUB}>{home.cta.readMechanic}</a>
             </div>
           </div>
         </section>
