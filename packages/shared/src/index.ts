@@ -15,6 +15,18 @@ export const PROGRAM_IDS = {
 
 export const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 
+/**
+ * The quote currency. Not in ASSETS — that list is what you can buy, and USDC
+ * is what you buy it with — but every display path needs to name it.
+ */
+export const USDC = {
+  symbol: "USDC",
+  name: "USD Coin",
+  mint: USDC_MINT,
+  decimals: 6,
+  tokenProgram: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+} as const;
+
 export interface Asset {
   symbol: string;
   name: string;
@@ -85,6 +97,20 @@ export function assetBySymbol(symbol: string): Asset | undefined {
 
 export function assetByMint(mint: string): Asset | undefined {
   return ASSETS.find((a) => a.mint === mint);
+}
+
+/** Display name for any mint the product knows, USDC included. */
+export function symbolOfMint(mint: string): string {
+  if (mint === USDC_MINT) return USDC.symbol;
+  return assetByMint(mint)?.symbol ?? `${mint.slice(0, 4)}…${mint.slice(-4)}`;
+}
+
+/** Decimals for any mint the product knows. Throws rather than guess. */
+export function decimalsOfMint(mint: string): number {
+  if (mint === USDC_MINT) return USDC.decimals;
+  const asset = assetByMint(mint);
+  if (!asset) throw new Error(`shared: unknown mint ${mint}`);
+  return asset.decimals;
 }
 
 export type OrderKind = "BUY" | "SELL" | "BASKET";

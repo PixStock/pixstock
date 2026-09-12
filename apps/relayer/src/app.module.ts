@@ -4,6 +4,9 @@ import { ConfigModule } from '@nestjs/config';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { DatabaseModule } from './database/database.module';
+import { HealthModule } from './modules/health/health.module';
+import { MarketModule } from './modules/market/market.module';
+import { QuotesModule } from './modules/quotes/quotes.module';
 import { appConfig, databaseConfig, solanaConfig, relayerConfig } from './config';
 
 @Module({
@@ -14,9 +17,11 @@ import { appConfig, databaseConfig, solanaConfig, relayerConfig } from './config
     }),
     ThrottlerModule.forRoot([{ name: 'global', ttl: 60_000, limit: 100 }]),
     DatabaseModule,
-    // Domain modules land here as they are built — see docs/ARCHITECTURE.md:
-    // OrdersModule, QuotesModule, TxBuilderModule, PythModule, NoncesModule,
-    // RelayerModule, VaultsModule, MarketModule, HealthModule.
+    HealthModule,
+    MarketModule,
+    QuotesModule,
+    // Still to come — see docs/ARCHITECTURE.md: OrdersModule, TxBuilderModule,
+    // PythModule, NoncesModule, RelayerModule, VaultsModule.
   ],
   controllers: [AppController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

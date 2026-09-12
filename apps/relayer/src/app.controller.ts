@@ -2,13 +2,16 @@ import { Controller, Get } from '@nestjs/common';
 
 @Controller()
 export class AppController {
+  /**
+   * Service identity. `/healthz` belongs to HealthModule, which reports what
+   * actually works — see modules/health.
+   */
   @Get()
-  hello(): string {
-    return 'Hello World!';
-  }
-
-  @Get('healthz')
-  health(): string {
-    return 'ok';
+  root() {
+    return {
+      service: 'pixstock-relayer',
+      docs: 'https://github.com/PixStock/pixstock/blob/main/docs/ARCHITECTURE.md',
+      health: '/healthz',
+    };
   }
 }
