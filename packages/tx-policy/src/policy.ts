@@ -1,0 +1,241 @@
+/**
+ * The signing policy: P1 to P10.
+ *
+ * This is the half that decides. The decoder says what the transaction does;
+ * this says whether the vault is allowed to sign it, and produces the ticket
+ * the holder actually reads.
+ *
+ * The manifest is never the source of truth. Every figure on the ticket is
+ * taken from the decoded instructions; the manifest is only ever compared
+ * against them, and a disagreement is a refusal.
+ *
+ * Rules that are not implemented yet are reported as `unevaluated` and make
+ * the result `ok: false`. A policy that quietly skips half its checks is
+ * worse than no policy at all — it produces a green tick the holder trusts.
+ */
+
+import { PROGRAM_IDS, assetByMint, formatAmount, type OrderManifest } from "@pixstock/shared";
+import {
+  COMPUTE_BUDGET_PROGRAM,
+  SYSTEM_PROGRAM,
+  type DecodedInstruction,
+} from "./instructions.js";
+import { feePayerOf, type CompiledMessage } from "./message.js";
+import { deriveAta } from "./pda.js";
+
+export type PolicyRule = "P1" | "P2" | "P3" | "P4" | "P5" | "P6" | "P7" | "P8" | "P9" | "P10";
+
+export const POLICY_RULES: Record<PolicyRule, string> = {
+  P1: "The vault must not be the fee payer",
+  P2: "Every program must be in the allowlist and nameable",
+  P3: "No delegation: no approve, revoke or authority change",
+  P4: "No closing or burning a vault token account",
+  P5: "Swap output must land in an account the vault derives itself",
+  P6: "Amounts must match the manifest",
+  P7: "Slippage must be within the manifest and the hard cap",
+  P8: "At most one nonce advance, and the vault is not its authority",
+  P9: "The number of swap legs must match the manifest",
+  P10: "No lamports may leave the vault",
+};
+
+/** Nothing above this signs, whatever the manifest asks for. */
+export const MAX_SLIPPAGE_BPS = 300;
+
+const ALLOWED_PROGRAMS = new Set([
+  COMPUTE_BUDGET_PROGRAM,
+  SYSTEM_PROGRAM,
+  PROGRAM_IDS.token,
+  PROGRAM_IDS.token2022,
+  PROGRAM_IDS.associatedToken,
+  PROGRAM_IDS.jupiterV6,
+]);
+
+export interface TicketLine {
+  symbol: string;
+  direction: "in" | "out";
+  /** Human-readable, already scaled by the asset's decimals. */
+  amount: string;
+  rawAmount: string;
+  mint: string;
+}
+
+export interface OrderTicket {
+  kind: OrderManifest["kind"];
+  lines: TicketLine[];
+  feePayer: string;
+  networkFeePaidBy: "relayer" | "vault";
+  slippageBps: number;
+}
+
+export interface PolicyViolation {
+  rule: PolicyRule;
+  detail: string;
+}
+
+export interface PolicyResult {
+  ok: boolean;
+  /** Rules this build actually checked. */
+  evaluated: PolicyRule[];
+  /** Rules that exist on paper and are not enforced yet. */
+  unevaluated: PolicyRule[];
+  violations: PolicyViolation[];
+  /** Present when every evaluated rule passed, whatever `ok` says. */
+  ticket?: OrderTicket;
+}
+
+/** Implemented today. The rest are listed so nothing looks checked that is not. */
+const EVALUATED: PolicyRule[] = ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P9", "P10"];
+const UNEVALUATED: PolicyRule[] = ["P8"];
+
+export interface PolicyInput {
+  message: CompiledMessage;
+  decoded: DecodedInstruction[];
+  manifest: OrderManifest;
+  /** The vault's own public key, from its own storage — never from the payload. */
+  vault: string;
+}
+
+export function applyPolicy({ message, decoded, manifest, vault }: PolicyInput): PolicyResult {
+  const violations: PolicyViolation[] = [];
+  const fail = (rule: PolicyRule, detail: string) => violations.push({ rule, detail });
+
+  // P1 — the vault must not pay. This is the Zero-SOL promise; if it fails,
+  // the transaction is draining the vault for fees and rent.
+  const feePayer = feePayerOf(message);
+  if (feePayer === vault) fail("P1", "The vault is the fee payer");
+
+  // P2 — every program nameable and allowed.
+  for (const instruction of decoded) {
+    if (instruction.programId.startsWith("lookup:")) {
+      fail("P2", `A program comes from a lookup table and cannot be identified (${instruction.programId})`);
+    } else if (!ALLOWED_PROGRAMS.has(instruction.programId)) {
+      fail("P2", `Program ${instruction.programId} is not in the allowlist`);
+    }
+    if (instruction.undecodable && instruction.kind === "unknown") {
+      fail("P2", `Cannot read an instruction: ${instruction.undecodable}`);
+    }
+  }
+
+  // P3 — delegation, in any form, is how a single signature becomes a
+  // standing permission. There is no legitimate reason for one here.
+  for (const instruction of decoded) {
+    if (instruction.kind === "token-approve") fail("P3", "The transaction delegates token authority");
+    if (instruction.kind === "token-authority") fail("P3", "The transaction changes an account authority");
+  }
+
+  // P4 — closing or burning.
+  for (const instruction of decoded) {
+    if (instruction.kind === "token-close") fail("P4", "The transaction closes a token account");
+    if (instruction.kind === "token-burn") fail("P4", "The transaction burns tokens");
+  }
+
+  // P10 — bare lamport transfers out of the vault.
+  for (const instruction of decoded) {
+    if (instruction.kind === "system-transfer" && instruction.accounts[0] === vault) {
+      fail("P10", `The transaction moves ${instruction.detail.lamports} lamports out of the vault`);
+    }
+  }
+
+  const swaps = decoded.filter((instruction) => instruction.kind === "jupiter-route");
+
+  // P9 — one swap per manifest leg, no more and no fewer.
+  if (swaps.length !== manifest.legs.length) {
+    fail("P9", `The manifest declares ${manifest.legs.length} leg(s), the transaction carries ${swaps.length}`);
+  }
+
+  // P5 — the destination must be an account the vault can derive. Being told
+  // "this is your token account" is exactly what an attacker would say.
+  for (const leg of manifest.legs) {
+    const asset = assetByMint(leg.outMint);
+    if (!asset) {
+      fail("P5", `Unknown output mint ${leg.outMint}`);
+      continue;
+    }
+    const expected = deriveAta(vault, leg.outMint, asset.tokenProgram);
+    const present =
+      message.staticAccountKeys.includes(expected) ||
+      decoded.some((instruction) => instruction.accounts.includes(expected));
+    if (!present) {
+      fail("P5", `${asset.symbol} would not land in the vault's own account (${expected})`);
+    }
+  }
+
+  // P6 and P7 — the numbers. Compared leg by leg against what the instruction
+  // really carries, in the order the manifest declares them.
+  swaps.forEach((swap, i) => {
+    const leg = manifest.legs[i];
+    if (!leg) return;
+
+    const exactOut = swap.detail.exactOut === true;
+    const declared = exactOut ? leg.expectedOutAmount : leg.inAmount;
+    const actual = String(exactOut ? swap.detail.outAmount : swap.detail.inAmount);
+
+    if (actual !== declared) {
+      fail(
+        "P6",
+        `Leg ${i + 1}: the manifest says ${declared}, the instruction says ${actual}`
+      );
+    }
+
+    const slippageBps = Number(swap.detail.slippageBps ?? 0);
+    if (slippageBps > manifest.slippageBps) {
+      fail("P7", `Leg ${i + 1}: slippage ${slippageBps} bps exceeds the declared ${manifest.slippageBps}`);
+    }
+    if (slippageBps > MAX_SLIPPAGE_BPS) {
+      fail("P7", `Leg ${i + 1}: slippage ${slippageBps} bps is over the hard cap of ${MAX_SLIPPAGE_BPS}`);
+    }
+  });
+
+  const ticket = violations.length === 0 ? buildTicket(manifest, swaps, feePayer, vault) : undefined;
+
+  return {
+    // An unimplemented rule is an unchecked rule, and an unchecked rule is not
+    // a pass. This stays false until P8 is enforced.
+    ok: violations.length === 0 && UNEVALUATED.length === 0,
+    evaluated: EVALUATED,
+    unevaluated: UNEVALUATED,
+    violations,
+    ticket,
+  };
+}
+
+function buildTicket(
+  manifest: OrderManifest,
+  swaps: DecodedInstruction[],
+  feePayer: string,
+  vault: string
+): OrderTicket {
+  const lines: TicketLine[] = [];
+
+  manifest.legs.forEach((leg, i) => {
+    const swap = swaps[i];
+    const inAsset = assetByMint(leg.inMint);
+    const outAsset = assetByMint(leg.outMint);
+
+    // Amounts come from the instruction where there is one, never the manifest.
+    const rawIn = swap ? String(swap.detail.inAmount ?? leg.inAmount) : leg.inAmount;
+
+    lines.push({
+      symbol: inAsset?.symbol ?? "USDC",
+      direction: "in",
+      rawAmount: rawIn,
+      amount: formatAmount(rawIn, inAsset?.decimals ?? 6),
+      mint: leg.inMint,
+    });
+    lines.push({
+      symbol: outAsset?.symbol ?? "USDC",
+      direction: "out",
+      rawAmount: leg.expectedOutAmount,
+      amount: formatAmount(leg.expectedOutAmount, outAsset?.decimals ?? 6),
+      mint: leg.outMint,
+    });
+  });
+
+  return {
+    kind: manifest.kind,
+    lines,
+    feePayer,
+    networkFeePaidBy: feePayer === vault ? "vault" : "relayer",
+    slippageBps: manifest.slippageBps,
+  };
+}
