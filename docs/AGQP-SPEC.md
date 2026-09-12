@@ -132,15 +132,23 @@ d'ATA Token-2022 incluse).
 | Message Pyth Pro `solana`, 1 feed | ≈ 145 |
 | Message Pyth Pro `solana`, 3 feeds | ≈ 205 |
 | Manifest CBOR 3 lignes + en-tête | ≈ 180 |
-| **SIGN panier 3 titres** | **≈ 1 330 → 5 trames en `M`** |
-| **SIGN 1 swap** | **≈ 800 → 3 trames** |
-| **SIGR** (1 signature) | ≈ 75 → 1 QR statique |
+| **SIGN 1 swap**, payload CBOR complet | **1 048 — mesuré → 4 trames en `M`** |
+| **SIGN panier 3 titres**, payload CBOR complet | **1 345 — mesuré → 5 trames en `M`** |
+| **SIGR** (1 signature) | 107 caractères → 1 QR statique |
+
+> Les deux lignes en gras sont **mesurées** sur le codec réel
+> (`packages/agqp/test/payload.test.ts` les verrouille), les autres restent des
+> composants estimés. L'estimation du panier était juste ; celle du swap simple
+> était 31 % basse — le message v0 réel fait 679 octets et non 581, et le
+> manifest encodé dépasse les 180 octets prévus. Le panier tient toujours en
+> 5 trames, donc la promesse de démo ne bouge pas.
 
 À 8 FPS, un cycle de 5 trames dure 0,625 s. Un téléphone qui décode à 15-30
 fps capte tout en 1 à 2 cycles : **objectif < 1,5 s tenu**.
 
 Si le repli Pyth Hermes est retenu (risque R1), le payload de prix passe de
-~145 à ~1 200 octets, soit 9 trames au lieu de 5 — le format ne change pas,
+~145 à ~1 200 octets : le panier 3 lignes mesure alors 2 341 octets, soit
+8 trames au lieu de 5 — le format ne change pas,
 seul le nombre de trames augmente. C'est pourquoi `INDEX`/`TOTAL` vont
 jusqu'à 99.
 

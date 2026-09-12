@@ -16,6 +16,7 @@
     "@pixstock/shared": "*",
     "@pixstock/tx-policy": "*",
     "@pixstock/vault-crypto": "*",
+    "@scure/base": "^2.4.0",
     "qrcode": "^1.5.4",
     "react": "19.2.8",
     "react-dom": "19.2.8"

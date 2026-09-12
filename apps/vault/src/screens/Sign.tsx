@@ -1,27 +1,25 @@
 import { useState } from "react";
-import { decodeSessionId, encodeSignatureResponse } from "@pixstock/agqp";
+import { encodeSessionId, encodeSignatureResponse, type SignRequest } from "@pixstock/agqp";
+import type { OrderTicket } from "@pixstock/tx-policy";
 import { signWith, type VaultBlob } from "@pixstock/vault-crypto";
 import { QrCode } from "../components/QrCode";
 
 export interface SignProps {
   blob: VaultBlob;
-  payload: Uint8Array;
-  /** Session id of the frames that carried this order, echoed in the reply. */
-  sid: string;
+  request: SignRequest;
+  ticket: OrderTicket;
   onDone: () => void;
 }
 
 /**
- * Step 3: confirm, sign, show the reply.
+ * Step 3: confirm with the master password, then show the reply.
  *
- * What is missing before this is honest: the payload is still opaque bytes.
- * The CBOR decode, the Pyth verification and the P1..P10 policy all belong
- * between the scan and this screen, and the order ticket they produce is
- * what the holder should be confirming — not a byte count. Until then this
- * screen says plainly that it is signing something it cannot read, which is
- * exactly the blind signing the product exists to abolish.
+ * The order was read and checked on the previous screen; what is confirmed
+ * here is the ticket, not a byte count. The signature covers the transaction
+ * message itself — the relayer attaches it to the message it already holds,
+ * which is why only sixty-four bytes need to travel back.
  */
-export function Sign({ blob, payload, sid, onDone }: SignProps) {
+export function Sign({ blob, request, ticket, onDone }: SignProps) {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,8 +29,12 @@ export function Sign({ blob, payload, sid, onDone }: SignProps) {
     setBusy(true);
     setError(null);
     try {
-      const signature = await signWith(blob, password, payload);
-      setReply(encodeSignatureResponse(decodeSessionId(sid), [signature]));
+      // Signed over the transaction message itself, not over the payload that
+      // carried it — the relayer attaches this to the message it already holds.
+      const signature = await signWith(blob, password, request.txs[0]!);
+      setReply(
+        encodeSignatureResponse(request.sid, [signature])
+      );
       setPassword("");
     } catch (err) {
       setError((err as Error).message);
@@ -48,8 +50,9 @@ export function Sign({ blob, payload, sid, onDone }: SignProps) {
           <p className="eyebrow">Step 3</p>
           <h2>Show this to the webcam</h2>
           <p className="lede">
-            Sixty-four bytes of signature. The transaction never comes back —
-            the laptop already has it.
+            Sixty-four bytes of signature, for session{" "}
+            <span className="num">{encodeSessionId(request.sid)}</span>. The
+            transaction never comes back — the laptop already has it.
           </p>
         </header>
 
@@ -71,16 +74,19 @@ export function Sign({ blob, payload, sid, onDone }: SignProps) {
         <h2>Confirm and sign</h2>
       </header>
 
-      <p className="alert" role="note">
-        <strong>This order is not readable yet.</strong> The decoder, the Pyth
-        price check and the signing policy are not built, so the vault cannot
-        tell you what it is about to sign. Do not use this with a funded
-        vault.
-      </p>
-
-      <p className="muted">
-        Payload <span className="num">{payload.length}</span> bytes.
-      </p>
+      <div className="ticket ticket--compact">
+        <p className="ticket-kind">{ticket.kind}</p>
+        <dl className="ticket-lines">
+          {ticket.lines.map((line, i) => (
+            <div key={i} className={`ticket-line ticket-line--${line.direction}`}>
+              <dt>{line.direction === "in" ? "You pay" : "You receive"}</dt>
+              <dd>
+                <span className="num">{line.amount}</span> {line.symbol}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </div>
 
       <label className="field">
         <span>Master password</span>

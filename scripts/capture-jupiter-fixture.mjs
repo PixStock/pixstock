@@ -5,7 +5,10 @@
  * keys alone. What leaves this machine is two mint addresses, an amount and
  * two throwaway public keys — nothing else.
  *
- * Run: node scripts/capture-jupiter-fixture.mjs
+ * Run: node scripts/capture-jupiter-fixture.mjs [vaultPubkey] [outFile]
+ *
+ * Pass a vault public key to build the route for a specific vault — useful
+ * when checking the policy's happy path against a vault you actually hold.
  */
 import { writeFileSync } from "node:fs";
 import { ed25519 } from "@noble/curves/ed25519.js";
@@ -16,7 +19,7 @@ const API = process.env.JUPITER_API_URL ?? "https://lite-api.jup.ag/swap/v1";
 
 const throwawayPubkey = () => base58.encode(ed25519.getPublicKey(crypto.getRandomValues(new Uint8Array(32))));
 
-const vault = throwawayPubkey();
+const vault = process.argv[2] ?? throwawayPubkey();
 const payer = throwawayPubkey();
 
 const tesla = ASSETS.find((a) => a.symbol === "TSLAx");
@@ -67,7 +70,9 @@ const fixture = {
   swapTransaction: swap.swapTransaction,
 };
 
-const path = new URL("../packages/tx-policy/test/fixtures/jupiter-swap.json", import.meta.url);
+const path = process.argv[3]
+  ? new URL(process.argv[3], `file://${process.cwd()}/`)
+  : new URL("../packages/tx-policy/test/fixtures/jupiter-swap.json", import.meta.url);
 writeFileSync(path, JSON.stringify(fixture, null, 2) + "\n");
 
 console.log(`captured ${raw.length} bytes · route ${fixture.route?.join(" → ")}`);

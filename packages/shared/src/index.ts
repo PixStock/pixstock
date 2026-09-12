@@ -107,6 +107,10 @@ export interface OrderLeg {
   inAmount: string;
   /** Expected raw amount of `outMint`, from the Jupiter quote. */
   expectedOutAmount: string;
+  /** Floor after slippage. Below this the swap fails rather than fills badly. */
+  minOutAmount?: string;
+  /** Pyth Pro feed the vault checks this leg's price against. */
+  pythFeedId?: number;
 }
 
 /**
@@ -119,7 +123,14 @@ export interface OrderManifest {
   vault: string;
   legs: OrderLeg[];
   slippageBps: number;
+  /** Unix seconds the quote was taken. The vault shows its age on the ticket. */
   createdAt: number;
+  /** Who pays fees and rent. The vault checks this is not itself. */
+  feePayer?: string;
+  /** Durable nonce account, so a signature does not expire while it is read. */
+  nonceAccount?: string;
+  /** Origin that built the order, shown on the ticket. Never trusted. */
+  dapp?: string;
 }
 
 /** Formats a raw token amount for display. Pair with the `.num` CSS class. */

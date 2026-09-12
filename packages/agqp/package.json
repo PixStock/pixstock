@@ -22,6 +22,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@pixstock/shared": "*"
+    "@pixstock/shared": "*",
+    "@scure/base": "^2.4.0",
+    "cbor-x": "^1.6.6"
   }
 }

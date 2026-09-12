@@ -5,7 +5,7 @@ const hex = (bytes: Uint8Array, limit = 32) =>
   Array.from(bytes.slice(0, limit), (b) => b.toString(16).padStart(2, "0")).join(" ") +
   (bytes.length > limit ? " …" : "");
 
-export function Scan({ onScanned }: { onScanned: (payload: Uint8Array, sid: string) => void }) {
+export function Scan({ onScanned }: { onScanned: (payload: Uint8Array) => void }) {
   const { videoRef, state, start, stop, reset, pushText } = useFrameScanner();
   const [pasted, setPasted] = useState("");
 
@@ -64,15 +64,12 @@ export function Scan({ onScanned }: { onScanned: (payload: Uint8Array, sid: stri
             <button
               type="button"
               className="btn btn--solid"
-              onClick={() => onScanned(state.payload, state.sid)}
+              onClick={() => onScanned(state.payload)}
             >
               Continue
             </button>
           </div>
-          <p className="muted">
-            The CBOR decode, the Pyth check and the signing policy belong here,
-            between the scan and the signature — see docs/ARCHITECTURE.md.
-          </p>
+
         </div>
       )}
 

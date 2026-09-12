@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
+import type { SignRequest } from "@pixstock/agqp";
+import type { OrderTicket } from "@pixstock/tx-policy";
 import type { VaultBlob } from "@pixstock/vault-crypto";
+import { base58 } from "@scure/base";
+import { Review } from "./screens/Review";
 import { Scan } from "./screens/Scan";
 import { Setup } from "./screens/Setup";
 import { Sign } from "./screens/Sign";
@@ -8,13 +12,15 @@ import { loadBlob } from "./vault/storage";
 type Screen =
   | { name: "setup" }
   | { name: "scan" }
-  | { name: "sign"; payload: Uint8Array; sid: string };
+  | { name: "review"; payload: Uint8Array }
+  | { name: "sign"; request: SignRequest; ticket: OrderTicket };
 
 /**
- * Offline signer. The screens in docs/ARCHITECTURE.md land here one by one:
- * onboarding, scan, verification, signing, backup, settings. Verification —
- * the CBOR decode, the Pyth check, the P1..P10 policy and the readable order
- * ticket — is the gap between scan and sign, and it is not built.
+ * Offline signer: onboarding, scan, review, sign.
+ *
+ * Review is the screen the product exists for. It decodes the order, runs the
+ * policy against the transaction itself, and shows amounts read from the
+ * instructions rather than from the description that travelled with them.
  *
  * Hard rule for everything under apps/vault: no `fetch`, no `XMLHttpRequest`,
  * no WebSocket, no third-party script. The lint config fails the build on any
@@ -78,13 +84,22 @@ export function App() {
             }}
           />
         ) : screen.name === "scan" ? (
-          <Scan onScanned={(payload, sid) => setScreen({ name: "sign", payload, sid })} />
+          <Scan onScanned={(payload) => setScreen({ name: "review", payload })} />
+        ) : screen.name === "review" ? (
+          blob && (
+            <Review
+              payload={screen.payload}
+              vault={base58.encode(blob.publicKey)}
+              onApprove={(request, ticket) => setScreen({ name: "sign", request, ticket })}
+              onReject={() => setScreen({ name: "scan" })}
+            />
+          )
         ) : (
           blob && (
             <Sign
               blob={blob}
-              payload={screen.payload}
-              sid={screen.sid}
+              request={screen.request}
+              ticket={screen.ticket}
               onDone={() => setScreen({ name: "scan" })}
             />
           )

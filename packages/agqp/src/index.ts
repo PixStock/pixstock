@@ -40,6 +40,18 @@ export {
   type SignatureResponse,
 } from "./response.js";
 export { AnimatedQrScheduler, DEFAULT_FPS } from "./scheduler.js";
+export {
+  PAYLOAD_VERSION,
+  decodePayload,
+  encodePayload,
+  type ManifestLeg,
+  type PairRecord,
+  type Payload,
+  type PayloadKind,
+  type PayloadManifest,
+  type SignRequest,
+  type SignResponse,
+} from "./payload.js";
 
 import { CHUNK_SIZES, MAX_FRAMES, buildFrame, encodeSessionId, type FrameSize } from "./frame.js";
 
