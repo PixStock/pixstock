@@ -94,9 +94,24 @@ SignRequest { v: 1, kind: "SIGN", sid: bytes(3), vault: bytes(32),
 
 SignResponse { v: 1, kind: "SIGR", sid, sigs: [bytes(64)] }
 Pair         { v: 1, kind: "PAIR", vault: bytes(32), label: tstr, net: "mainnet" | "devnet" }
-PaperVault   { v: 1, kind: "PVLT", kdf: { alg, salt, iters|mem }, nonce: bytes(12),
-               ct: bytes(48), pub: bytes(32), created: u64 }
+PaperVault   — voir ci-dessous, encodage propre
 ```
+
+### Paper-Vault
+
+Le Paper-Vault ne traverse jamais le canal à trames : c'est **un seul QR
+imprimé**, scanné d'un coup. Il a donc son propre encodage, autonome et
+versionné, dans `packages/vault-crypto` :
+
+```
+PVLT:<BASE45(blob)>
+```
+
+Le blob fait 127 octets à plat — version, algorithme et coût de la KDF, sel,
+nonce, chiffré (graine + tag GCM), clé publique, date de création — soit
+**196 caractères** une fois encodé, largement dans les capacités d'un QR
+imprimable. Tout ce qui est nécessaire au déchiffrement est dedans, coût de
+la KDF compris : relever le coût plus tard n'orpheline aucune sauvegarde.
 
 > **Non implémenté.** `packages/agqp` transporte aujourd'hui des octets
 > opaques : l'encodage CBOR viendra avec `cbor-x`, et le `manifest` est

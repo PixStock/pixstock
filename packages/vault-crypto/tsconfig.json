@@ -3,9 +3,10 @@
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src",
-    "composite": true
+    "composite": true,
+    // WebCrypto (CryptoKey, BufferSource, crypto.subtle). This package runs in
+    // the vault PWA; Node 20+ exposes the same API under the same names.
+    "lib": ["ES2023", "DOM"]
   },
-  "include": [
-    "src"
-  ]
+  "include": ["src"]
 }

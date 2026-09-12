@@ -20,5 +20,11 @@
     "dev": "tsc -p tsconfig.json --watch",
     "clean": "rm -rf dist",
     "test": "vitest run"
+  },
+  "dependencies": {
+    "@noble/curves": "^2.4.0",
+    "@noble/hashes": "^2.4.0",
+    "@pixstock/agqp": "*",
+    "hash-wasm": "^4.12.0"
   }
 }
