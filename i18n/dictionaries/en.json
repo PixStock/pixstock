@@ -1,0 +1,446 @@
+{
+  "site": {
+    "siteName": "PixStock",
+    "titleDefault": "PixStock | Staked Curation",
+    "titleTemplate": "PixStock | %s",
+    "description": "PixStock is a staked curation market on Solana. Rank is bought with exposed capital, not ad space: curators lock SOL behind a token and lose it if it rugs.",
+    "orgDescription": "PixStock is a staked curation and reputation market for Solana.",
+    "ogAlt": "PixStock. Rank is bought with exposed capital, not ad space."
+  },
+  "common": {
+    "skipToContent": "Skip to content",
+    "brandHome": "PixStock, home",
+    "comingSoon": "Coming soon",
+    "themeToLight": "Switch to light theme",
+    "themeToDark": "Switch to dark theme",
+    "slideOf": "Slide {current} of {total}",
+    "previous": "Previous",
+    "next": "Next",
+    "nav": {
+      "protocol": "Protocol",
+      "roadmap": "Roadmap",
+      "faq": "FAQ",
+      "protocolMenu": [
+        { "href": "/mechanic", "title": "The rule set", "desc": "How a position is priced, judged and paid." },
+        { "href": "/mechanic#resolution", "title": "Resolution ladder", "desc": "The six checks, in the order they run." },
+        { "href": "/mechanic#slashing", "title": "Slashing schedule", "desc": "What a wrong call costs, by outcome." },
+        { "href": "/mechanic#reputation", "title": "Reputation", "desc": "The 0-1000 score and its three gates." }
+      ]
+    },
+    "footer": {
+      "about": "A curation and reputation market for Solana, built by PixStock. The ranking is bought with exposed capital, and lost with it.",
+      "columns": {
+        "product": {
+          "title": "Product",
+          "links": [
+            { "href": "/#mechanic", "label": "Staked ranking", "external": false },
+            { "href": "/#round", "label": "The round", "external": false },
+            { "href": "/mechanic#reputation", "label": "Reputation", "external": false },
+            { "href": "/roadmap", "label": "Roadmap", "external": false }
+          ]
+        },
+        "protocol": {
+          "title": "Protocol",
+          "links": [
+            { "href": "/mechanic", "label": "Full rule set", "external": false },
+            { "href": "/mechanic#resolution", "label": "Resolution ladder", "external": false },
+            { "href": "/mechanic#slashing", "label": "Slashing schedule", "external": false },
+            { "href": "/mechanic#pot", "label": "Guarantee fund", "external": false }
+          ]
+        },
+        "company": {
+          "title": "Company",
+          "links": [
+            { "href": "mailto:hello@pixstock.xyz", "label": "Contact", "external": true },
+            { "href": "/#access", "label": "Early access", "external": false },
+            { "href": "/roadmap#compliance", "label": "Audits", "external": false },
+            { "href": "/faq", "label": "Objections", "external": false }
+          ]
+        }
+      },
+      "legal": [
+        "<b>Not advice.</b> Nothing here is investment advice, an offer, or a solicitation.",
+        "<b>Total loss is possible.</b> Staking exposes capital to slashing, up to the whole stake.",
+        "<b>The guarantee fund is not insurance.</b> Compensation is capped at 40&nbsp;% of the observed loss and at the fund&rsquo;s available balance, paid pro rata, with no guarantee of completeness.",
+        "<b>Challenge is not settled.</b> It awaits a written legal opinion and will be geo-restricted where required."
+      ],
+      "copyrightLabel": "PIXSTOCK",
+      "copyrightYear": "© 2026"
+    }
+  },
+  "home": {
+    "meta": {
+      "title": "PixStock | Staked Curation",
+      "description": "PixStock is a staked curation market on Solana. Rank is bought with exposed capital, not ad space: curators lock SOL behind a token and lose it if it rugs."
+    },
+    "hero": {
+      "titlePrefix": "Rank is bought with ",
+      "titleAccent": "exposed capital",
+      "titleSuffix": ", not ad space.",
+      "lede": "Curators lock SOL behind a token. If it rugs, that capital is slashed and paid to whoever flagged it.",
+      "ctaSeeMechanic": "See the mechanic",
+      "ctaRequestAccess": "Request early access",
+      "stats": [
+        { "value": "0.5 SOL", "label": "Minimum Boost stake" },
+        { "value": "24 h", "label": "Round length, stakes shut after 2 h" },
+        { "value": "3.0×", "label": "Maximum reputation weight" },
+        { "value": "70 %", "label": "Of every slashed pot to challengers" }
+      ]
+    },
+    "statement": "Trust becomes a measurable asset instead of a claim.",
+    "problem": {
+      "eyebrow": "The problem",
+      "title": "Discovery sells the first place. It never earns it.",
+      "lede": "Solana produces tens of thousands of new tokens a day, and aggregators sell the first place at ad rates.",
+      "slides": [
+        {
+          "kicker": "Before the buy",
+          "title": "Information asymmetry",
+          "body": "Liquidity lock, mint authority, deployer history: the fields that decide whether a token survives. None of them is on the page. The price is.",
+          "alt": "A token page where every risk field is blanked out and only the price is legible"
+        },
+        {
+          "kicker": "At the top of the list",
+          "title": "Venal visibility",
+          "body": "The ranking rewards the marketing budget, including that of a scammer preparing an exit. First place is a media buy.",
+          "alt": "A ranking whose first place is a paid placement, sitting above the honest rows"
+        },
+        {
+          "kicker": "After the exit",
+          "title": "Issuer impunity",
+          "body": "The pool empties into the deployer’s own wallet, the page stays up, and the next token launches from the same address.",
+          "alt": "A liquidity pool draining into the deployer wallet with no consequence attached"
+        },
+        {
+          "kicker": "Who told you to buy",
+          "title": "Reputation resets",
+          "body": "A caller’s record lives on social media: declarative, unauditable, wiped with every new account. Being wrong costs nothing.",
+          "alt": "Three wallets in a row, each with a score of zero, and a loop back to a fresh one"
+        }
+      ]
+    },
+    "mechanicSection": {
+      "eyebrow": "Core mechanic | staked ranking",
+      "title": "Two sides. Both of them pay to be wrong.",
+      "lede": "Not volume, not a media buy: locked capital, weighted by the reputation of whoever locked it.",
+      "boost": {
+        "side": "Buy side",
+        "title": "Stake to Boost",
+        "claim": "Lock capital to assert that a token is not fraudulent and will survive the round.",
+        "kv": [
+          { "k": "Minimum stake", "v": "0.5 SOL" },
+          { "k": "Individual cap", "v": "None, RG-05 aside" },
+          { "k": "Issuer surcharge", "v": "+25 % in token" },
+          { "k": "Duration factor", "v": "0.6 / 1.0 / 1.8×" }
+        ],
+        "outcomeRight": "Stake returned in full, a share of the slashed pot, reputation points.",
+        "outcomeWrong": "Graduated slashing per the schedule below, and reputation destroyed."
+      },
+      "challenge": {
+        "side": "Sell side",
+        "title": "Challenge",
+        "claim": "Lock capital to flag that a token shows the signature of fraud or imminent collapse.",
+        "kv": [
+          { "k": "Minimum stake", "v": "0.1 SOL" },
+          { "k": "Capped at", "v": "50 % of Boost" },
+          { "k": "Structured reason", "v": "Required" },
+          { "k": "Weight against rank", "v": "−0.6×" }
+        ],
+        "outcomeRight": "Stake returned, 70 % of the slashed pot shared pro rata, vigilance points.",
+        "outcomeWrong": "Flat 30 % of the stake forfeited to the buyer guarantee fund."
+      },
+      "note": "Challenge capital is subtractive, so a contested token falls in the ranking before it is ever resolved. That is the visitor’s protection in real time.",
+      "more": "Weight formula, resolution ladder, slashing schedule"
+    },
+    "round": {
+      "eyebrow": "The round",
+      "title": "Twenty-four hours. Two to get in. None to get out.",
+      "lede": "Stakes are accepted for two hours only. After that, positions are frozen and nobody enters or exits.",
+      "steps": [
+        { "t": "T0", "n": "Open", "d": "Reference price frozen on-chain." },
+        { "t": "T0 + 2h", "n": "Stakes close", "d": "Boost and Challenge both shut. Positions locked." },
+        { "t": "T + 24h", "n": "Resolution", "d": "Signed verdict, reproducible from indexed transactions." },
+        { "t": "T + 26h", "n": "Settlement", "d": "Paid out after the dispute window closes." }
+      ],
+      "phases": ["Stake window", "Positions locked · continuous on-chain watch", "Dispute"],
+      "more": "How a round is judged at the deadline"
+    },
+    "objections": {
+      "eyebrow": "Objections",
+      "title": "The three questions everyone asks first.",
+      "items": [
+        { "q": "Why would anyone Boost?", "a": "Not the token’s price, the pot: a correct Boost keeps its stake and takes a share of the capital slashed elsewhere. Drawdowns up to 20 % cost nothing." },
+        { "q": "What stops a whale from buying first place?", "a": "Nothing, and that is the point. Rank costs exposure for the whole round with no exit after two hours, not budget." },
+        { "q": "Do you hold my funds?", "a": "No keys, and no funds beyond the stake escrow. Swaps route through a third-party aggregator." }
+      ],
+      "more": "All six objections, answered in full"
+    },
+    "cta": {
+      "titlePrefix": "Skin in the game, or ",
+      "titleAccent": "no rank at all",
+      "titleSuffix": ".",
+      "lede": "Lot 1 is in build. Early access opens with the token directory, before staking goes live.",
+      "requestAccess": "Request early access",
+      "readMechanic": "Read the mechanic"
+    }
+  },
+  "mechanic": {
+    "meta": {
+      "title": "The Rule Set",
+      "description": "How a position is priced, judged, slashed and paid: the ranking weight formula, the resolution ladder, the slashing schedule and the reputation gates.",
+      "ogTitle": "PixStock | The Rule Set"
+    },
+    "breadcrumbName": "The Rule Set",
+    "pageHead": {
+      "eyebrow": "Protocol",
+      "h1": "Priced, judged, slashed, paid.",
+      "lede": "What a position is worth, how it is judged, and what it costs to be wrong."
+    },
+    "weight": {
+      "eyebrow": "Ranking weight",
+      "title": "Rank is capital, multiplied by a reputation you had to earn.",
+      "lede": "Not a score the platform assigns: the sum of what everyone locked, each stake scaled by reputation and lock duration, minus the capital against it.",
+      "tableCaption": "Ranking weight | how a position is priced",
+      "headers": ["Term", "Definition", "Value"],
+      "rows": [
+        { "term": "Weight", "def": "Sum of stake × reputation multiplier × duration factor, minus challenge capital", "value": "n/a" },
+        { "term": "Multiplier(r)", "def": "min( 3.0 ; 0.5 + 2.5 × r / 1000 )", "value": "0.5-3.0×" },
+        { "term": "Duration factor", "def": "6 h / 24 h / 72 h lock", "value": "0.6 / 1.0 / 1.8" },
+        { "term": "Challenge coefficient", "def": "Applied to challenge capital, subtracted from weight", "value": "0.6" },
+        { "term": "Eligibility", "def": "Liquidity, pool age, holder count", "value": "$15k / 30 min / 50" }
+      ],
+      "note": "The 0.6 coefficient stops a small coalition from burying an honest project cheaply."
+    },
+    "resolution": {
+      "eyebrow": "Resolution",
+      "title": "Fraud is examined before price, and stops the round on the spot.",
+      "paragraphs": [
+        "An honest memecoin routinely loses half its value in a day. Punishing that would leave only the manipulators.",
+        "Structural fraud is examined first. Price enters second, as a volume-weighted average."
+      ],
+      "tableCaption": "Order of examination at resolution",
+      "headers": ["Rank", "Criterion", "Verdict"],
+      "rows": [
+        { "rank": 1, "criterion": "Deployer or a linked wallet pulls more than 50 % of liquidity", "verdict": "Fraud", "sev": 3 },
+        { "rank": 2, "criterion": "Mint or freeze authority exercised during the round", "verdict": "Fraud", "sev": 3 },
+        { "rank": 3, "criterion": "Deployer or linked wallet sells more than 40 % of its balance", "verdict": "Fraud", "sev": 3 },
+        { "rank": 4, "criterion": "Swaps become impossible, prohibitive sell tax, active blacklist", "verdict": "Fraud", "sev": 3 },
+        { "rank": 5, "criterion": "Liquidity collapses more than 70 % without deployer action", "verdict": "Graduated", "sev": 2 },
+        { "rank": 6, "criterion": "Volume-weighted price over the last two hours vs. the T0 reference", "verdict": "Graduated", "sev": 1 }
+      ],
+      "note": "Ranks 1 to 4 are checked continuously and resolve the round on the spot, before the platform can hold a fraud in first place."
+    },
+    "slashing": {
+      "eyebrow": "Slashing",
+      "title": "What a wrong call costs, stated before you sign.",
+      "lede": "A drawdown of up to 20 % costs nothing: honest volatility is not a fraud. Past that the schedule is graduated, and characterised fraud takes everything.",
+      "tableCaption": "Slashing applied to the Boost stake",
+      "headers": ["Situation at resolution", "Slashed", "Reputation"],
+      "rows": [
+        { "situation": "Volume-weighted price up", "slashed": "0 %", "reputation": "+18 to +55" },
+        { "situation": "Down to 20 %, normal volatility", "slashed": "0 %", "reputation": "+6" },
+        { "situation": "Down 20-40 %", "slashed": "15 %", "reputation": "−25" },
+        { "situation": "Down 40-60 %", "slashed": "35 %", "reputation": "−70" },
+        { "situation": "Down 60-80 %", "slashed": "60 %", "reputation": "−140" },
+        { "situation": "Down more than 80 %", "slashed": "85 %", "reputation": "−240" },
+        { "situation": "Characterised fraud, ranks 1-4", "slashed": "100 %", "reputation": "Reset to 0, flagged" }
+      ],
+      "note": "The schedule is shown and acknowledged before signature, never deferred to the terms of service."
+    },
+    "pot": {
+      "eyebrow": "Slashed pot",
+      "title": "The treasury takes a handling fee, not a rent on fraud.",
+      "paragraphs": [
+        "There is an obvious objection to any platform that collects a cut of slashing: it makes money when its users get scammed.",
+        "Sending the bulk to the people who flagged the risk and the buyers who lost is what answers it. The burn makes self-hedging loss-making."
+      ],
+      "bars": [
+        { "label": "Challenge positions", "value": "70 %", "why": "Pro rata to the stakes that called it, paid on the resolved round." },
+        { "label": "Buyer guarantee fund", "value": "15 %", "why": "Partial compensation for wallets that bought through the widget, capped at 40 % of the loss." },
+        { "label": "Operating treasury", "value": "10 %", "why": "Infrastructure, indexing and dispute arbitration." },
+        { "label": "Permanent burn", "value": "5 %", "why": "Makes hedging your own Boost with your own Challenge a losing trade. See RG-06." }
+      ],
+      "note": "Compensation is capped and pro rata, stated in the interface rather than buried."
+    },
+    "reputation": {
+      "eyebrow": "Reputation",
+      "title": "An identity worth faking has to cost more than the fraud it enables.",
+      "paragraphs": [
+        "A 0-1000 score that multiplies the weight of every SOL you stake, rebuilt from on-chain transactions and public to anyone.",
+        "It cannot be bought in one round: a high multiplier is gated on cumulative capital exposed, resolved rounds and account age. One characterised fraud sends it to zero, permanently flagged."
+      ],
+      "gates": [
+        { "mult": "0.75×", "caption": "Opening score of 100. Every new wallet starts here." },
+        { "mult": "1.50×", "caption": "Gated on 50 SOL cumulative exposure across at least 15 resolved rounds." },
+        { "mult": "2.50×", "caption": "Gated on 300 SOL across 60 resolved rounds and 90 days of account age." },
+        { "mult": "−2 %", "caption": "Weekly decay with no resolved round. Floor at 100." }
+      ],
+      "chartGates": ["opens at 100", "50 SOL / 15 rounds", "300 SOL / 60 rounds"],
+      "chartAriaLabel": "Reputation multiplier curve: 0.5 times at a score of zero, rising linearly to 3.0 times at a score of 1000, where it is capped.",
+      "curveLegend": ["X | reputation 0 → 1000", "Y | stake multiplier 0.5 → 3.0×", "Cap at 3.0×"],
+      "note": "Reputation gained is capped by the capital that wallet has historically exposed, so one large winning round buys nothing."
+    },
+    "pager": {
+      "next": { "label": "Next", "title": "Delivery", "desc": "Three lots over 36 weeks, and the gates each one has to clear." },
+      "also": { "label": "Also", "title": "Objections", "desc": "Manipulation, whales, custody and the legal position on Challenge." }
+    }
+  },
+  "roadmap": {
+    "meta": {
+      "title": "Delivery Plan",
+      "description": "Three lots over 36 weeks. The financial mechanic does not ship until the escrow program is audited twice and a written legal opinion is in hand.",
+      "ogTitle": "PixStock | Delivery Plan"
+    },
+    "breadcrumbName": "Delivery Plan",
+    "pageHead": {
+      "eyebrow": "Delivery",
+      "h1": "Three lots, 36 weeks, two hard gates.",
+      "lede": "Nothing financial ships on optimism. Each lot waits on a gate that is written down."
+    },
+    "lotsTitle": "Audience first. Money on the line only after the legal opinion.",
+    "lots": [
+      {
+        "badge": "Lot 1",
+        "wk": "10 weeks · S0-S10",
+        "h3": "Directory, audience and swap",
+        "goal": "Build the index and the organic traffic first, and show issuers measured traffic for free.",
+        "bullets": [
+          "Automatic listing of every SPL token with an active pair",
+          "Token pages, security panel, non-staked rankings",
+          "Per-token real-time chat, wallet connect",
+          "Swap widget with a 0.75 % routing fee",
+          "Issuer audience dashboard"
+        ],
+        "blockLabel": "Ships without:",
+        "block": "Solana program, staking, slashing, reputation."
+      },
+      {
+        "badge": "Lot 2",
+        "wk": "14 weeks · 4 of audit",
+        "h3": "Stake and semi-centralised resolution",
+        "goal": "Introduce Boost against a program reduced to escrow. Resolution stays off-chain so the rules can still be iterated.",
+        "bullets": [
+          "Escrow program, position opening, internal pricing",
+          "Continuous fraud detection, hierarchical resolution",
+          "Reputation engine, curator leaderboard",
+          "Back-office, dispute handling, geo-restriction"
+        ],
+        "blockLabel": "Hard gate:",
+        "block": "written legal opinion, two independent program audits. Total value locked capped at 300 SOL for the first four weeks."
+      },
+      {
+        "badge": "Lot 3",
+        "wk": "12 weeks · to S36",
+        "h3": "Challenge, automation and social",
+        "goal": "Open the sell side in its validated form, move the distribution cascade on-chain, ship position copying.",
+        "bullets": [
+          "Challenge positions or staked flagging",
+          "Contested banner on the ranking",
+          "Automated pot distribution, guarantee fund",
+          "Position copying, linked-account volume exclusion"
+        ],
+        "blockLabel": "Hard gate:",
+        "block": "rug rate inside the top 10 held under 12 % for eight consecutive weeks."
+      }
+    ],
+    "targets": {
+      "eyebrow": "Success criteria",
+      "title": "One number decides whether any of this worked.",
+      "paragraphs": [
+        "The rug rate inside the top 10 is the cardinal indicator. It is the only one that measures whether the mechanic does what it claims.",
+        "It counts tokens that held a top-10 position for six hours or more, observed for seven days after they leave."
+      ],
+      "tableCaption": "Targets by lot",
+      "headers": ["Indicator", "Lot 1", "Lot 2", "Lot 3"],
+      "rows": [
+        { "indicator": "Rug rate in the top 10", "lot1": "n/a", "lot2": "< 12 %", "lot3": "< 4 %" },
+        { "indicator": "Monthly unique visitors", "lot1": "25 000", "lot2": "120 000", "lot3": "400 000" },
+        { "indicator": "Indexed token pages", "lot1": "50 000", "lot2": "250 000", "lot3": "800 000" },
+        { "indicator": "Monthly swap volume", "lot1": "$1.5 M", "lot2": "$12 M", "lot3": "$60 M" },
+        { "indicator": "Active wallets, 30 days", "lot1": "800", "lot2": "6 000", "lot3": "25 000" },
+        { "indicator": "Median value locked", "lot1": "n/a", "lot2": "400 SOL", "lot3": "4 000 SOL" },
+        { "indicator": "Challenge flag precision", "lot1": "n/a", "lot2": "n/a", "lot3": "> 65 %" }
+      ],
+      "note": "Revenue is 78 % routing fees, so the whole model is correlated to Solana memecoin volume, a cyclical base. Every projection is carried alongside a low case at a quarter of the volume."
+    },
+    "compliance": {
+      "eyebrow": "Compliance and audits",
+      "title": "The gates are written down, so they cannot be quietly moved.",
+      "paragraphs": [
+        "Paying people to correctly predict a collapse touches prediction-market and market-abuse rules that differ by jurisdiction. That is not an engineering question, so it is not treated as one.",
+        "The escrow program is the only component holding user funds, and the only one audited twice before it sees real capital."
+      ],
+      "rows": [
+        { "t": "Two independent audits", "d": "Two firms on the escrow program, 60 000 to 120 000 USD, provisioned from Lot 1. Blocking prerequisite to Lot 2." },
+        { "t": "Written legal opinion", "d": "Required on the Challenge side before Lot 2. Lot 3 ships only the variant it validates." },
+        { "t": "Upgrade authority", "d": "Multi-signature through Lot 2, frozen at Lot 3. Rule changes pass through a parameter update, never unversioned code." },
+        { "t": "Value locked cap", "d": "Limited to 300 SOL for the first four weeks of Lot 2, raised in steps only after an incident-free period." },
+        { "t": "Geo-restriction", "d": "Applied where the local qualification of Challenge requires it." },
+        { "t": "Sponsored placement", "d": "Kept strictly outside the staked ranking, visually distinct and labelled. 2 % of expected revenue. Blending the two would destroy the only thing the product sells." }
+      ]
+    },
+    "pager": {
+      "back": { "label": "Back to", "title": "The rule set", "desc": "Weight, resolution, slashing, the pot and the reputation gates." },
+      "also": { "label": "Also", "title": "Objections", "desc": "Manipulation, whales, custody and the legal position on Challenge." }
+    }
+  },
+  "faq": {
+    "meta": {
+      "title": "Objections",
+      "description": "Manipulation, whales, custody, the legal position on the Challenge side, and where the revenue comes from. The hard questions about staked curation, answered.",
+      "ogTitle": "PixStock | Objections"
+    },
+    "breadcrumbName": "Objections",
+    "pageHead": {
+      "eyebrow": "Objections",
+      "h1": "The hard questions, answered in the open.",
+      "lede": "A mechanic that takes people’s money has to survive its objections in public. These are the six that matter."
+    },
+    "qa": [
+      {
+        "q": "Why would anyone Boost, if the downside is a slashed stake?",
+        "a": [
+          "Because the upside is not the price of the token. It is the pot. A correct Boost gets its stake back in full, takes a share of the capital slashed from wrong positions elsewhere, and gains reputation that permanently multiplies the weight of every future stake.",
+          "A normal drawdown of up to 20 % is not slashed at all. That threshold exists precisely so honest volatility is not punished."
+        ]
+      },
+      {
+        "q": "What stops a whale from simply buying first place?",
+        "a": [
+          "Nothing stops them trying, and that is the point: rank costs exposure for the full round with no exit after two hours, not budget.",
+          "Weight is capped by reputation too: fresh capital carries a 0.75× multiplier, and challenge capital is subtracted."
+        ]
+      },
+      {
+        "q": "Can a curator manipulate the price of a thin pair to win?",
+        "a": [
+          "This is the model’s primary threat, and the reason resolution is hierarchical rather than price-only. Any deployer or linked-wallet action (liquidity pulled, authority exercised, balance dumped) is examined before price and resolves as characterised fraud with a 100 % slash.",
+          "Price only settles the ranks below that, and linked-wallet detection feeds the same graph used to exclude wash volume."
+        ]
+      },
+      {
+        "q": "Is the Challenge side legally settled?",
+        "a": [
+          "No. Paying people to correctly predict a collapse touches prediction-market and market-abuse rules that differ by jurisdiction. A written legal opinion is a hard gate before Lot 2, and the sell side ships in Lot 3 only in the variant it validates."
+        ]
+      },
+      {
+        "q": "Do you hold my funds?",
+        "a": [
+          "No custody of keys, and no custody of funds beyond the stake escrow itself. Swaps route through a third-party aggregator; the escrow program handles locking, release, slashing and distribution, and nothing else."
+        ]
+      },
+      {
+        "q": "Is paid promotion available?",
+        "a": [
+          "Yes, kept strictly outside the staked ranking: a separate placement, visually distinct, labelled as sponsored. Blending the two would destroy the only thing this product sells."
+        ]
+      }
+    ],
+    "note": "The one question still open is the qualification of the Challenge side, and that is deliberate.",
+    "pager": {
+      "back": { "label": "Back to", "title": "The rule set", "desc": "Weight, resolution, slashing, the pot and the reputation gates." },
+      "also": { "label": "Also", "title": "Delivery", "desc": "Three lots over 36 weeks, and the gates each one has to clear." }
+    }
+  }
+}

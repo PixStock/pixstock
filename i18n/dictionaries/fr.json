@@ -1,0 +1,446 @@
+{
+  "site": {
+    "siteName": "PixStock",
+    "titleDefault": "PixStock | Classement staké",
+    "titleTemplate": "PixStock | %s",
+    "description": "PixStock est un marché de curation staké sur Solana. Le classement s’achète avec du capital exposé, pas avec du budget publicitaire : les curateurs verrouillent du SOL derrière un token et le perdent s’il s’effondre.",
+    "orgDescription": "PixStock est un marché de curation et de réputation staké pour Solana.",
+    "ogAlt": "PixStock. Le classement s’achète avec du capital exposé, pas avec du budget publicitaire."
+  },
+  "common": {
+    "skipToContent": "Aller au contenu",
+    "brandHome": "PixStock, accueil",
+    "comingSoon": "Bientôt disponible",
+    "themeToLight": "Passer au thème clair",
+    "themeToDark": "Passer au thème sombre",
+    "slideOf": "Diapositive {current} sur {total}",
+    "previous": "Précédent",
+    "next": "Suivant",
+    "nav": {
+      "protocol": "Protocole",
+      "roadmap": "Feuille de route",
+      "faq": "FAQ",
+      "protocolMenu": [
+        { "href": "/mechanic", "title": "Le règlement", "desc": "Comment une position est valorisée, jugée et payée." },
+        { "href": "/mechanic#resolution", "title": "Échelle de résolution", "desc": "Les six contrôles, dans leur ordre d’exécution." },
+        { "href": "/mechanic#slashing", "title": "Barème de confiscation", "desc": "Ce que coûte une position perdante, selon l’issue." },
+        { "href": "/mechanic#reputation", "title": "Réputation", "desc": "Le score 0-1000 et ses trois paliers." }
+      ]
+    },
+    "footer": {
+      "about": "Un marché de curation et de réputation pour Solana, construit par PixStock. Le classement s’achète avec du capital exposé, et se perd avec lui.",
+      "columns": {
+        "product": {
+          "title": "Produit",
+          "links": [
+            { "href": "/#mechanic", "label": "Classement staké", "external": false },
+            { "href": "/#round", "label": "Le round", "external": false },
+            { "href": "/mechanic#reputation", "label": "Réputation", "external": false },
+            { "href": "/roadmap", "label": "Feuille de route", "external": false }
+          ]
+        },
+        "protocol": {
+          "title": "Protocole",
+          "links": [
+            { "href": "/mechanic", "label": "Règlement complet", "external": false },
+            { "href": "/mechanic#resolution", "label": "Échelle de résolution", "external": false },
+            { "href": "/mechanic#slashing", "label": "Barème de confiscation", "external": false },
+            { "href": "/mechanic#pot", "label": "Fonds de garantie", "external": false }
+          ]
+        },
+        "company": {
+          "title": "Société",
+          "links": [
+            { "href": "mailto:hello@pixstock.xyz", "label": "Contact", "external": true },
+            { "href": "/#access", "label": "Accès anticipé", "external": false },
+            { "href": "/roadmap#compliance", "label": "Audits", "external": false },
+            { "href": "/faq", "label": "Objections", "external": false }
+          ]
+        }
+      },
+      "legal": [
+        "<b>Ceci n’est pas un conseil.</b> Rien ici ne constitue un conseil en investissement, une offre ou une sollicitation.",
+        "<b>Une perte totale est possible.</b> La mise expose le capital à une confiscation, pouvant aller jusqu’à la totalité de la mise.",
+        "<b>Le fonds de garantie n’est pas une assurance.</b> L’indemnisation est plafonnée à 40&nbsp;% de la perte constatée et au solde disponible du fonds, versée au prorata, sans garantie d’exhaustivité.",
+        "<b>Challenge n’est pas encore validé juridiquement.</b> Il attend un avis juridique écrit et sera soumis à des restrictions géographiques là où c’est requis."
+      ],
+      "copyrightLabel": "PIXSTOCK",
+      "copyrightYear": "© 2026"
+    }
+  },
+  "home": {
+    "meta": {
+      "title": "PixStock | Classement staké",
+      "description": "PixStock est un marché de curation staké sur Solana. Le classement s’achète avec du capital exposé, pas avec du budget publicitaire : les curateurs verrouillent du SOL derrière un token et le perdent s’il s’effondre."
+    },
+    "hero": {
+      "titlePrefix": "Le classement s’achète avec du ",
+      "titleAccent": "capital exposé",
+      "titleSuffix": ", pas avec du budget publicitaire.",
+      "lede": "Les curateurs verrouillent du SOL derrière un token. S’il s’effondre, ce capital est confisqué et versé à qui l’a signalé.",
+      "ctaSeeMechanic": "Voir la mécanique",
+      "ctaRequestAccess": "Demander un accès anticipé",
+      "stats": [
+        { "value": "0.5 SOL", "label": "Mise minimale pour Boost" },
+        { "value": "24 h", "label": "Durée du round, mises fermées après 2 h" },
+        { "value": "3.0×", "label": "Poids de réputation maximum" },
+        { "value": "70 %", "label": "De chaque cagnotte confisquée reversée aux challengers" }
+      ]
+    },
+    "statement": "La confiance devient un actif mesurable, plus une simple déclaration.",
+    "problem": {
+      "eyebrow": "Le problème",
+      "title": "La découverte vend la première place. Elle ne la mérite jamais.",
+      "lede": "Solana produit des dizaines de milliers de nouveaux tokens par jour, et les agrégateurs vendent la première place au tarif publicitaire.",
+      "slides": [
+        {
+          "kicker": "Avant l’achat",
+          "title": "Asymétrie d’information",
+          "body": "Verrouillage de liquidité, autorité de frappe, historique du déployeur : les champs qui déterminent si un token survit. Aucun n’apparaît sur la page. Le prix, lui, y est.",
+          "alt": "Une page de token où chaque champ de risque est masqué et seul le prix est lisible"
+        },
+        {
+          "kicker": "En tête de liste",
+          "title": "Visibilité vénale",
+          "body": "Le classement récompense le budget marketing, y compris celui d’un arnaqueur qui prépare sa sortie. La première place s’achète.",
+          "alt": "Un classement dont la première place est un placement payant, au-dessus des lignes honnêtes"
+        },
+        {
+          "kicker": "Après la sortie",
+          "title": "Impunité de l’émetteur",
+          "body": "La liquidité se vide dans le portefeuille du déployeur, la page reste en ligne, et le prochain token est lancé depuis la même adresse.",
+          "alt": "Une réserve de liquidité qui se vide dans le portefeuille du déployeur, sans aucune conséquence"
+        },
+        {
+          "kicker": "Qui vous a dit d’acheter",
+          "title": "La réputation se réinitialise",
+          "body": "L’historique d’un curateur vit sur les réseaux sociaux : déclaratif, invérifiable, effacé à chaque nouveau compte. Se tromper ne coûte rien.",
+          "alt": "Trois portefeuilles alignés, chacun à score zéro, avec un retour en boucle vers un nouveau compte"
+        }
+      ]
+    },
+    "mechanicSection": {
+      "eyebrow": "Mécanique cœur | classement staké",
+      "title": "Deux camps. Chacun paie s’il a tort.",
+      "lede": "Ni le volume, ni un achat média : du capital verrouillé, pondéré par la réputation de qui l’a verrouillé.",
+      "boost": {
+        "side": "Camp acheteur",
+        "title": "Miser pour Boost",
+        "claim": "Verrouiller du capital pour affirmer qu’un token n’est pas frauduleux et survivra au round.",
+        "kv": [
+          { "k": "Mise minimale", "v": "0.5 SOL" },
+          { "k": "Plafond individuel", "v": "Aucun, sous réserve de RG-05" },
+          { "k": "Surcharge émetteur", "v": "+25 % en token" },
+          { "k": "Facteur de durée", "v": "0.6 / 1.0 / 1.8×" }
+        ],
+        "outcomeRight": "Mise intégralement restituée, part de la cagnotte confisquée, points de réputation.",
+        "outcomeWrong": "Confiscation graduée selon le barème ci-dessous, et réputation détruite."
+      },
+      "challenge": {
+        "side": "Camp vendeur",
+        "title": "Challenge",
+        "claim": "Verrouiller du capital pour signaler qu’un token porte la signature d’une fraude ou d’un effondrement imminent.",
+        "kv": [
+          { "k": "Mise minimale", "v": "0.1 SOL" },
+          { "k": "Plafonné à", "v": "50 % de Boost" },
+          { "k": "Motif structuré", "v": "Obligatoire" },
+          { "k": "Poids contre le classement", "v": "−0.6×" }
+        ],
+        "outcomeRight": "Mise restituée, 70 % de la cagnotte confisquée partagés au prorata, points de vigilance.",
+        "outcomeWrong": "30 % fixes de la mise perdus au profit du fonds de garantie acheteur."
+      },
+      "note": "Le capital Challenge est soustractif : un token contesté chute dans le classement avant même d’être résolu. C’est la protection du visiteur en temps réel.",
+      "more": "Formule de poids, échelle de résolution, barème de confiscation"
+    },
+    "round": {
+      "eyebrow": "Le round",
+      "title": "Vingt-quatre heures. Deux pour entrer. Aucune pour sortir.",
+      "lede": "Les mises ne sont acceptées que pendant deux heures. Ensuite, les positions sont gelées et personne n’entre ni ne sort.",
+      "steps": [
+        { "t": "T0", "n": "Ouverture", "d": "Prix de référence figé on-chain." },
+        { "t": "T0 + 2h", "n": "Fermeture des mises", "d": "Boost et Challenge ferment tous les deux. Positions verrouillées." },
+        { "t": "T + 24h", "n": "Résolution", "d": "Verdict signé, reproductible à partir des transactions indexées." },
+        { "t": "T + 26h", "n": "Règlement", "d": "Versé après la fermeture de la fenêtre de contestation." }
+      ],
+      "phases": ["Fenêtre de mise", "Positions verrouillées · surveillance on-chain continue", "Contestation"],
+      "more": "Comment un round est jugé à l’échéance"
+    },
+    "objections": {
+      "eyebrow": "Objections",
+      "title": "Les trois questions que tout le monde pose en premier.",
+      "items": [
+        { "q": "Pourquoi miser sur Boost ?", "a": "Pas le prix du token, la cagnotte : un Boost correct conserve sa mise et prend une part du capital confisqué ailleurs. Une baisse jusqu’à 20 % ne coûte rien." },
+        { "q": "Qu’est-ce qui empêche une baleine d’acheter la première place ?", "a": "Rien, et c’est précisément le principe. Le classement coûte une exposition pour tout le round, sans sortie possible après deux heures — pas un budget." },
+        { "q": "Détenez-vous mes fonds ?", "a": "Aucune clé, et aucun fonds au-delà de l’entiercement de la mise. Les échanges passent par un agrégateur tiers." }
+      ],
+      "more": "Les six objections, répondues en détail"
+    },
+    "cta": {
+      "titlePrefix": "De l’engagement réel, ou ",
+      "titleAccent": "pas de classement du tout",
+      "titleSuffix": ".",
+      "lede": "Le Lot 1 est en construction. L’accès anticipé ouvre avec l’annuaire de tokens, avant la mise en ligne de la mise.",
+      "requestAccess": "Demander un accès anticipé",
+      "readMechanic": "Lire la mécanique"
+    }
+  },
+  "mechanic": {
+    "meta": {
+      "title": "Le règlement",
+      "description": "Comment une position est valorisée, jugée, confisquée et payée : la formule de poids du classement, l’échelle de résolution, le barème de confiscation et les paliers de réputation.",
+      "ogTitle": "PixStock | Le règlement"
+    },
+    "breadcrumbName": "Le règlement",
+    "pageHead": {
+      "eyebrow": "Protocole",
+      "h1": "Valorisé, jugé, confisqué, payé.",
+      "lede": "Ce que vaut une position, comment elle est jugée, et ce que coûte une erreur."
+    },
+    "weight": {
+      "eyebrow": "Poids du classement",
+      "title": "Le classement, c’est du capital, multiplié par une réputation qu’il a fallu gagner.",
+      "lede": "Pas un score attribué par la plateforme : la somme de ce que chacun a verrouillé, chaque mise pondérée par la réputation et la durée de verrouillage, moins le capital opposé.",
+      "tableCaption": "Poids du classement | comment une position est valorisée",
+      "headers": ["Terme", "Définition", "Valeur"],
+      "rows": [
+        { "term": "Poids", "def": "Somme de mise × multiplicateur de réputation × facteur de durée, moins le capital Challenge", "value": "n/a" },
+        { "term": "Multiplicateur(r)", "def": "min( 3.0 ; 0.5 + 2.5 × r / 1000 )", "value": "0.5-3.0×" },
+        { "term": "Facteur de durée", "def": "Verrouillage 6 h / 24 h / 72 h", "value": "0.6 / 1.0 / 1.8" },
+        { "term": "Coefficient Challenge", "def": "Appliqué au capital Challenge, soustrait du poids", "value": "0.6" },
+        { "term": "Éligibilité", "def": "Liquidité, âge du pool, nombre de détenteurs", "value": "$15k / 30 min / 50" }
+      ],
+      "note": "Le coefficient de 0,6 empêche une petite coalition d’enterrer un projet honnête à bas coût."
+    },
+    "resolution": {
+      "eyebrow": "Résolution",
+      "title": "La fraude est examinée avant le prix, et arrête le round sur-le-champ.",
+      "paragraphs": [
+        "Un memecoin honnête perd couramment la moitié de sa valeur en une journée. Sanctionner cela ne laisserait que les manipulateurs.",
+        "La fraude structurelle est examinée en premier. Le prix n’intervient qu’ensuite, en moyenne pondérée par le volume."
+      ],
+      "tableCaption": "Ordre d’examen à la résolution",
+      "headers": ["Rang", "Critère", "Verdict"],
+      "rows": [
+        { "rank": 1, "criterion": "Le déployeur ou un portefeuille lié retire plus de 50 % de la liquidité", "verdict": "Fraude", "sev": 3 },
+        { "rank": 2, "criterion": "Autorité de frappe ou de gel exercée pendant le round", "verdict": "Fraude", "sev": 3 },
+        { "rank": 3, "criterion": "Le déployeur ou un portefeuille lié vend plus de 40 % de son solde", "verdict": "Fraude", "sev": 3 },
+        { "rank": 4, "criterion": "Les échanges deviennent impossibles, taxe de vente prohibitive, liste noire active", "verdict": "Fraude", "sev": 3 },
+        { "rank": 5, "criterion": "La liquidité s’effondre de plus de 70 % sans action du déployeur", "verdict": "Gradué", "sev": 2 },
+        { "rank": 6, "criterion": "Prix pondéré par le volume sur les deux dernières heures vs la référence T0", "verdict": "Gradué", "sev": 1 }
+      ],
+      "note": "Les rangs 1 à 4 sont contrôlés en continu et résolvent le round sur-le-champ, avant que la plateforme ne puisse maintenir une fraude en première place."
+    },
+    "slashing": {
+      "eyebrow": "Confiscation",
+      "title": "Ce que coûte une erreur, annoncé avant la signature.",
+      "lede": "Une baisse jusqu’à 20 % ne coûte rien : la volatilité honnête n’est pas une fraude. Au-delà, le barème est gradué, et la fraude caractérisée emporte tout.",
+      "tableCaption": "Confiscation appliquée à la mise Boost",
+      "headers": ["Situation à la résolution", "Confisqué", "Réputation"],
+      "rows": [
+        { "situation": "Prix pondéré par le volume en hausse", "slashed": "0 %", "reputation": "+18 to +55" },
+        { "situation": "Baisse jusqu’à 20 %, volatilité normale", "slashed": "0 %", "reputation": "+6" },
+        { "situation": "Baisse de 20 à 40 %", "slashed": "15 %", "reputation": "−25" },
+        { "situation": "Baisse de 40 à 60 %", "slashed": "35 %", "reputation": "−70" },
+        { "situation": "Baisse de 60 à 80 %", "slashed": "60 %", "reputation": "−140" },
+        { "situation": "Baisse de plus de 80 %", "slashed": "85 %", "reputation": "−240" },
+        { "situation": "Fraude caractérisée, rangs 1-4", "slashed": "100 %", "reputation": "Remise à 0, signalé" }
+      ],
+      "note": "Le barème est affiché et acquitté avant la signature, jamais renvoyé aux conditions générales."
+    },
+    "pot": {
+      "eyebrow": "Cagnotte confisquée",
+      "title": "La trésorerie prélève des frais de traitement, pas une rente sur la fraude.",
+      "paragraphs": [
+        "Il y a une objection évidente à toute plateforme qui prélève une part de la confiscation : elle gagne de l’argent quand ses utilisateurs se font arnaquer.",
+        "Reverser l’essentiel à ceux qui ont signalé le risque et aux acheteurs lésés est la réponse à cela. Le brûlage rend la couverture de sa propre position perdante."
+      ],
+      "bars": [
+        { "label": "Positions Challenge", "value": "70 %", "why": "Au prorata des mises qui l’ont signalé, versé sur le round résolu." },
+        { "label": "Fonds de garantie acheteur", "value": "15 %", "why": "Indemnisation partielle des portefeuilles ayant acheté via le widget, plafonnée à 40 % de la perte." },
+        { "label": "Trésorerie d’exploitation", "value": "10 %", "why": "Infrastructure, indexation et arbitrage des contestations." },
+        { "label": "Brûlage permanent", "value": "5 %", "why": "Rend perdante la couverture de son propre Boost par son propre Challenge. Voir RG-06." }
+      ],
+      "note": "L’indemnisation est plafonnée et au prorata, affichée dans l’interface plutôt que dissimulée."
+    },
+    "reputation": {
+      "eyebrow": "Réputation",
+      "title": "Une identité qu’il vaut la peine de falsifier doit coûter plus que la fraude qu’elle permet.",
+      "paragraphs": [
+        "Un score de 0 à 1000 qui multiplie le poids de chaque SOL misé, reconstruit à partir des transactions on-chain et public pour tous.",
+        "Il ne s’achète pas en un seul round : un multiplicateur élevé est conditionné au capital cumulé exposé, aux rounds résolus et à l’ancienneté du compte. Une seule fraude caractérisée le remet à zéro, de façon définitive et signalée."
+      ],
+      "gates": [
+        { "mult": "0.75×", "caption": "Score de départ de 100. Chaque nouveau portefeuille commence ici." },
+        { "mult": "1.50×", "caption": "Conditionné à 50 SOL d’exposition cumulée sur au moins 15 rounds résolus." },
+        { "mult": "2.50×", "caption": "Conditionné à 300 SOL sur 60 rounds résolus et 90 jours d’ancienneté de compte." },
+        { "mult": "−2 %", "caption": "Décroissance hebdomadaire sans round résolu. Plancher à 100." }
+      ],
+      "chartGates": ["ouvre à 100", "50 SOL / 15 rounds", "300 SOL / 60 rounds"],
+      "chartAriaLabel": "Courbe du multiplicateur de réputation : 0,5× à un score de zéro, augmentant linéairement jusqu’à 3,0× à un score de 1000, où il est plafonné.",
+      "curveLegend": ["X | réputation 0 → 1000", "Y | multiplicateur de mise 0,5 → 3,0×", "Plafond à 3,0×"],
+      "note": "La réputation gagnée est plafonnée par le capital que ce portefeuille a historiquement exposé, si bien qu’un seul gros round gagnant n’achète rien."
+    },
+    "pager": {
+      "next": { "label": "Suivant", "title": "Livraison", "desc": "Trois lots sur 36 semaines, et les jalons que chacun doit franchir." },
+      "also": { "label": "Aussi", "title": "Objections", "desc": "Manipulation, baleines, garde des fonds et position juridique sur Challenge." }
+    }
+  },
+  "roadmap": {
+    "meta": {
+      "title": "Feuille de route",
+      "description": "Trois lots sur 36 semaines. La mécanique financière n’est livrée qu’une fois le programme d’entiercement audité deux fois et un avis juridique écrit obtenu.",
+      "ogTitle": "PixStock | Feuille de route"
+    },
+    "breadcrumbName": "Feuille de route",
+    "pageHead": {
+      "eyebrow": "Livraison",
+      "h1": "Trois lots, 36 semaines, deux jalons bloquants.",
+      "lede": "Rien de financier n’est livré sur la base de l’optimisme. Chaque lot attend un jalon écrit noir sur blanc."
+    },
+    "lotsTitle": "L’audience d’abord. L’argent en jeu seulement après l’avis juridique.",
+    "lots": [
+      {
+        "badge": "Lot 1",
+        "wk": "10 semaines · S0-S10",
+        "h3": "Annuaire, audience et échange",
+        "goal": "Construire l’index et le trafic organique en premier, et montrer gratuitement aux émetteurs un trafic mesuré.",
+        "bullets": [
+          "Référencement automatique de chaque token SPL disposant d’une paire active",
+          "Pages token, panneau de sécurité, classements non stakés",
+          "Messagerie temps réel par token, connexion portefeuille",
+          "Widget d’échange avec des frais de routage de 0,75 %",
+          "Tableau de bord d’audience émetteur"
+        ],
+        "blockLabel": "Livré sans :",
+        "block": "programme Solana, mise, confiscation, réputation."
+      },
+      {
+        "badge": "Lot 2",
+        "wk": "14 semaines · dont 4 d’audit",
+        "h3": "Mise et résolution semi-centralisée",
+        "goal": "Introduire Boost contre un programme réduit à l’entiercement. La résolution reste hors chaîne pour que les règles puissent encore être ajustées.",
+        "bullets": [
+          "Programme d’entiercement, ouverture de position, valorisation interne",
+          "Détection de fraude continue, résolution hiérarchique",
+          "Moteur de réputation, classement des curateurs",
+          "Back-office, traitement des contestations, restriction géographique"
+        ],
+        "blockLabel": "Jalon bloquant :",
+        "block": "avis juridique écrit, deux audits indépendants du programme. Valeur totale verrouillée plafonnée à 300 SOL pendant les quatre premières semaines."
+      },
+      {
+        "badge": "Lot 3",
+        "wk": "12 semaines · jusqu’à S36",
+        "h3": "Challenge, automatisation et social",
+        "goal": "Ouvrir le camp vendeur dans sa forme validée, faire passer la cascade de distribution on-chain, livrer la copie de position.",
+        "bullets": [
+          "Positions Challenge, ou signalement staké",
+          "Bandeau de contestation sur le classement",
+          "Distribution automatisée de la cagnotte, fonds de garantie",
+          "Copie de position, exclusion du volume des comptes liés"
+        ],
+        "blockLabel": "Jalon bloquant :",
+        "block": "taux de rug dans le top 10 maintenu sous 12 % pendant huit semaines consécutives."
+      }
+    ],
+    "targets": {
+      "eyebrow": "Critères de succès",
+      "title": "Un seul chiffre décide si tout cela a fonctionné.",
+      "paragraphs": [
+        "Le taux de rug dans le top 10 est l’indicateur cardinal. C’est le seul qui mesure si la mécanique tient sa promesse.",
+        "Il compte les tokens ayant tenu une position dans le top 10 pendant six heures ou plus, observés pendant sept jours après leur sortie."
+      ],
+      "tableCaption": "Objectifs par lot",
+      "headers": ["Indicateur", "Lot 1", "Lot 2", "Lot 3"],
+      "rows": [
+        { "indicator": "Taux de rug dans le top 10", "lot1": "n/a", "lot2": "< 12 %", "lot3": "< 4 %" },
+        { "indicator": "Visiteurs uniques mensuels", "lot1": "25 000", "lot2": "120 000", "lot3": "400 000" },
+        { "indicator": "Pages token indexées", "lot1": "50 000", "lot2": "250 000", "lot3": "800 000" },
+        { "indicator": "Volume d’échange mensuel", "lot1": "$1.5 M", "lot2": "$12 M", "lot3": "$60 M" },
+        { "indicator": "Portefeuilles actifs, 30 jours", "lot1": "800", "lot2": "6 000", "lot3": "25 000" },
+        { "indicator": "Valeur médiane verrouillée", "lot1": "n/a", "lot2": "400 SOL", "lot3": "4 000 SOL" },
+        { "indicator": "Précision des signalements Challenge", "lot1": "n/a", "lot2": "n/a", "lot3": "> 65 %" }
+      ],
+      "note": "78 % des revenus proviennent des frais de routage : tout le modèle est donc corrélé au volume des memecoins Solana, une base cyclique. Chaque projection est accompagnée d’un scénario bas à un quart du volume."
+    },
+    "compliance": {
+      "eyebrow": "Conformité et audits",
+      "title": "Les jalons sont écrits, afin qu’ils ne puissent pas être déplacés en silence.",
+      "paragraphs": [
+        "Rémunérer des personnes pour avoir correctement anticipé un effondrement touche aux règles de marché prédictif et d’abus de marché, qui diffèrent selon les juridictions. Ce n’est pas une question technique, elle n’est donc pas traitée comme telle.",
+        "Le programme d’entiercement est le seul composant à détenir les fonds des utilisateurs, et le seul audité deux fois avant de recevoir du capital réel."
+      ],
+      "rows": [
+        { "t": "Deux audits indépendants", "d": "Deux cabinets sur le programme d’entiercement, 60 000 à 120 000 USD, provisionnés dès le Lot 1. Prérequis bloquant pour le Lot 2." },
+        { "t": "Avis juridique écrit", "d": "Requis sur le volet Challenge avant le Lot 2. Le Lot 3 ne livre que la variante qu’il valide." },
+        { "t": "Autorité de mise à jour", "d": "Multi-signature jusqu’au Lot 2, gelée au Lot 3. Les changements de règles passent par une mise à jour de paramètre, jamais par du code non versionné." },
+        { "t": "Plafond de valeur verrouillée", "d": "Limité à 300 SOL pendant les quatre premières semaines du Lot 2, relevé par paliers seulement après une période sans incident." },
+        { "t": "Restriction géographique", "d": "Appliquée là où la qualification locale de Challenge l’exige." },
+        { "t": "Placement sponsorisé", "d": "Maintenu strictement en dehors du classement staké, visuellement distinct et libellé comme tel. 2 % du revenu attendu. Mélanger les deux détruirait la seule chose que ce produit vend." }
+      ]
+    },
+    "pager": {
+      "back": { "label": "Retour à", "title": "Le règlement", "desc": "Poids, résolution, confiscation, la cagnotte et les paliers de réputation." },
+      "also": { "label": "Aussi", "title": "Objections", "desc": "Manipulation, baleines, garde des fonds et position juridique sur Challenge." }
+    }
+  },
+  "faq": {
+    "meta": {
+      "title": "Objections",
+      "description": "Manipulation, baleines, garde des fonds, position juridique sur le volet Challenge, et provenance des revenus. Les questions qui fâchent sur la curation stakée, avec réponses.",
+      "ogTitle": "PixStock | Objections"
+    },
+    "breadcrumbName": "Objections",
+    "pageHead": {
+      "eyebrow": "Objections",
+      "h1": "Les questions qui fâchent, avec des réponses publiques.",
+      "lede": "Une mécanique qui prend l’argent des gens doit survivre à ses objections en public. Voici les six qui comptent."
+    },
+    "qa": [
+      {
+        "q": "Pourquoi miser sur Boost, si le risque est une mise confisquée ?",
+        "a": [
+          "Parce que le gain ne dépend pas du prix du token. C’est la cagnotte. Un Boost correct récupère sa mise intégralement, prend une part du capital confisqué sur les positions perdantes ailleurs, et gagne une réputation qui multiplie durablement le poids de chaque future mise.",
+          "Une baisse normale jusqu’à 20 % n’est absolument pas confisquée. Ce seuil existe précisément pour que la volatilité honnête ne soit pas sanctionnée."
+        ]
+      },
+      {
+        "q": "Qu’est-ce qui empêche une baleine d’acheter simplement la première place ?",
+        "a": [
+          "Rien ne l’empêche d’essayer, et c’est précisément le principe : le classement coûte une exposition pour tout le round, sans sortie possible après deux heures — pas un budget.",
+          "Le poids est aussi plafonné par la réputation : un capital neuf porte un multiplicateur de 0,75×, et le capital Challenge est soustrait."
+        ]
+      },
+      {
+        "q": "Un curateur peut-il manipuler le prix d’une paire peu liquide pour gagner ?",
+        "a": [
+          "C’est la menace principale du modèle, et la raison pour laquelle la résolution est hiérarchique plutôt que basée uniquement sur le prix. Toute action du déployeur ou d’un portefeuille lié (liquidité retirée, autorité exercée, solde vidé) est examinée avant le prix et se résout en fraude caractérisée avec une confiscation de 100 %.",
+          "Le prix ne tranche que les rangs situés en dessous, et la détection des portefeuilles liés alimente le même graphe que celui utilisé pour exclure le volume de lavage."
+        ]
+      },
+      {
+        "q": "Le volet Challenge est-il validé juridiquement ?",
+        "a": [
+          "Non. Rémunérer des personnes pour avoir correctement anticipé un effondrement touche aux règles de marché prédictif et d’abus de marché, qui diffèrent selon les juridictions. Un avis juridique écrit est un jalon bloquant avant le Lot 2, et le camp vendeur n’est livré au Lot 3 que dans la variante qu’il valide."
+        ]
+      },
+      {
+        "q": "Détenez-vous mes fonds ?",
+        "a": [
+          "Aucune garde des clés, et aucune garde de fonds au-delà de l’entiercement de la mise lui-même. Les échanges passent par un agrégateur tiers ; le programme d’entiercement gère le verrouillage, la libération, la confiscation et la distribution, et rien d’autre."
+        ]
+      },
+      {
+        "q": "La promotion payante est-elle disponible ?",
+        "a": [
+          "Oui, maintenue strictement en dehors du classement staké : un placement séparé, visuellement distinct, libellé comme sponsorisé. Mélanger les deux détruirait la seule chose que ce produit vend."
+        ]
+      }
+    ],
+    "note": "La seule question encore ouverte est la qualification juridique du volet Challenge, et c’est délibéré.",
+    "pager": {
+      "back": { "label": "Retour à", "title": "Le règlement", "desc": "Poids, résolution, confiscation, la cagnotte et les paliers de réputation." },
+      "also": { "label": "Aussi", "title": "Feuille de route", "desc": "Trois lots sur 36 semaines, et les jalons que chacun doit franchir." }
+    }
+  }
+}
