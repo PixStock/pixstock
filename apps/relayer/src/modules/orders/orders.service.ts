@@ -6,9 +6,11 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { createId } from '@paralleldrive/cuid2';
 import { OrderStatus, type Order, type Prisma } from '@prisma/client';
 import { decimalsOfMint, symbolOfMint } from '@pixstock/shared';
 import { DatabaseService } from '../../database/database.service';
+import { NoncesService } from '../nonces/nonces.service';
 import { RelayerService } from '../relayer/relayer.service';
 import { TxBuilderService } from '../tx-builder/tx-builder.service';
 import type { CreateOrderDto } from './dto/create-order.dto';
@@ -37,6 +39,7 @@ export class OrdersService {
     private readonly db: DatabaseService,
     private readonly builder: TxBuilderService,
     private readonly relayer: RelayerService,
+    private readonly nonces: NoncesService,
     private readonly config: ConfigService,
   ) {}
 
@@ -55,11 +58,18 @@ export class OrdersService {
       );
     }
 
+    // A durable nonce removes the ninety-second clock. Without one the order
+    // still works, but it has to be scanned and confirmed inside a blockhash's
+    // life, and the response says which it got.
+    const orderId = createId();
+    const nonce = await this.nonces.reserve(orderId);
+
     const built = await this.builder.build({
       vault: dto.vault,
       feePayer: relayer,
       legs: dto.legs,
       slippageBps: dto.slippageBps,
+      ...(nonce ? { nonce } : {}),
     });
 
     const manifest = {
@@ -82,6 +92,7 @@ export class OrdersService {
 
     const order = await this.db.order.create({
       data: {
+        id: orderId,
         vault: dto.vault,
         kind: built.kind,
         manifest: manifest as unknown as Prisma.InputJsonValue,
@@ -89,7 +100,7 @@ export class OrdersService {
         // Recorded now so a signature can be checked against the message this
         // relayer built, not against whatever comes back later.
         messageHashes: built.messages.map(sha256Hex),
-        nonceAccount: '',
+        nonceAccount: nonce?.account ?? '',
         status: OrderStatus.AWAITING_SIGNATURE,
       },
     });
@@ -98,6 +109,7 @@ export class OrdersService {
       sizes: built.sizes,
       expiry: built.expiry,
       legs: built.legs.length,
+      nonceAccount: nonce?.account ?? null,
     });
 
     return this.present(order, built.sizes, built.expiry);
@@ -225,6 +237,7 @@ export class OrdersService {
     if (Date.now() - order.createdAt.getTime() < BLOCKHASH_ORDER_TTL_MS) return order;
 
     await this.audit(order.id, 'order.expired', { ageMs: Date.now() - order.createdAt.getTime() });
+    await this.nonces.release(order.id);
     return this.db.order.update({ where: { id: order.id }, data: { status: OrderStatus.EXPIRED } });
   }
 

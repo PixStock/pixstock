@@ -159,6 +159,43 @@ export interface OrderManifest {
   dapp?: string;
 }
 
+/**
+ * Scales a raw token amount by a Token-2022 ScaledUiAmount multiplier.
+ *
+ * Every xStock carries that extension, and none of the multipliers is 1 —
+ * measured on mainnet 12 Sept 2026: AAPLx 1.00266, MSFTx 1.00458, NVDAx
+ * 1.00092, SPYx 1.00391, and each has a higher one already scheduled. It is
+ * how the issuer applies corporate actions without moving anyone's tokens.
+ *
+ * Displaying `raw / 10^decimals` is therefore wrong by up to half a percent,
+ * which matters for a product whose whole claim is that the amounts on screen
+ * are the real ones.
+ *
+ * The multiplier lives on the mint, so an offline vault cannot read it: it has
+ * to travel with the order, and the vault should say where it came from.
+ */
+export function scaledUiAmount(
+  raw: bigint | string,
+  decimals: number,
+  multiplier: number
+): number {
+  const value = typeof raw === "string" ? BigInt(raw) : raw;
+  return (Number(value) / 10 ** decimals) * multiplier;
+}
+
+/** Formats a scaled amount the way the interface shows it. */
+export function formatScaled(
+  raw: bigint | string,
+  decimals: number,
+  multiplier: number,
+  maximumFractionDigits = 6
+): string {
+  return scaledUiAmount(raw, decimals, multiplier).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits,
+  });
+}
+
 /** Formats a raw token amount for display. Pair with the `.num` CSS class. */
 export function formatAmount(
   raw: bigint | string,

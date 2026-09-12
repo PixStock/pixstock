@@ -75,14 +75,11 @@ describe("quoting against the real Jupiter", () => {
 });
 
 describe("building against real routes", () => {
-  it("puts a single swap well inside the transaction limit", async () => {
+  it("puts a single swap inside the transaction limit", async () => {
     const built = await builder.build({ vault, feePayer, legs: [leg("TSLAx", 10)], slippageBps: 100 });
 
     expect(built.messages).toHaveLength(1);
     expect(built.sizes[0]).toBeLessThanOrEqual(MAX_TRANSACTION_BYTES);
-    // Roughly 581 bytes. A large margin here would mean the lookup tables are
-    // being dropped again.
-    expect(built.sizes[0]).toBeLessThan(750);
   });
 
   it("puts a three-leg basket in ONE transaction", async () => {
@@ -101,12 +98,26 @@ describe("building against real routes", () => {
   });
 
   it("uses the lookup tables, so accounts do not sit inline", async () => {
+    // This is the regression guard for the bug that made every transaction
+    // roughly 350 bytes too big: Jupiter names the tables its route uses but
+    // returns their contents empty, and dropping them leaves a dozen accounts
+    // inline at 32 bytes each.
+    //
+    // Asserted as a property, not a byte count. Jupiter picks a different
+    // route minute to minute — a two-hop route is legitimately larger than a
+    // one-hop one, and an absolute size here fails for the wrong reason.
     const built = await builder.build({ vault, feePayer, legs: [leg("TSLAx", 10)], slippageBps: 100 });
     const message = decodeMessage(built.messages[0]!);
 
     expect(message.addressTableLookups.length).toBeGreaterThan(0);
-    // Nine static keys with the tables applied, twenty without.
-    expect(message.staticAccountKeys.length).toBeLessThan(14);
+
+    const movedOut = message.addressTableLookups.reduce(
+      (sum, lookup) => sum + lookup.writableIndexes.length + lookup.readonlyIndexes.length,
+      0,
+    );
+    // Each of those would otherwise be 32 bytes of static key.
+    expect(movedOut).toBeGreaterThanOrEqual(8);
+    expect(message.staticAccountKeys.length).toBeLessThan(movedOut + 12);
   });
 
   it("never makes the vault the fee payer", async () => {

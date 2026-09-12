@@ -11,7 +11,7 @@ import { DatabaseModule } from "../src/database/database.module";
 import { DatabaseService } from "../src/database/database.service";
 import { OrdersModule } from "../src/modules/orders/orders.module";
 import { TxBuilderService } from "../src/modules/tx-builder/tx-builder.service";
-import { withEnv } from "./with-env";
+import { TEST_DATABASE_URL, withEnv } from "./with-env";
 
 /**
  * The order lifecycle against the real database, with the transaction builder
@@ -56,7 +56,12 @@ describe("the order lifecycle", () => {
   // The fixture was built for this fee payer, so R3 has something to agree
   // with. The secret is cleared: a real one in a developer's .env would derive
   // a different public key and every signature here would be refused.
-  withEnv({ RELAYER_PUBKEY: fixture.feePayer, RELAYER_SECRET_KEY: "" });
+  withEnv({
+    RELAYER_PUBKEY: fixture.feePayer,
+    RELAYER_SECRET_KEY: "",
+    // Never the development database: this suite truncates between tests.
+    DATABASE_URL: TEST_DATABASE_URL,
+  });
 
   let app: INestApplication;
   let db: DatabaseService;

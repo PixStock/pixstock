@@ -8,6 +8,7 @@ import { HealthModule } from './modules/health/health.module';
 import { MarketModule } from './modules/market/market.module';
 import { OrdersModule } from './modules/orders/orders.module';
 import { QuotesModule } from './modules/quotes/quotes.module';
+import { VaultsModule } from './modules/vaults/vaults.module';
 import { appConfig, databaseConfig, solanaConfig, relayerConfig } from './config';
 
 @Module({
@@ -22,6 +23,7 @@ import { appConfig, databaseConfig, solanaConfig, relayerConfig } from './config
     MarketModule,
     OrdersModule,
     QuotesModule,
+    VaultsModule,
     // Still to come — see docs/ARCHITECTURE.md: PythModule, NoncesModule,
     // RelayerModule (co-signing and broadcast), VaultsModule.
   ],

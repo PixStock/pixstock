@@ -2,6 +2,7 @@ import { Controller, Get } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { VERIFIER_IMPLEMENTED } from '@pixstock/pyth-verify';
 import { DatabaseService } from '../../database/database.service';
+import { NoncesService } from '../nonces/nonces.service';
 
 /**
  * `GET /healthz` — what works, and what does not.
@@ -15,6 +16,7 @@ export class HealthController {
   constructor(
     private readonly db: DatabaseService,
     private readonly config: ConfigService,
+    private readonly nonces: NoncesService,
   ) {}
 
   @Get('healthz')
@@ -25,6 +27,9 @@ export class HealthController {
       .catch(() => 'down' as const);
 
     const relayerKey = this.config.get<string>('relayer.secretKey') ? 'set' : 'missing';
+    const noncePool = await this.db.nonceAccount
+      .count({ where: { inUse: false } })
+      .catch(() => 0);
     const relayerPublicKey = this.config.get<string>('relayer.publicKey') || null;
     const pythToken = this.config.get<string>('relayer.pythProToken') ? 'set' : 'missing';
 
@@ -34,6 +39,8 @@ export class HealthController {
       !this.config.get<string>('relayer.publicKey') && 'relayer public key: cannot build orders',
       pythToken === 'missing' && 'pyth token: prices cannot be attested',
       !VERIFIER_IMPLEMENTED && 'pyth verifier: an attestation cannot be checked',
+      noncePool === 0 &&
+        'no durable nonce: orders expire with their blockhash, in about ninety seconds',
     ].filter(Boolean);
 
     return {
@@ -43,6 +50,8 @@ export class HealthController {
       relayerKey,
       relayerPublicKey,
       pythToken,
+      noncePool,
+      broadcast: this.config.get<boolean>('relayer.allowBroadcast') ? 'enabled' : 'disabled',
       missing,
     };
   }

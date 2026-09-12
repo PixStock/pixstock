@@ -8,6 +8,21 @@ import { afterAll, beforeAll } from "vitest";
  * this, a suite passes or fails depending on whose machine it runs on, and
  * the failure looks like a code bug.
  */
+/**
+ * Where integration tests write.
+ *
+ * A separate database, because these suites truncate tables between tests and
+ * the development one holds orders somebody is in the middle of signing.
+ * Running the suite must never cost someone their work.
+ *
+ * Create it once:
+ *   createdb pixstock_test
+ *   DATABASE_URL=... npx prisma migrate deploy --schema apps/relayer/prisma/schema.prisma
+ */
+export const TEST_DATABASE_URL =
+  process.env.TEST_DATABASE_URL ??
+  `postgresql://${process.env.USER ?? "postgres"}@localhost/pixstock_test?host=/var/run/postgresql`;
+
 export function withEnv(values: Record<string, string>) {
   const saved: Record<string, string | undefined> = {};
 

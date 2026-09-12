@@ -137,7 +137,16 @@ d'ATA Token-2022 incluse).
 | **SIGR** (1 signature) | 107 caractères → 1 QR statique |
 
 Mesures du 12 sept. 2026 par `scripts/measure-tx-size.mjs`, routes Jupiter
-mainnet réelles, `payer ≠ signataire`. Les chiffres ci-dessus supposent un
+mainnet réelles, `payer ≠ signataire`.
+
+> **Ces tailles dépendent de la route.** Jupiter en choisit une différente
+> d'une minute à l'autre : un swap simple mesure 581 octets sur un saut
+> (`Whirlpool`) et 789 sur deux (`Flux+PancakeSwap`). Tout tient sous la
+> limite, mais aucun chiffre absolu n'est stable. C'est pourquoi le
+> constructeur force `onlyDirectRoutes` dès qu'il y a plusieurs lignes — sans
+> ça un panier peut déborder selon l'humeur du routeur — et pourquoi les tests
+> live vérifient que les tables de lookup sont appliquées plutôt qu'un nombre
+> d'octets. Les chiffres ci-dessus supposent un
 vault **froid** : chaque ligne crée son compte de tokens. Une fois ces comptes
 créés — l'état dès le deuxième ordre — le panier 3 lignes tombe à **816 o et
 5 trames**, et le swap simple à **507 o et 3 trames**.

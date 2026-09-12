@@ -12,11 +12,18 @@ npm run test:system # Playwright, les deux apps dans un navigateur · ~50 s
 npm run test:all    # les trois
 ```
 
-Après un clone, une seule préparation supplémentaire, pour les tests système :
+Après un clone, deux préparations, une fois par machine :
 
 ```bash
 npm ci
-npx playwright install chromium   # ~115 Mo, une fois par machine
+npx playwright install chromium   # ~115 Mo, pour les tests système
+
+# Une base séparée pour les tests d'intégration : ils vident les tables entre
+# chaque test, et la base de développement contient des ordres en cours de
+# signature. Lancer la suite ne doit jamais coûter son travail à quelqu'un.
+createdb pixstock_test
+DATABASE_URL="postgresql://$USER@localhost/pixstock_test?host=/var/run/postgresql" \
+  npx prisma migrate deploy --schema apps/relayer/prisma/schema.prisma
 ```
 
 Les trois commandes compilent les paquets partagés elles-mêmes — les tests les

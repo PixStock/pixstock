@@ -11,7 +11,7 @@ import { HealthModule } from "../src/modules/health/health.module";
 import { MarketModule } from "../src/modules/market/market.module";
 import { QuotesModule } from "../src/modules/quotes/quotes.module";
 import { JupiterService, type Quote } from "../src/modules/quotes/jupiter.service";
-import { withEnv } from "./with-env";
+import { TEST_DATABASE_URL, withEnv } from "./with-env";
 
 /**
  * The HTTP surface, through the real stack: routing, dependency injection,
@@ -45,7 +45,7 @@ class StubJupiter {
 describe("the relayer HTTP surface", () => {
   // This suite is about a relayer that cannot sign: no key, so /healthz has
   // something to report as missing.
-  withEnv({ RELAYER_SECRET_KEY: "", RELAYER_PUBKEY: "" });
+  withEnv({ RELAYER_SECRET_KEY: "", RELAYER_PUBKEY: "", DATABASE_URL: TEST_DATABASE_URL });
 
   let app: INestApplication;
   let jupiter: StubJupiter;
