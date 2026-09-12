@@ -108,7 +108,7 @@ Then, in three terminals:
 ```bash
 npm run dev -w @pixstock/relayer   # API      → http://localhost:4000
 npm run dev -w @pixstock/web       # dApp     → http://localhost:3000
-npm run dev -w @pixstock/vault     # Vault    → http://localhost:5173
+npm run dev -w @pixstock/vault     # Vault    → http://localhost:5183
 ```
 
 The relayer needs a database and a few keys — copy `apps/relayer/.env.example`

@@ -23,5 +23,10 @@ export default defineConfig({
       },
     }),
   ],
-  server: { port: 5173 },
+  // Not Vite's default 5173. A service worker is bound to an origin, and
+  // every Vite project on this machine shares localhost:5173 — a stale worker
+  // from another app will happily serve its own cached page over ours. Seen in
+  // practice on 12 Sept; a distinct port removes the whole class of problem.
+  server: { port: 5183, strictPort: true },
+  preview: { port: 5183, strictPort: true },
 });

@@ -60,7 +60,7 @@ npm install
 npm run build:packages            # après toute modification d'un paquet
 npm run dev -w @pixstock/relayer  # :4000
 npm run dev -w @pixstock/web      # :3000
-npm run dev -w @pixstock/vault    # :5173
+npm run dev -w @pixstock/vault    # :5183
 npm test                          # vitest sur packages/*
 npm run typecheck
 ```

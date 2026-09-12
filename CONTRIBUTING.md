@@ -19,7 +19,7 @@ Then, in three terminals:
 ```bash
 npm run dev -w @pixstock/relayer   # API   → http://localhost:4000
 npm run dev -w @pixstock/web       # dApp  → http://localhost:3000
-npm run dev -w @pixstock/vault     # Vault → http://localhost:5173
+npm run dev -w @pixstock/vault     # Vault → http://localhost:5183
 ```
 
 This is an npm workspaces monorepo. The shared packages compile to `dist/`,

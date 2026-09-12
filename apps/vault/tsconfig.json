@@ -1,9 +1,15 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    // Vite bundles this app, so resolution follows the bundler rather than
+    // Node's — no .js extensions on relative imports.
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "jsx": "react-jsx",
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "noEmit": true,
+    "declaration": false,
+    "declarationMap": false,
     "types": ["vite/client"]
   },
   "include": ["src", "vite.config.ts"]
