@@ -464,6 +464,14 @@
         ]
       },
       {
+        "title": "The issuer can seize or freeze these tokens",
+        "body": [
+          "Every xStock referenced here is a Token-2022 mint with a permanent delegate and a freeze authority, both held by the issuer. Verified on mainnet: all five share the delegate 5aMNNLQJwAEeoemTEMkv5NVjqKwvvefRYCQ5Z67HFvEq. That address can move tokens out of any account holding them, including yours, without your signature — and the freeze authority can make an account unusable.",
+          "This is how a regulated issuer meets its obligations, and it is not something PixStock can change. It is also the honest limit of what an air-gapped signer protects: it stops anyone who is not the issuer from moving your assets, and it cannot stop the issuer.",
+          "Solana surfaces it too. Creating an account for one of these mints logs \"Mint has a permanent delegate, so tokens in this account may be seized at any time\"."
+        ]
+      },
+      {
         "title": "Nothing here is investment advice",
         "body": [
           "PixStock is signing infrastructure. It does not recommend assets, it does not construct portfolios for you, and the basket presets are illustrations of a mechanism, not suggestions. No part of this site is a recommendation to buy, sell or hold anything.",

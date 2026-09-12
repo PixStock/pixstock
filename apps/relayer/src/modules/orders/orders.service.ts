@@ -9,6 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { OrderStatus, type Order, type Prisma } from '@prisma/client';
 import { decimalsOfMint, symbolOfMint } from '@pixstock/shared';
 import { DatabaseService } from '../../database/database.service';
+import { RelayerService } from '../relayer/relayer.service';
 import { TxBuilderService } from '../tx-builder/tx-builder.service';
 import type { CreateOrderDto } from './dto/create-order.dto';
 import {
@@ -35,6 +36,7 @@ export class OrdersService {
   constructor(
     private readonly db: DatabaseService,
     private readonly builder: TxBuilderService,
+    private readonly relayer: RelayerService,
     private readonly config: ConfigService,
   ) {}
 
@@ -164,15 +166,51 @@ export class OrdersService {
     });
     await this.audit(order.id, 'signature.accepted', { count: signaturesBase64.length });
 
+    // R6 — would this actually execute? Costs nothing, changes nothing, and
+    // is the only honest answer available before spending anything.
+    const simulation = this.relayer.canSign
+      ? await this.simulate(signed.id, order.txMessages[0]!, signaturesBase64[0]!)
+      : null;
+
     return {
       ...this.present(signed),
+      ...(simulation ? { simulation } : {}),
       // Named so nobody reads SIGNED as "sent". The reason matters: a missing
       // key and a missing module are different problems with different fixes,
       // and saying the wrong one sends someone looking in the wrong place.
-      pending: this.config.get<string>('relayer.secretKey')
-        ? ['Co-signing and broadcasting are not built yet, so this has not been sent']
-        : ['The relayer has no key, so it cannot co-sign or broadcast this'],
+      pending: this.pendingReasons(),
     };
+  }
+
+  /** Why an order that is SIGNED has not been sent. */
+  private pendingReasons(): string[] {
+    if (!this.relayer.canSign) return ['The relayer has no key, so it cannot co-sign this'];
+    if (!this.relayer.canBroadcast) {
+      return [
+        'Broadcasting is off. It spends real SOL and cannot be undone, ' +
+          'so it stays disabled until RELAYER_ALLOW_BROADCAST is set.',
+      ];
+    }
+    return [];
+  }
+
+  private async simulate(orderId: string, messageBase64: string, signatureBase64: string) {
+    try {
+      const result = await this.relayer.simulate(
+        Uint8Array.from(Buffer.from(messageBase64, 'base64')),
+        Uint8Array.from(Buffer.from(signatureBase64, 'base64')),
+      );
+      await this.audit(orderId, result.ok ? 'simulation.ok' : 'simulation.failed', {
+        error: result.error,
+        unitsConsumed: result.unitsConsumed,
+      });
+      return result;
+    } catch (err) {
+      // A simulation that could not run is not a simulation that passed.
+      const message = (err as Error).message;
+      await this.audit(orderId, 'simulation.unavailable', { message });
+      return { ok: false, error: `Simulation could not run: ${message}`, logs: [] };
+    }
   }
 
   /** Marks a blockhash-bound order expired once it can no longer land. */

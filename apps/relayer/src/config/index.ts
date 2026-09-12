@@ -32,7 +32,7 @@ export const solanaConfig = registerAs('solana', () => ({
  * Never logged, never returned by any route. Only the public key derived from
  * it leaves this function.
  */
-function parseSecretKey(raw: string): Uint8Array | null {
+export function parseSecretKey(raw: string): Uint8Array | null {
   const value = raw.trim();
   if (!value) return null;
 
@@ -98,6 +98,12 @@ export const relayerConfig = registerAs('relayer', () => ({
   secretKey: parseSecretKey(process.env.RELAYER_SECRET_KEY ?? '') ? process.env.RELAYER_SECRET_KEY! : '',
   publicKey: derivePublicKey(),
   maxComputeUnitPrice: parseInt(process.env.MAX_CU_PRICE_MICROLAMPORTS ?? '1000000', 10),
+  /**
+   * Broadcasting spends real SOL and cannot be undone, so it is off unless
+   * someone turns it on deliberately. Simulation needs no such gate: it costs
+   * nothing and changes nothing.
+   */
+  allowBroadcast: process.env.RELAYER_ALLOW_BROADCAST === 'true',
   noncePoolSize: parseInt(process.env.NONCE_POOL_SIZE ?? '10', 10),
   jupiterApiUrl: process.env.JUPITER_API_URL ?? 'https://lite-api.jup.ag/swap/v1',
   jupiterApiKey: process.env.JUPITER_API_KEY ?? '',

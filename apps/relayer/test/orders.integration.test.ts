@@ -183,9 +183,23 @@ describe("the order lifecycle", () => {
         .expect(201);
 
       expect(body.status).toBe("SIGNED");
-      // SIGNED must not be readable as "sent".
-      expect(body.pending[0]).toMatch(/has not been sent|cannot co-sign or broadcast/);
       expect(body.txSignatures).toEqual([]);
+    });
+
+    it("says why a signed order was not sent, and says it precisely", async () => {
+      // SIGNED must never read as "sent", and the reason has to be the real
+      // one: a missing key and a disabled broadcast are different problems.
+      // This suite runs without a key, so that is what it must report.
+      const created = await createOrder();
+      const { body } = await request(app.getHttpServer())
+        .post(`/v1/orders/${created.orderId}/signature`)
+        .send({ signatures: [goodSignature] })
+        .expect(201);
+
+      expect(body.pending).toHaveLength(1);
+      expect(body.pending[0]).toMatch(/no key/);
+      // Nothing can be simulated without a key either.
+      expect(body.simulation).toBeUndefined();
     });
 
     it("refuses a signature from another key, naming the rule", async () => {

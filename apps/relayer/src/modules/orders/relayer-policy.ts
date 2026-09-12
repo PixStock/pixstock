@@ -33,9 +33,15 @@ export const RELAYER_RULES: Record<RelayerRule, string> = {
   R8: 'An order is co-signed at most once',
 };
 
-/** Enforced today. R6 and R7 need a funded key and an RPC budget. */
-export const ENFORCED_RULES: readonly RelayerRule[] = ['R1', 'R2', 'R3', 'R4', 'R5', 'R8'];
-export const UNENFORCED_RULES: readonly RelayerRule[] = ['R6', 'R7'];
+/**
+ * Enforced today. R6 runs as a simulation after the signature is accepted —
+ * it answers "would this execute", which is a different question from "may
+ * this be signed" and so happens outside this function.
+ *
+ * R7 needs a quota store and a balance alert.
+ */
+export const ENFORCED_RULES: readonly RelayerRule[] = ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R8'];
+export const UNENFORCED_RULES: readonly RelayerRule[] = ['R7'];
 
 /** Creating a token account costs rent; nothing else may drain the key. */
 export const MAX_RENT_LAMPORTS = 10_000_000;

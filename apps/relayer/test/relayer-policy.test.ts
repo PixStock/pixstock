@@ -52,8 +52,14 @@ describe("an honest signature", () => {
   });
 
   it("names the rules it does not enforce", () => {
-    // R6 needs simulateTransaction, R7 a funded key and a quota store.
-    expect(UNENFORCED_RULES).toEqual(["R6", "R7"]);
+    // R6 runs as a simulation once the signature is accepted, which is a
+    // different question from whether it may be signed. R7 still needs a quota
+    // store and a balance alert.
+    expect(UNENFORCED_RULES).toEqual(["R7"]);
+    expect(ENFORCED_RULES).toContain("R6");
+  });
+
+  it("accounts for every rule, so none can be forgotten", () => {
     expect([...ENFORCED_RULES, ...UNENFORCED_RULES].sort()).toEqual(
       Object.keys(RELAYER_RULES).sort()
     );

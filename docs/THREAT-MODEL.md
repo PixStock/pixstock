@@ -15,6 +15,24 @@
 | `apps/relayer` | stocker une clé utilisateur ; signer autre chose que fee payer et nonce authority ; construire une transaction non demandée par la dApp |
 | `apps/web` | détenir une clé privée ; signer quoi que ce soit |
 
+## Ce contre quoi le produit ne protège pas
+
+**L'émetteur peut saisir ou geler les tokens.** Les cinq xStocks sont des
+mints Token-2022 portant un *permanent delegate* et une *freeze authority*,
+tous deux détenus par l'émetteur. Vérifié sur mainnet le 12 sept. 2026 : les
+cinq partagent le délégué `5aMNNLQJwAEeoemTEMkv5NVjqKwvvefRYCQ5Z67HFvEq`.
+Cette adresse peut sortir des tokens de n'importe quel compte, **sans la
+signature du détenteur**.
+
+C'est la limite honnête de ce qu'un signataire hors ligne protège : il empêche
+quiconque n'est pas l'émetteur de bouger vos actifs, et il n'empêche rien à
+l'émetteur. La simulation le rappelle d'elle-même — créer un compte pour l'un
+de ces mints journalise « Mint has a permanent delegate, so tokens in this
+account may be seized at any time ».
+
+À reporter sur la fiche d'ordre du vault : un porteur qui signe devrait le
+voir au moment de signer, pas seulement sur la page légale.
+
 ## Le manifest n'est jamais la source de vérité
 
 La fiche d'ordre affichée est dérivée des **instructions décompilées**, pas
