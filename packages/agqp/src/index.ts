@@ -1,66 +1,80 @@
 /**
  * AGQP v1 — Air-Gap QR Protocol.
  *
- * Splits a Solana transaction (plus its Pyth attestation and manifest) into
- * animated QR frames the offline vault can read with a camera, and
- * reassembles the 64-byte signature that comes back.
+ * Splits a payload (a Solana transaction, its Pyth attestation and a readable
+ * manifest) into animated QR frames the offline vault reads with a camera,
+ * and reassembles what comes back.
  *
- * The frame envelope and CBOR payload are specified in docs/AGQP-SPEC.md —
- * read it before touching `encodeFrames` or `FrameAssembler`.
+ * The format is frozen in docs/AGQP-SPEC.md. Both sides of the optical
+ * channel must read it identically, so any change to the envelope is
+ * breaking and touches the encoder, the assembler and the test vectors in
+ * one commit.
  */
 
 export { crc32 } from "./crc32.js";
 export { toBase45, fromBase45 } from "./base45.js";
 
-export const PROTOCOL_MAGIC = "PS1";
+export {
+  PROTOCOL_MAGIC,
+  SID_BYTES,
+  SID_CHARS,
+  HEADER_CHARS,
+  MAX_FRAMES,
+  CHUNK_SIZES,
+  buildFrame,
+  parseFrame,
+  encodeSessionId,
+  newSessionId,
+  type Frame,
+  type FrameSize,
+} from "./frame.js";
 
-/** QR size preset. Measured on the team's phones — see docs/AGQP-SPEC.md. */
-export type FrameSize = "S" | "M" | "L";
+export { FrameAssembler, type AssemblerProgress } from "./session.js";
+export { AnimatedQrScheduler, DEFAULT_FPS } from "./scheduler.js";
+
+import { CHUNK_SIZES, MAX_FRAMES, buildFrame, encodeSessionId, type FrameSize } from "./frame.js";
 
 export interface EncodeOptions {
-  /** Payload bytes per frame. Drives the frame count. */
-  chunkSize?: number;
+  /**
+   * Session id, 3 bytes. Required rather than generated here: the CBOR
+   * payload carries the same `sid`, so the caller must mint it before
+   * building the payload. Use `newSessionId()`.
+   */
+  sid: Uint8Array;
+  /** Preset chunk size. Defaults to `M` (300 bytes). */
   size?: FrameSize;
-}
-
-export interface AssemblerProgress {
-  received: number;
-  total: number;
-  done: boolean;
-  /** Present once every frame has arrived and the CRC matches. */
-  payload?: Uint8Array;
+  /** Explicit chunk size in bytes. Overrides `size`. */
+  chunkSize?: number;
 }
 
 /**
- * Encodes a payload into the Base45 strings to render as animated QR codes.
- * Frames cycle continuously so the scanner can join mid-sequence.
+ * Encodes a payload into the strings to render as animated QR codes.
+ *
+ * Frames are 1-indexed and meant to be cycled continuously — the phone can
+ * join the sequence anywhere.
  */
-export function encodeFrames(_payload: Uint8Array, _options: EncodeOptions = {}): string[] {
-  throw new Error("agqp: encodeFrames is not implemented yet — see docs/AGQP-SPEC.md §5.1");
-}
+export function encodeFrames(payload: Uint8Array, options: EncodeOptions): string[] {
+  const chunkSize = options.chunkSize ?? CHUNK_SIZES[options.size ?? "M"];
 
-/**
- * Collects frames as the camera decodes them, in any order, tolerating
- * duplicates and rejecting frames from another session.
- */
-export class FrameAssembler {
-  push(_text: string): AssemblerProgress {
-    throw new Error("agqp: FrameAssembler is not implemented yet — see docs/AGQP-SPEC.md §5.4");
+  if (payload.length === 0) {
+    throw new Error("agqp: refusing to encode an empty payload");
+  }
+  if (chunkSize < 1) {
+    throw new Error(`agqp: chunk size must be positive, got ${chunkSize}`);
   }
 
-  reset(): void {
-    throw new Error("agqp: FrameAssembler is not implemented yet");
+  const total = Math.ceil(payload.length / chunkSize);
+  if (total > MAX_FRAMES) {
+    throw new Error(
+      `agqp: ${payload.length} bytes at ${chunkSize} per frame needs ${total} frames, ` +
+        `over the ${MAX_FRAMES} the envelope can index — raise the chunk size`
+    );
   }
-}
 
-/** Drives the frame cycle at a fixed frame rate (8 FPS by default). */
-export class AnimatedQrScheduler {
-  constructor(
-    private readonly frames: readonly string[],
-    private readonly fps = 8
-  ) {}
-
-  start(_onFrame: (frame: string, index: number) => void): () => void {
-    throw new Error("agqp: AnimatedQrScheduler is not implemented yet");
+  const sid = encodeSessionId(options.sid);
+  const frames: string[] = [];
+  for (let i = 0; i < total; i++) {
+    frames.push(buildFrame(sid, i + 1, total, payload.subarray(i * chunkSize, (i + 1) * chunkSize)));
   }
+  return frames;
 }
