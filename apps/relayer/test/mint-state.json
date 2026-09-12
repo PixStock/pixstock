@@ -1,0 +1,51 @@
+{
+  "capturedAt": 1789218900,
+  "cluster": "https://api.mainnet-beta.solana.com",
+  "states": [
+    {
+      "symbol": "TSLAx",
+      "mint": "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB",
+      "multiplier": 1,
+      "nextMultiplier": 1,
+      "newMultiplierEffectiveTimestamp": 0,
+      "permanentDelegate": "5aMNNLQJwAEeoemTEMkv5NVjqKwvvefRYCQ5Z67HFvEq",
+      "paused": false
+    },
+    {
+      "symbol": "NVDAx",
+      "mint": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
+      "multiplier": 1.0009180758490996,
+      "nextMultiplier": 1.001701196801074,
+      "newMultiplierEffectiveTimestamp": 1789000200,
+      "permanentDelegate": "5aMNNLQJwAEeoemTEMkv5NVjqKwvvefRYCQ5Z67HFvEq",
+      "paused": false
+    },
+    {
+      "symbol": "AAPLx",
+      "mint": "XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp",
+      "multiplier": 1.0026642075893797,
+      "nextMultiplier": 1.0032690125398187,
+      "newMultiplierEffectiveTimestamp": 1786149000,
+      "permanentDelegate": "5aMNNLQJwAEeoemTEMkv5NVjqKwvvefRYCQ5Z67HFvEq",
+      "paused": false
+    },
+    {
+      "symbol": "MSFTx",
+      "mint": "XspzcW1PRtgf6Wj92HCiZdjzKCyFekVD8P5Ueh3dRMX",
+      "multiplier": 1.0045820905025638,
+      "nextMultiplier": 1.0059033904787456,
+      "newMultiplierEffectiveTimestamp": 1787185800,
+      "permanentDelegate": "5aMNNLQJwAEeoemTEMkv5NVjqKwvvefRYCQ5Z67HFvEq",
+      "paused": false
+    },
+    {
+      "symbol": "SPYx",
+      "mint": "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
+      "multiplier": 1.003909240011759,
+      "nextMultiplier": 1.005714560286254,
+      "newMultiplierEffectiveTimestamp": 1781755200,
+      "permanentDelegate": "5aMNNLQJwAEeoemTEMkv5NVjqKwvvefRYCQ5Z67HFvEq",
+      "paused": false
+    }
+  ]
+}

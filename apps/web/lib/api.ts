@@ -5,6 +5,8 @@
  * balance somewhere past nine digits, silently and only sometimes.
  */
 
+import type { MintFacts } from "@pixstock/shared";
+
 export const RELAYER_URL = process.env.NEXT_PUBLIC_RELAYER_URL ?? "http://localhost:4000";
 
 export interface Asset {
@@ -57,6 +59,12 @@ export interface Order {
     feePayer: string;
     dapp: string;
     quotedAt: number;
+    /**
+     * Mint state read by the relayer and carried to the vault, which has no
+     * network of its own. Passed through untouched — the web app is not a
+     * party to it and must not edit it.
+     */
+    mints?: MintFacts[];
   };
   txSignatures: string[];
   error: string | null;

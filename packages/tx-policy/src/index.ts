@@ -5,7 +5,7 @@
  *   1. turn opaque bytes into named instructions (Jupiter, Token-2022, ATA,
  *      Nonce) so the vault can render a readable order ticket — no blind
  *      signing, ever;
- *   2. run the P1..P10 policy against the manifest and refuse anything that
+ *   2. run the P1..P11 policy against the manifest and refuse anything that
  *      does not match.
  *
  * The manifest is never trusted on its own. Rules live in docs/SECURITY.md.
@@ -56,5 +56,6 @@ export {
   type PolicyResult,
   type PolicyRule,
   type PolicyViolation,
+  type TicketDisclosure,
   type TicketLine,
 } from "./policy.js";

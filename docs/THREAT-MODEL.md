@@ -3,7 +3,7 @@
 > **À compléter (J0-J2).** Source : `PLAN_INTEGRATION.md §4.3` et `§6.B`.
 >
 > Ce fichier décrit ce que chaque composant n'a **jamais** le droit de faire,
-> et les règles P1..P10 que `packages/tx-policy` applique avant toute
+> et les règles P1..P11 que `packages/tx-policy` applique avant toute
 > signature. Il est distinct de [`../SECURITY.md`](../SECURITY.md), qui est
 > la politique de divulgation de vulnérabilités.
 
@@ -39,7 +39,7 @@ La fiche d'ordre affichée est dérivée des **instructions décompilées**, pas
 du manifest. Le manifest sert uniquement de contrôle croisé : s'il diverge
 des instructions, la signature est refusée.
 
-## Règles P1..P10
+## Règles P1..P11
 
 Implémentées dans `packages/tx-policy/src/policy.ts`, chacune avec sa mutation
 adverse dans `test/policy.test.ts`, appliquée à une **vraie transaction
@@ -57,12 +57,48 @@ Jupiter mainnet**.
 | `P8` | Au plus une avance de nonce, et le vault n'en est pas l'autorité | ❌ **non appliquée** |
 | `P9` | Le nombre de lignes de swap doit correspondre au manifest | ✅ |
 | `P10` | Aucun lamport ne peut sortir du vault | ✅ |
+| `P11` | Un mint scalé doit déclarer un multiplicateur plausible, et lui seul peut en déclarer un | ✅ |
 
 **Une règle non implémentée n'est pas une règle qui passe.** `applyPolicy`
 renvoie `ok: false` tant que `unevaluated` n'est pas vide, et liste les règles
 concernées. Un moteur qui rendrait un feu vert en sautant la moitié de ses
 contrôles serait pire que pas de moteur du tout : le porteur lui ferait
 confiance.
+
+### Le multiplicateur, et pourquoi il fait exception
+
+`ScaledUiAmount` (Token-2022) rend le montant réel égal à
+`brut / 10^décimales × multiplicateur`. Le multiplicateur vit sur le mint, et
+le vault est en mode avion : c'est **le seul chiffre de la fiche que
+l'expéditeur choisit**. Tous les autres sont extraits de la transaction.
+
+Ce qu'un menteur y gagne : pas un centime de plus dépensé — la transaction
+signée est inchangée — mais un porteur qui croit recevoir autre chose que ce
+qu'il reçoit. Pour ce produit, c'est la même chose.
+
+La défense n'est pas la confiance, c'est la divulgation plus une borne :
+
+- **P11** refuse un mint scalé sans multiplicateur, un multiplicateur hors de
+  `[1e-4, 1e4]`, et un multiplicateur déclaré pour un mint que le vault sait
+  non scalé. Ces trois-là sont décidables hors ligne, depuis la table de
+  `@pixstock/shared`.
+- `buildTicket` **n'applique jamais** un multiplicateur à un mint que cette
+  même table dit non scalé, quoi qu'en dise l'ordre.
+- La fiche **imprime** le multiplicateur, dit qu'il vient du relayer et n'est
+  pas vérifiable hors ligne, et affiche à côté le montant non scalé.
+
+Trois mesures sur cinq mints, 12 sept. 2026 : l'écart entre montant brut et
+montant réel atteint **0,59 %** (MSFTx). Sur l'écran qui prétend montrer les
+vrais montants.
+
+### Ce que le vault sait sans qu'on le lui dise
+
+Deux propriétés des xStocks sont dans la table hors ligne plutôt que dans
+l'ordre, `scaledUiAmount` et `hasPermanentDelegate`, et ce n'est pas une
+optimisation : **un avertissement qu'un expéditeur peut faire taire en
+omettant un champ n'est pas un avertissement.** L'adresse du délégué voyage,
+mais l'existence du délégué, non — l'omettre ne coûte plus à l'attaquant que
+le nom.
 
 ### Le manifest n'est jamais cru
 

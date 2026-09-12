@@ -6,11 +6,13 @@ import request from "supertest";
 import { ASSETS, USDC_MINT } from "@pixstock/shared";
 import { AppController } from "../src/app.controller";
 import { appConfig, databaseConfig, relayerConfig, solanaConfig } from "../src/config";
+import { MintStateService } from "../src/modules/market/mint-state.service";
 import { DatabaseModule } from "../src/database/database.module";
 import { HealthModule } from "../src/modules/health/health.module";
 import { MarketModule } from "../src/modules/market/market.module";
 import { QuotesModule } from "../src/modules/quotes/quotes.module";
 import { JupiterService, type Quote } from "../src/modules/quotes/jupiter.service";
+import { RecordedMintState } from "./mint-state.fixture";
 import { TEST_DATABASE_URL, withEnv } from "./with-env";
 
 /**
@@ -69,6 +71,10 @@ describe("the relayer HTTP surface", () => {
     })
       .overrideProvider(JupiterService)
       .useValue(jupiter)
+      // Recorded, not read: five RPC calls would put mainnet on the critical
+      // path of an offline suite. The live read is mint-state.live.test.ts.
+      .overrideProvider(MintStateService)
+      .useClass(RecordedMintState)
       .compile();
 
     app = moduleRef.createNestApplication();

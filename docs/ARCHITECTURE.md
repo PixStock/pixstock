@@ -25,7 +25,7 @@ scanne, il ne signe rien.
    `manifest` lisible.
 4. `apps/web` encode le tout en trames AGQP et les affiche à 8 FPS.
 5. Le vault scanne, assemble (CRC32), vérifie la signature Pyth, applique
-   P1..P10, affiche la fiche d'ordre, demande la biométrie, signe.
+   P1..P11, affiche la fiche d'ordre, demande la biométrie, signe.
 6. Le vault affiche un QR statique contenant **la signature seule** (64 o).
 7. La webcam la lit, le relayer co-signe (fee payer + nonce) et diffuse.
 

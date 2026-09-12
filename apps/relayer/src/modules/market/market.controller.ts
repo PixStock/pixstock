@@ -35,8 +35,12 @@ export class MarketController {
           pythExtFeedId: asset.pythExtFeedId,
           // Read from the mint, not assumed. A balance is raw / 10^decimals
           // times this, and none of them is 1.
+          // The one in force, picked by the clock from the mint's two — not
+          // the raw `multiplier` field, which is the superseded value once a
+          // scheduled change has landed.
           multiplier: state?.multiplier ?? null,
           nextMultiplier: state?.nextMultiplier ?? null,
+          nextMultiplierAt: state?.nextMultiplierEffectiveAt ?? null,
           // Stated because it is the honest limit of self-custody here.
           permanentDelegate: state?.permanentDelegate ?? null,
           paused: state?.paused ?? null,

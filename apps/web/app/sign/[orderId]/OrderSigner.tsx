@@ -2,7 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { encodePayload, encodeSessionId, newSessionId } from "@pixstock/agqp";
-import { formatAmount } from "@pixstock/shared";
+import {
+  factsForMint,
+  formatAmount,
+  formatScaled,
+  isScaledMint,
+  type MintFacts,
+} from "@pixstock/shared";
 import { api, RelayerError, type Order } from "@/lib/api";
 import { AnimatedQr } from "@/components/AnimatedQr";
 import { SignatureScanner } from "@/components/SignatureScanner";
@@ -54,6 +60,10 @@ export function OrderSigner({ orderId }: { orderId: string }) {
             feePayer: order.manifest.feePayer,
             dapp: order.manifest.dapp,
             quotedAt: order.manifest.quotedAt,
+            // Straight through from the relayer. The multiplier decides what
+            // the vault's ticket says you receive, and an air-gapped device
+            // cannot read it off the mint for itself.
+            mints: order.manifest.mints,
           },
           // No attestation: the price stream is not built, and the vault says
           // so rather than showing a tick it has not earned.
@@ -114,7 +124,12 @@ export function OrderSigner({ orderId }: { orderId: string }) {
                 {formatAmount(leg.inAmount, 6)} USDC via {leg.route.join(" → ")}
               </dt>
               <dd className="num">
-                {formatAmount(leg.expectedOutAmount, leg.decimals, 6)} {leg.symbol}
+                {formatScaled(
+                  leg.expectedOutAmount,
+                  leg.decimals,
+                  multiplierFor(order.manifest.mints, leg.outMint),
+                )}{" "}
+                {leg.symbol}
               </dd>
             </div>
           ))}
@@ -170,4 +185,15 @@ export function OrderSigner({ orderId }: { orderId: string }) {
       )}
     </div>
   );
+}
+
+/**
+ * The multiplier to show an amount with, or 1.
+ *
+ * Applied only where the shared table says the mint scales, exactly as the
+ * vault does it — the two screens must not be able to disagree.
+ */
+function multiplierFor(mints: MintFacts[] | undefined, mint: string): number {
+  if (!isScaledMint(mint)) return 1;
+  return factsForMint(mints, mint)?.multiplier ?? 1;
 }

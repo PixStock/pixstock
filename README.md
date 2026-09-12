@@ -85,7 +85,7 @@ apps/
 └── relayer/    NestJS — quotes, transaction building, fee payer, nonce pool, broadcast
 packages/
 ├── agqp/           The optical protocol: frames, Base45, CRC32, session assembler
-├── tx-policy/      v0 message decompilation, instruction decoding, P1..P10 signing policy
+├── tx-policy/      v0 message decompilation, instruction decoding, P1..P11 signing policy
 ├── pyth-verify/    Offline Pyth Pro parsing and Ed25519 verification
 ├── vault-crypto/   Key generation, AES-GCM-256, Argon2id, Paper-Vault, signing
 └── shared/         Asset table, program ids, order types
@@ -163,7 +163,7 @@ spec section that defines it, so nothing fails silently.
 |---|---|
 | [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) | Components, end-to-end flow, target timings |
 | [`docs/AGQP-SPEC.md`](./docs/AGQP-SPEC.md) | The optical protocol, frame by frame |
-| [`docs/THREAT-MODEL.md`](./docs/THREAT-MODEL.md) | What each component may never do, policies P1..P10 |
+| [`docs/THREAT-MODEL.md`](./docs/THREAT-MODEL.md) | What each component may never do, policies P1..P11 |
 | [`docs/DEMO.md`](./docs/DEMO.md) | How to reproduce the demo end to end |
 | [`docs/TESTING.md`](./docs/TESTING.md) | The four test layers and what each one catches |
 | [`CLAUDE.md`](./CLAUDE.md) | Development conventions (French — team working document) |

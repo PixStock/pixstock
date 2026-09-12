@@ -60,6 +60,10 @@ export function Review({ payload, vault, onApprove, onReject }: ReviewProps) {
         feePayer: request.manifest.feePayer,
         nonceAccount: request.manifest.nonceAccount,
         dapp: request.manifest.dapp,
+        // The multiplier cannot be read from here — no network, by design —
+        // so it arrives with the order and P11 decides what may be done
+        // with it. Passed on exactly as received, never patched.
+        mints: request.manifest.mints,
       };
       const result = applyPolicy({ message, decoded: decompile(message), manifest, vault });
       return { state: "checked", request, result };
@@ -171,6 +175,16 @@ function Ticket({
             <dt>{line.direction === "in" ? "You pay" : "You receive"}</dt>
             <dd>
               <span className="num">{line.amount}</span> {line.symbol}
+              {line.multiplier !== 1 && (
+                // The scaled figure is the real one, so it is the large one.
+                // The unscaled figure is shown too: it is what every other
+                // wallet displays, and a holder comparing the two screens
+                // should find the difference explained rather than alarming.
+                <span className="ticket-scale">
+                  ×<span className="num">{line.multiplier}</span> applied ·{" "}
+                  <span className="num">{line.unscaledAmount}</span> unscaled
+                </span>
+              )}
             </dd>
           </div>
         ))}
@@ -191,9 +205,33 @@ function Ticket({
             <span className="num">{ageSeconds}</span>s ago by {dapp}
           </dd>
         </div>
+        {ticket.mintsReadAt !== null && (
+          <div>
+            <dt>Mint read</dt>
+            <dd>
+              <span className="num">{mintAgeMinutes(ticket.mintsReadAt)}</span> min ago by the
+              relayer
+            </dd>
+          </div>
+        )}
       </dl>
+
+      {ticket.disclosures.length > 0 && (
+        <ul className="disclosures">
+          {ticket.disclosures.map((disclosure, i) => (
+            <li key={i} className={`disclosure disclosure--${disclosure.severity}`}>
+              {disclosure.text}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
+}
+
+/** How stale the mint reading is. Multipliers change; this says when. */
+function mintAgeMinutes(readAt: number): number {
+  return Math.max(0, Math.round((Date.now() / 1000 - readAt) / 60));
 }
 
 type CheckState = "ok" | "warn" | "bad";

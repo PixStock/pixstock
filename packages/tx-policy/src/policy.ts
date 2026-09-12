@@ -1,5 +1,5 @@
 /**
- * The signing policy: P1 to P10.
+ * The signing policy: P1 to P11.
  *
  * This is the half that decides. The decoder says what the transaction does;
  * this says whether the vault is allowed to sign it, and produces the ticket
@@ -14,7 +14,18 @@
  * worse than no policy at all — it produces a green tick the holder trusts.
  */
 
-import { PROGRAM_IDS, assetByMint, formatAmount, type OrderManifest } from "@pixstock/shared";
+import {
+  PROGRAM_IDS,
+  assetByMint,
+  factsForMint,
+  formatAmount,
+  formatScaled,
+  isScaledMint,
+  multiplierProblem,
+  symbolOfMint,
+  type MintFacts,
+  type OrderManifest,
+} from "@pixstock/shared";
 import {
   COMPUTE_BUDGET_PROGRAM,
   SYSTEM_PROGRAM,
@@ -23,7 +34,9 @@ import {
 import { feePayerOf, type CompiledMessage } from "./message.js";
 import { deriveAta } from "./pda.js";
 
-export type PolicyRule = "P1" | "P2" | "P3" | "P4" | "P5" | "P6" | "P7" | "P8" | "P9" | "P10";
+export type PolicyRule =
+  | "P1" | "P2" | "P3" | "P4" | "P5"
+  | "P6" | "P7" | "P8" | "P9" | "P10" | "P11";
 
 export const POLICY_RULES: Record<PolicyRule, string> = {
   P1: "The vault must not be the fee payer",
@@ -36,6 +49,7 @@ export const POLICY_RULES: Record<PolicyRule, string> = {
   P8: "At most one nonce advance, and the vault is not its authority",
   P9: "The number of swap legs must match the manifest",
   P10: "No lamports may leave the vault",
+  P11: "Scaled mints must declare a plausible multiplier, and only scaled mints may declare one",
 };
 
 /** Nothing above this signs, whatever the manifest asks for. */
@@ -53,10 +67,32 @@ const ALLOWED_PROGRAMS = new Set([
 export interface TicketLine {
   symbol: string;
   direction: "in" | "out";
-  /** Human-readable, already scaled by the asset's decimals. */
+  /**
+   * What the holder reads: scaled by the mint's decimals AND by its
+   * ScaledUiAmount multiplier. For an xStock the two differ — up to half a
+   * percent on the figures measured in September 2026 — and this is the
+   * screen on which being wrong matters most.
+   */
   amount: string;
+  /** The same figure with the multiplier left off. Shown beside it. */
+  unscaledAmount: string;
   rawAmount: string;
+  /** Applied above. 1 for any mint the vault does not know to be scaled. */
+  multiplier: number;
   mint: string;
+}
+
+/**
+ * Something true about this order that the holder would not otherwise see.
+ *
+ * Not a policy violation — these are things the product genuinely cannot
+ * prevent, only state. Hiding them would make the ticket a nicer lie.
+ */
+export interface TicketDisclosure {
+  severity: "note" | "warn";
+  /** The asset it concerns, or `null` when it is about the order as a whole. */
+  symbol: string | null;
+  text: string;
 }
 
 export interface OrderTicket {
@@ -65,6 +101,9 @@ export interface OrderTicket {
   feePayer: string;
   networkFeePaidBy: "relayer" | "vault";
   slippageBps: number;
+  disclosures: TicketDisclosure[];
+  /** Oldest `readAt` among the mints applied, unix seconds. */
+  mintsReadAt: number | null;
 }
 
 export interface PolicyViolation {
@@ -85,7 +124,7 @@ export interface PolicyResult {
 
 /** Implemented today. The rest are listed so nothing looks checked that is not. */
 export const EVALUATED_RULES: readonly PolicyRule[] = [
-  "P1", "P2", "P3", "P4", "P5", "P6", "P7", "P9", "P10",
+  "P1", "P2", "P3", "P4", "P5", "P6", "P7", "P9", "P10", "P11",
 ];
 export const UNEVALUATED_RULES: readonly PolicyRule[] = ["P8"];
 
@@ -191,6 +230,47 @@ export function applyPolicy({ message, decoded, manifest, vault }: PolicyInput):
     }
   });
 
+  // P11 — the multiplier. It is not on the transaction and an air-gapped
+  // vault cannot look it up, so it travels with the order; that makes it the
+  // one number on the ticket a sender chooses. Two things are checkable
+  // offline and both are done here.
+  //
+  //   1. A mint the vault KNOWS scales (the table in @pixstock/shared) must
+  //      declare one. Silence understates the amount, and a ticket that is
+  //      quietly wrong is what this whole product exists to prevent.
+  //   2. A mint the vault knows does NOT scale must not declare one, or a
+  //      sender could multiply the USDC figure by five and have the vault
+  //      render it. `buildTicket` also refuses to apply such a multiplier —
+  //      belt and braces, because that one is an outright forgery.
+  //
+  // Neither proves the value is the value on chain. Nothing offline can. What
+  // the ticket does instead is print it, and say where it came from.
+  const legMints = [...new Set(manifest.legs.flatMap((leg) => [leg.inMint, leg.outMint]))];
+  for (const mint of legMints) {
+    const symbol = symbolOfMint(mint);
+    const facts = factsForMint(manifest.mints, mint);
+    if (isScaledMint(mint)) {
+      if (!facts) {
+        fail("P11", `${symbol} scales its amounts and this order declares no multiplier, so every ${symbol} figure would be wrong`);
+        continue;
+      }
+      const problem = multiplierProblem(facts.multiplier);
+      if (problem) fail("P11", `The ${symbol} multiplier ${problem}`);
+      if (facts.nextMultiplier !== undefined) {
+        const next = multiplierProblem(facts.nextMultiplier);
+        if (next) fail("P11", `The scheduled ${symbol} multiplier ${next}`);
+      }
+    } else if (facts) {
+      fail("P11", `This order declares a multiplier for ${symbol}, which does not scale its amounts`);
+    }
+  }
+  for (const facts of manifest.mints ?? []) {
+    if (!legMints.includes(facts.mint)) {
+      const symbol = symbolOfMint(facts.mint);
+      fail("P11", `This order declares a multiplier for ${symbol}, which no leg touches`);
+    }
+  }
+
   const ticket = violations.length === 0 ? buildTicket(manifest, swaps, feePayer, vault) : undefined;
 
   return {
@@ -214,27 +294,17 @@ function buildTicket(
 
   manifest.legs.forEach((leg, i) => {
     const swap = swaps[i];
-    const inAsset = assetByMint(leg.inMint);
-    const outAsset = assetByMint(leg.outMint);
 
     // Amounts come from the instruction where there is one, never the manifest.
     const rawIn = swap ? String(swap.detail.inAmount ?? leg.inAmount) : leg.inAmount;
 
-    lines.push({
-      symbol: inAsset?.symbol ?? "USDC",
-      direction: "in",
-      rawAmount: rawIn,
-      amount: formatAmount(rawIn, inAsset?.decimals ?? 6),
-      mint: leg.inMint,
-    });
-    lines.push({
-      symbol: outAsset?.symbol ?? "USDC",
-      direction: "out",
-      rawAmount: leg.expectedOutAmount,
-      amount: formatAmount(leg.expectedOutAmount, outAsset?.decimals ?? 6),
-      mint: leg.outMint,
-    });
+    lines.push(ticketLine(manifest, leg.inMint, "in", rawIn));
+    lines.push(ticketLine(manifest, leg.outMint, "out", leg.expectedOutAmount));
   });
+
+  const applied = [...new Set(lines.map((line) => line.mint))]
+    .map((mint) => factsForMint(manifest.mints, mint))
+    .filter((facts): facts is MintFacts => facts !== undefined);
 
   return {
     kind: manifest.kind,
@@ -242,5 +312,99 @@ function buildTicket(
     feePayer,
     networkFeePaidBy: feePayer === vault ? "vault" : "relayer",
     slippageBps: manifest.slippageBps,
+    disclosures: disclose(manifest, lines),
+    mintsReadAt: applied.length > 0 ? Math.min(...applied.map((f) => f.readAt)) : null,
   };
+}
+
+function ticketLine(
+  manifest: OrderManifest,
+  mint: string,
+  direction: "in" | "out",
+  rawAmount: string
+): TicketLine {
+  const asset = assetByMint(mint);
+  const decimals = asset?.decimals ?? 6;
+  // A declared multiplier is applied ONLY where the vault's own offline table
+  // says the mint scales. Anywhere else it is ignored outright rather than
+  // trusted, so a forged entry cannot change a figure on this screen.
+  const multiplier = isScaledMint(mint) ? (factsForMint(manifest.mints, mint)?.multiplier ?? 1) : 1;
+
+  return {
+    // `symbolOfMint` falls back to a truncated address. Labelling an
+    // unrecognised mint "USDC" would be the single worst thing this screen
+    // could do, and it is one `??` away.
+    symbol: symbolOfMint(mint),
+    direction,
+    rawAmount,
+    multiplier,
+    amount: formatScaled(rawAmount, decimals, multiplier),
+    unscaledAmount: formatAmount(rawAmount, decimals, 6),
+    mint,
+  };
+}
+
+/**
+ * What the holder is not being told anywhere else.
+ *
+ * Three of these are properties of xStocks that no amount of careful signing
+ * can undo, and the honest thing is to put them on the screen where the
+ * decision is made rather than in a legal page nobody opens.
+ */
+function disclose(manifest: OrderManifest, lines: TicketLine[]): TicketDisclosure[] {
+  const disclosures: TicketDisclosure[] = [];
+
+  for (const mint of [...new Set(lines.map((line) => line.mint))]) {
+    const facts = factsForMint(manifest.mints, mint);
+    const symbol = symbolOfMint(mint);
+
+    // Driven by the vault's own table, not by what arrived: the address
+    // travels with the order, so a sender who left it out would otherwise
+    // silence this. Omitting it now only costs them the name.
+    if (assetByMint(mint)?.hasPermanentDelegate || facts?.permanentDelegate) {
+      const named = facts?.permanentDelegate
+        ? `(${short(facts.permanentDelegate)})`
+        : "(this order does not say which)";
+      disclosures.push({
+        severity: "warn",
+        symbol,
+        text: `${symbol} has a permanent delegate ${named}. The issuer can move it out of your account without your signature — this order does not change that, and no signing device can.`,
+      });
+    }
+
+    if (!facts) continue;
+    if (facts.paused) {
+      disclosures.push({
+        severity: "warn",
+        symbol,
+        text: `Transfers of ${symbol} are paused by the issuer. This order will not execute while that holds.`,
+      });
+    }
+    if (isScaledMint(mint) && facts.multiplier !== 1) {
+      disclosures.push({
+        severity: "note",
+        symbol,
+        text: `${symbol} amounts are scaled by ×${facts.multiplier}, read from the mint by the relayer and not verifiable offline. Without it the figure above would read ${lines.find((l) => l.mint === mint)?.unscaledAmount ?? "differently"}.`,
+      });
+    }
+    if (facts.nextMultiplier !== undefined && facts.nextMultiplier !== facts.multiplier) {
+      // Named with its date. Once it lands the figure above changes, and a
+      // holder who signs shortly before should know which side of it they are
+      // on rather than discover the difference in their balance.
+      const when = facts.nextMultiplierAt
+        ? ` on ${new Date(facts.nextMultiplierAt * 1000).toISOString().slice(0, 10)}`
+        : "";
+      disclosures.push({
+        severity: "note",
+        symbol,
+        text: `A new ${symbol} multiplier takes effect${when}: ×${facts.multiplier} becomes ×${facts.nextMultiplier}. Amounts change with it.`,
+      });
+    }
+  }
+
+  return disclosures;
+}
+
+function short(address: string): string {
+  return `${address.slice(0, 4)}…${address.slice(-4)}`;
 }

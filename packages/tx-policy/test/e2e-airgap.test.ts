@@ -13,6 +13,7 @@ import {
 } from "@pixstock/agqp";
 import { DEFAULT_KDF, lock, signWith, verify } from "@pixstock/vault-crypto";
 import { checkAttestation, permitsSigning } from "@pixstock/pyth-verify";
+import { formatScaled, symbolOfMint } from "@pixstock/shared";
 import { ed25519 } from "@noble/curves/ed25519.js";
 import { applyPolicy, decodeMessage, decompile } from "../src/index.js";
 
@@ -47,6 +48,20 @@ const fixture = JSON.parse(
   }>;
 };
 
+/**
+ * Mint state as the relayer read it on 12 Sept 2026, carried with the order.
+ *
+ * The vault has no network, so these cross the gap inside the payload — and
+ * the round trip below is the only place that proves they survive framing,
+ * chaotic scanning and CBOR intact.
+ */
+const MEASURED = {
+  AAPLx: 1.0026642075893797,
+  NVDAx: 1.0009180758490996,
+  MSFTx: 1.0045820905025638,
+} as const;
+const BACKED_DELEGATE = "5aMNNLQJwAEeoemTEMkv5NVjqKwvvefRYCQ5Z67HFvEq";
+
 const seed = Uint8Array.from(Buffer.from(fixture.vaultSeed, "base64"));
 const messages = fixture.messages.map((m) => Uint8Array.from(Buffer.from(m, "base64")));
 const PASSWORD = "correct horse battery staple";
@@ -71,6 +86,12 @@ function buildRequest(sid: Uint8Array, attestationBytes = 205): SignRequest {
       feePayer: fixture.feePayer,
       dapp: "app.pixstock.xyz",
       quotedAt: Math.floor(Date.now() / 1000) - 5,
+      mints: fixture.legs.map((leg) => ({
+        mint: leg.outMint,
+        multiplier: MEASURED[symbolOfMint(leg.outMint) as keyof typeof MEASURED],
+        permanentDelegate: BACKED_DELEGATE,
+        readAt: Math.floor(Date.now() / 1000) - 120,
+      })),
     },
     price: new Uint8Array(attestationBytes).fill(9),
   };
@@ -126,6 +147,7 @@ describe("a real basket crossing the air gap", () => {
         slippageBps: order.manifest.slippageBps,
         createdAt: order.manifest.quotedAt,
         feePayer: order.manifest.feePayer,
+        mints: order.manifest.mints,
       },
       vault: order.vault,
     });
@@ -141,6 +163,26 @@ describe("a real basket crossing the air gap", () => {
       "NVDAx",
       "MSFTx",
     ]);
+
+    // The multipliers made it across the gap and moved every figure. If they
+    // had not, the ticket would read low by up to half a percent and say
+    // nothing about it — which is the failure this whole rule exists for.
+    for (const line of result.ticket!.lines.filter((l) => l.direction === "out")) {
+      expect(line.multiplier).toBe(MEASURED[line.symbol as keyof typeof MEASURED]);
+      expect(line.amount).not.toBe(line.unscaledAmount);
+      expect(line.amount).toBe(formatScaled(line.rawAmount, 8, line.multiplier));
+    }
+
+    // USDC is paid on all three legs and scales on none of them.
+    for (const line of result.ticket!.lines.filter((l) => l.direction === "in")) {
+      expect(line.symbol).toBe("USDC");
+      expect(line.multiplier).toBe(1);
+    }
+
+    // And the issuer's reach is on the ticket, not buried in a legal page.
+    expect(
+      result.ticket!.disclosures.filter((d) => d.text.includes("permanent delegate")),
+    ).toHaveLength(3);
 
     // ── vault: sign, and never keep the seed ────────────────────────────
     const blob = await lock(seed, PASSWORD, FAST_KDF);

@@ -1,6 +1,12 @@
 import { readFileSync } from "node:fs";
 import { beforeAll, describe, expect, it } from "vitest";
-import { PROGRAM_IDS, USDC_MINT, type OrderManifest } from "@pixstock/shared";
+import {
+  ASSETS,
+  PROGRAM_IDS,
+  USDC_MINT,
+  formatScaled,
+  type OrderManifest,
+} from "@pixstock/shared";
 import {
   COMPUTE_BUDGET_PROGRAM,
   MAX_SLIPPAGE_BPS,
@@ -13,6 +19,16 @@ import {
   type DecodedInstruction,
   type PolicyRule,
 } from "../src/index.js";
+
+/**
+ * The TSLAx multiplier as read from mainnet on 12 Sept 2026.
+ *
+ * It rides with the order because the vault has no network — see P11. Tests
+ * that omit it are testing an order whose ticket would be wrong, which is
+ * exactly what P11 exists to catch.
+ */
+const TSLAX_MULTIPLIER = 1.0;
+const BACKED_DELEGATE = "5aMNNLQJwAEeoemTEMkv5NVjqKwvvefRYCQ5Z67HFvEq";
 
 const fixture = JSON.parse(
   readFileSync(new URL("./fixtures/jupiter-swap.json", import.meta.url), "utf8")
@@ -47,8 +63,19 @@ beforeAll(() => {
         expectedOutAmount: fixture.outAmount,
       },
     ],
+    mints: [
+      {
+        mint: fixture.outputMint,
+        multiplier: TSLAX_MULTIPLIER,
+        permanentDelegate: BACKED_DELEGATE,
+        readAt: Math.floor(Date.now() / 1000),
+      },
+    ],
   };
 });
+
+/** The same manifest with its declared mint state replaced. */
+const withMints = (mints: OrderManifest["mints"]): OrderManifest => ({ ...manifest, mints });
 
 const evaluate = (over: Partial<Parameters<typeof applyPolicy>[0]> = {}) =>
   applyPolicy({ message, decoded, manifest, vault: fixture.vault, ...over });
@@ -74,6 +101,16 @@ describe("an honest order", () => {
     expect(ticket!.lines[0]).toMatchObject({ symbol: "USDC", direction: "in", amount: "10" });
     expect(ticket!.lines[1]).toMatchObject({ symbol: "TSLAx", direction: "out" });
     expect(ticket!.networkFeePaidBy).toBe("relayer");
+  });
+
+  it("discloses the permanent delegate on the ticket, not in a legal page", () => {
+    // The issuer can move these tokens without the holder. No signing device
+    // changes that, so the only honest thing left is to say it here.
+    const { ticket } = evaluate();
+    const delegate = ticket!.disclosures.find((d) => d.text.includes("permanent delegate"));
+    expect(delegate).toBeDefined();
+    expect(delegate!.severity).toBe("warn");
+    expect(delegate!.symbol).toBe("TSLAx");
   });
 
   it("is still not ok, because P8 is not enforced yet", () => {
@@ -246,5 +283,136 @@ describe("instruction decoding on the real route", () => {
       // The route plan is a moving target; it is left opaque rather than guessed.
       routePlanOpaque: true,
     });
+  });
+});
+
+/**
+ * P11 — the multiplier.
+ *
+ * Every other figure on the ticket is read out of the transaction. This one
+ * cannot be: it lives on the mint, and the vault is in airplane mode. So it
+ * travels with the order, which makes it the one number a sender chooses.
+ *
+ * Two things are checkable without a network, and both are checked: a mint
+ * the vault knows scales must declare one, and a mint it knows does not must
+ * not. Neither proves the value; the ticket prints it for that.
+ */
+describe("P11 — the multiplier that has to travel", () => {
+  it("refuses an order that omits the multiplier of a scaling mint", () => {
+    const result = evaluate({ manifest: withMints(undefined) });
+    expect(ruleFired("P11", result)).toBe(true);
+    expect(result.violations[0]!.detail).toContain("TSLAx");
+    // No ticket at all, rather than a ticket with a quietly wrong amount.
+    expect(result.ticket).toBeUndefined();
+  });
+
+  it("refuses a multiplier declared for a mint that does not scale", () => {
+    // The attack this closes: declare USDC ×5 and have the vault render
+    // "You pay 50 USDC" over a transaction that spends 10.
+    const result = evaluate({
+      manifest: withMints([
+        ...manifest.mints!,
+        { mint: USDC_MINT, multiplier: 5, readAt: manifest.mints![0]!.readAt },
+      ]),
+    });
+    expect(ruleFired("P11", result)).toBe(true);
+    expect(result.violations.some((v) => v.detail.includes("USDC"))).toBe(true);
+  });
+
+  it("refuses a multiplier outside the plausible band", () => {
+    const result = evaluate({
+      manifest: withMints([{ ...manifest.mints![0]!, multiplier: 1e6 }]),
+    });
+    expect(ruleFired("P11", result)).toBe(true);
+  });
+
+  it("refuses a scheduled multiplier that is not plausible either", () => {
+    const result = evaluate({
+      manifest: withMints([{ ...manifest.mints![0]!, nextMultiplier: 0 }]),
+    });
+    expect(ruleFired("P11", result)).toBe(true);
+  });
+
+  it("refuses mint state for a mint no leg touches", () => {
+    const result = evaluate({
+      manifest: withMints([
+        ...manifest.mints!,
+        {
+          mint: ASSETS.find((a) => a.symbol === "AAPLx")!.mint,
+          multiplier: 1.00266,
+          readAt: manifest.mints![0]!.readAt,
+        },
+      ]),
+    });
+    expect(ruleFired("P11", result)).toBe(true);
+    expect(result.violations.some((v) => v.detail.includes("no leg touches"))).toBe(true);
+  });
+
+  it("never applies a multiplier to a mint the vault knows does not scale", () => {
+    // USDC is in the legs and has no entry: its line must read exactly 1.
+    const { ticket } = evaluate();
+    const usdc = ticket!.lines.find((line) => line.symbol === "USDC")!;
+    expect(usdc.multiplier).toBe(1);
+    expect(usdc.amount).toBe(usdc.unscaledAmount);
+  });
+
+  it("applies a declared multiplier to the amount the holder reads", () => {
+    const scaled = 1.00266;
+    const { ticket } = evaluate({
+      manifest: withMints([{ ...manifest.mints![0]!, multiplier: scaled }]),
+    });
+    const out = ticket!.lines.find((line) => line.direction === "out")!;
+
+    expect(out.multiplier).toBe(scaled);
+    // The raw amount is untouched — only the presentation moves.
+    expect(out.rawAmount).toBe(fixture.outAmount);
+    expect(out.amount).not.toBe(out.unscaledAmount);
+    // Compared against the shared scaler rather than against the other
+    // displayed string: both are truncated for display, and multiplying one
+    // truncation by the multiplier is not the same number.
+    expect(out.amount).toBe(formatScaled(fixture.outAmount, 8, scaled));
+  });
+
+  it("says where the multiplier came from, and what it would read without it", () => {
+    const { ticket } = evaluate({
+      manifest: withMints([{ ...manifest.mints![0]!, multiplier: 1.00266 }]),
+    });
+    const note = ticket!.disclosures.find((d) => d.text.includes("scaled by"))!;
+    expect(note).toBeDefined();
+    expect(note.text).toContain("not verifiable offline");
+    expect(note.text).toContain(
+      ticket!.lines.find((line) => line.direction === "out")!.unscaledAmount,
+    );
+  });
+
+  it("announces a scheduled change with the date it lands", () => {
+    const { ticket } = evaluate({
+      manifest: withMints([
+        { ...manifest.mints![0]!, nextMultiplier: 1.05, nextMultiplierAt: 1_789_300_000 },
+      ]),
+    });
+    const note = ticket!.disclosures.find((d) => d.text.includes("takes effect"))!;
+    expect(note).toBeDefined();
+    // A date the holder can act on, not just "a change is coming".
+    expect(note.text).toContain("2026-09-13");
+    expect(note.text).toContain("×1.05");
+  });
+
+  it("warns about the permanent delegate even when the order omits it", () => {
+    // The address travels with the order, so a sender could drop it. The flag
+    // that drives this warning does not travel: it is in the vault's own
+    // table, and suppressing the address now only costs the attacker the name.
+    const { ticket } = evaluate({
+      manifest: withMints([{ mint: fixture.outputMint, multiplier: 1, readAt: 1 }]),
+    });
+    const delegate = ticket!.disclosures.find((d) => d.text.includes("permanent delegate"))!;
+    expect(delegate).toBeDefined();
+    expect(delegate.severity).toBe("warn");
+    expect(delegate.text).toContain("does not say which");
+  });
+
+  it("dates the reading, because a multiplier is a moving number", () => {
+    const { ticket } = evaluate();
+    expect(ticket!.mintsReadAt).toBe(manifest.mints![0]!.readAt);
   });
 });

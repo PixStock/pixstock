@@ -16,6 +16,7 @@
 
 import { decode as cborDecode, encode as cborEncode } from "cbor-x";
 import { base58 } from "@scure/base";
+import type { MintFacts } from "@pixstock/shared";
 import { SID_BYTES } from "./frame.js";
 
 export const PAYLOAD_VERSION = 1;
@@ -41,6 +42,12 @@ export interface PayloadManifest {
   nonceAccount?: string;
   dapp: string;
   quotedAt: number;
+  /**
+   * Mint state the vault cannot read for itself — above all the
+   * ScaledUiAmount multiplier, without which every amount on the ticket is
+   * wrong. Carried, never trusted: see `MintFacts` in @pixstock/shared.
+   */
+  mints?: MintFacts[];
 }
 
 export interface SignRequest {
@@ -115,6 +122,20 @@ function integer(value: unknown, field: string): number {
   return n;
 }
 
+/**
+ * A multiplier is the one genuinely fractional value on the wire.
+ *
+ * Only finite and positive is enforced here — whether the value is plausible
+ * is a policy question, answered by P11, not an encoding one.
+ */
+function positiveFloat(value: unknown, field: string): number {
+  const n = typeof value === "bigint" ? Number(value) : value;
+  if (typeof n !== "number" || !Number.isFinite(n) || n <= 0) {
+    throw new Error(`agqp: ${field} is not a finite positive number`);
+  }
+  return n;
+}
+
 function text(value: unknown, field: string): string {
   if (typeof value !== "string") throw new Error(`agqp: ${field} is not a string`);
   return value;
@@ -181,6 +202,43 @@ function encodeManifest(manifest: PayloadManifest) {
       : {}),
     dapp: manifest.dapp,
     at: manifest.quotedAt,
+    ...encodedMints(manifest.mints),
+  };
+}
+
+/**
+ * Mint state, or nothing — never something malformed dropped on the floor.
+ *
+ * A truthiness test here would treat a mangled value as "no mint state", and
+ * the order would cross the gap looking merely incomplete rather than wrong.
+ * Refusing is the whole contract of this module.
+ */
+function encodedMints(mints: MintFacts[] | undefined) {
+  if (mints === undefined) return {};
+  if (!Array.isArray(mints)) throw new Error("agqp: manifest.mints is not a list");
+  if (mints.length === 0) return {};
+  return { mints: mints.map(encodeMintFacts) };
+}
+
+function encodeMintFacts(facts: MintFacts) {
+  if (facts === null || typeof facts !== "object") {
+    throw new Error("agqp: mint facts entry is not a map");
+  }
+  return {
+    m: toPubkey(facts.mint, "mint facts mint"),
+    x: facts.multiplier,
+    // A scheduled change travels only with its date: "a new multiplier is
+    // coming" is not useful without "on the 3rd".
+    ...(facts.nextMultiplier !== undefined &&
+    facts.nextMultiplierAt !== undefined &&
+    facts.nextMultiplier !== facts.multiplier
+      ? { nx: facts.nextMultiplier, na: facts.nextMultiplierAt }
+      : {}),
+    ...(facts.permanentDelegate
+      ? { pd: toPubkey(facts.permanentDelegate, "mint facts permanentDelegate") }
+      : {}),
+    ...(facts.paused ? { p: true } : {}),
+    at: facts.readAt,
   };
 }
 
@@ -282,7 +340,39 @@ function decodeManifest(value: unknown): PayloadManifest {
       : {}),
     dapp: text(m.dapp, "manifest.dapp"),
     quotedAt: integer(m.at, "manifest.quotedAt"),
+    ...(m.mints !== undefined ? { mints: decodeMintFacts(m.mints) } : {}),
   };
+}
+
+function decodeMintFacts(value: unknown): MintFacts[] {
+  if (!Array.isArray(value)) throw new Error("agqp: manifest.mints is not a list");
+  const seen = new Set<string>();
+  return value.map((entry, i) => {
+    if (entry === null || typeof entry !== "object") {
+      throw new Error(`agqp: mint facts ${i} is not a map`);
+    }
+    const f = entry as Record<string, unknown>;
+    const mint = pubkey(f.m, `mint facts ${i} mint`);
+    // Two entries for one mint would let a sender show one multiplier and
+    // have another applied, depending on which the reader picked first.
+    if (seen.has(mint)) throw new Error(`agqp: mint facts declare ${mint} twice`);
+    seen.add(mint);
+    return {
+      mint,
+      multiplier: positiveFloat(f.x, `mint facts ${i} multiplier`),
+      ...(f.nx !== undefined
+        ? {
+            nextMultiplier: positiveFloat(f.nx, `mint facts ${i} nextMultiplier`),
+            nextMultiplierAt: integer(f.na, `mint facts ${i} nextMultiplierAt`),
+          }
+        : {}),
+      ...(f.pd !== undefined
+        ? { permanentDelegate: pubkey(f.pd, `mint facts ${i} permanentDelegate`) }
+        : {}),
+      ...(f.p !== undefined ? { paused: f.p === true } : {}),
+      readAt: integer(f.at, `mint facts ${i} readAt`),
+    };
+  });
 }
 
 function decodeSignResponse(raw: Record<string, unknown>): SignResponse {

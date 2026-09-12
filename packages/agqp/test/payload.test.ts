@@ -184,3 +184,132 @@ describe("measured sizes", () => {
     expect(Math.ceil(payload.length / CHUNK_SIZES.M)).toBe(5);
   });
 });
+
+/**
+ * Mint state on the wire.
+ *
+ * The multiplier is the one number on the vault's ticket that is not read out
+ * of the transaction — it cannot be, it lives on the mint and the vault has
+ * no network. So it rides here, and what the encoder must guarantee is that
+ * it arrives as it left, or not at all.
+ */
+describe("mint facts", () => {
+  const MINT = ASSETS[0]!.mint;
+  const OTHER = ASSETS[1]!.mint;
+  const DELEGATE = "5aMNNLQJwAEeoemTEMkv5NVjqKwvvefRYCQ5Z67HFvEq";
+
+  const withMints = (mints: unknown): SignRequest => {
+    const base = request();
+    return { ...base, manifest: { ...base.manifest, mints } as SignRequest["manifest"] };
+  };
+
+  it("round-trips a multiplier without losing a digit", () => {
+    // A float64 read off the mint. Anything short of exact equality here is a
+    // different amount on the screen the holder signs from.
+    const multiplier = 1.0026642075893797;
+    const decoded = decodePayload(encodePayload(withMints([{ mint: MINT, multiplier, readAt: 1757690000 }])));
+    const facts = (decoded as SignRequest).manifest.mints!;
+    expect(facts).toHaveLength(1);
+    expect(facts[0]!.multiplier).toBe(multiplier);
+    expect(facts[0]!.mint).toBe(MINT);
+    expect(facts[0]!.readAt).toBe(1757690000);
+  });
+
+  it("carries the issuer's powers and the scheduled change", () => {
+    const decoded = decodePayload(
+      encodePayload(
+        withMints([
+          {
+            mint: MINT,
+            multiplier: 1.002,
+            nextMultiplier: 1.05,
+            nextMultiplierAt: 1789300000,
+            permanentDelegate: DELEGATE,
+            paused: true,
+            readAt: 1757690000,
+          },
+        ]),
+      ),
+    );
+    expect((decoded as SignRequest).manifest.mints![0]).toEqual({
+      mint: MINT,
+      multiplier: 1.002,
+      nextMultiplier: 1.05,
+      nextMultiplierAt: 1789300000,
+      permanentDelegate: DELEGATE,
+      paused: true,
+      readAt: 1757690000,
+    });
+  });
+
+  it("leaves a scheduled multiplier off the wire when it is the current one", () => {
+    const decoded = decodePayload(
+      encodePayload(
+        withMints([
+          { mint: MINT, multiplier: 1.002, nextMultiplier: 1.002, nextMultiplierAt: 9, readAt: 1 },
+        ]),
+      ),
+    );
+    expect((decoded as SignRequest).manifest.mints![0]!.nextMultiplier).toBeUndefined();
+  });
+
+  it("will not carry a scheduled multiplier without the date it lands", () => {
+    // "A new multiplier is coming" tells the holder nothing they can act on.
+    const decoded = decodePayload(
+      encodePayload(withMints([{ mint: MINT, multiplier: 1.002, nextMultiplier: 1.05, readAt: 1 }])),
+    );
+    expect((decoded as SignRequest).manifest.mints![0]!.nextMultiplier).toBeUndefined();
+  });
+
+  it("says nothing at all when there is nothing to say", () => {
+    const decoded = decodePayload(encodePayload(withMints([])));
+    expect((decoded as SignRequest).manifest.mints).toBeUndefined();
+  });
+
+  it("refuses the same mint declared twice", () => {
+    // Two entries would let a sender show one multiplier and have another
+    // applied, depending on which the reader reached first.
+    const payload = encodePayload(
+      withMints([
+        { mint: MINT, multiplier: 1.002, readAt: 1 },
+        { mint: MINT, multiplier: 9, readAt: 1 },
+      ]),
+    );
+    expect(() => decodePayload(payload)).toThrow(/twice/);
+  });
+
+  it("keeps distinct mints apart", () => {
+    const decoded = decodePayload(
+      encodePayload(
+        withMints([
+          { mint: MINT, multiplier: 1.002, readAt: 1 },
+          { mint: OTHER, multiplier: 1.004, readAt: 1 },
+        ]),
+      ),
+    );
+    expect((decoded as SignRequest).manifest.mints!.map((f) => f.mint)).toEqual([MINT, OTHER]);
+  });
+
+  it.each([
+    ["zero", 0],
+    ["negative", -1],
+    ["not a number", "1.002"],
+    ["infinite", Number.POSITIVE_INFINITY],
+    ["NaN", Number.NaN],
+  ])("refuses a multiplier that is %s", (_label, multiplier) => {
+    const encode = () => encodePayload(withMints([{ mint: MINT, multiplier, readAt: 1 }]));
+    // Infinity and NaN survive CBOR, so they are caught on the way back in;
+    // the rest fail one side or the other. Either way they never reach policy.
+    let threw = false;
+    try {
+      decodePayload(encode());
+    } catch {
+      threw = true;
+    }
+    expect(threw).toBe(true);
+  });
+
+  it("refuses mint state that is not a list", () => {
+    expect(() => decodePayload(encodePayload(withMints({ [MINT]: 1.002 })))).toThrow();
+  });
+});

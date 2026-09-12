@@ -206,6 +206,34 @@ h2 { font-size: 19px; margin: 0; letter-spacing: -0.01em; }
 .ticket-line dd { margin: 0; font-size: 24px; letter-spacing: -0.01em; }
 .ticket-line--out dd { color: var(--ok); }
 
+/* The unscaled figure, kept small and beneath: it is context for the number
+   above, not a second number competing with it. */
+.ticket-scale {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  letter-spacing: 0;
+  color: var(--ink-3);
+}
+.ticket-line--out .ticket-scale { color: var(--ink-3); }
+
+/* Things the product cannot prevent and will not hide. */
+.disclosures {
+  margin: 0;
+  padding: 14px 0 0;
+  border-top: 1px solid var(--rule);
+  list-style: none;
+  display: grid;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.disclosure { padding-left: 18px; position: relative; color: var(--ink-2); }
+.disclosure::before { position: absolute; left: 0; top: 0; }
+.disclosure--note::before { content: "\2022"; color: var(--ink-3); }
+.disclosure--warn::before { content: "!"; color: var(--warn); font-weight: 600; }
+.disclosure--warn { color: var(--ink); }
+
 .ticket-meta {
   margin: 0;
   padding-top: 14px;

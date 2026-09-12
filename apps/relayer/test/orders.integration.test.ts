@@ -7,10 +7,16 @@ import request from "supertest";
 import { ed25519 } from "@noble/curves/ed25519.js";
 import { USDC_MINT, ASSETS } from "@pixstock/shared";
 import { appConfig, databaseConfig, relayerConfig, solanaConfig } from "../src/config";
+import { MintStateService } from "../src/modules/market/mint-state.service";
 import { DatabaseModule } from "../src/database/database.module";
 import { DatabaseService } from "../src/database/database.service";
 import { OrdersModule } from "../src/modules/orders/orders.module";
 import { TxBuilderService } from "../src/modules/tx-builder/tx-builder.service";
+import {
+  BACKED_DELEGATE,
+  RECORDED_MINT_STATE,
+  RecordedMintState,
+} from "./mint-state.fixture";
 import { TEST_DATABASE_URL, withEnv } from "./with-env";
 
 /**
@@ -80,6 +86,10 @@ describe("the order lifecycle", () => {
     })
       .overrideProvider(TxBuilderService)
       .useClass(RecordedBuilder)
+      // Recorded, not read: five RPC calls would put mainnet on the critical
+      // path of an offline suite. The live read is mint-state.live.test.ts.
+      .overrideProvider(MintStateService)
+      .useClass(RecordedMintState)
       .compile();
 
     app = moduleRef.createNestApplication();
@@ -117,6 +127,23 @@ describe("the order lifecycle", () => {
       expect(order.vault).toBe(fixture.vault);
       expect(order.txMessages).toHaveLength(1);
       expect(order.manifest.feePayer).toBe(fixture.feePayer);
+
+      // The multiplier cannot be read by an air-gapped vault, so the order
+      // carries it. Without this the ticket the holder signs from is wrong.
+      // One entry per scaling mint the built order touches — the three the
+      // recorded basket buys. USDC is paid on every leg and declares nothing:
+      // it does not scale, and saying it did would be a P11 violation.
+      const facts = order.manifest.mints as Array<Record<string, unknown>>;
+      const bought = (fixture.legs as Array<{ outMint: string }>).map((leg) => leg.outMint);
+      expect(facts.map((f) => f.mint)).toEqual(bought);
+      expect(facts.map((f) => f.mint)).not.toContain(USDC_MINT);
+
+      for (const entry of facts) {
+        const recorded = RECORDED_MINT_STATE.find((s) => s.mint === entry.mint)!;
+        expect(entry.multiplier).toBe(recorded.multiplier);
+        expect(entry.permanentDelegate).toBe(BACKED_DELEGATE);
+        expect(entry.readAt).toBeGreaterThan(0);
+      }
 
       const stored = await db.order.findUnique({ where: { id: order.orderId } });
       expect(stored).not.toBeNull();

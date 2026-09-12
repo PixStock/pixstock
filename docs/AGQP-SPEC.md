@@ -86,10 +86,14 @@ ré-encapsuler un payload capturé dans une autre session.
 ```
 SignRequest { v: 1, kind: "SIGN", sid: bytes(3), vault: bytes(32),
               txs: [bytes],            // messages v0 non signés
-              manifest: { kind, legs: [{ sym, inMint, outMint, inAmount,
-                                         quotedOut, minOut, feedId }],
-                          feePayer: bytes(32), nonceAccount: bytes(32),
-                          dapp: tstr, quotedAt: u64 },
+              manifest: { kind, legs: [{ i: inMint, o: outMint, a: inAmount,
+                                         q: quotedOut, m: minOut, f: feedId }],
+                          slip: u16, payer: bytes(32), nonce: bytes(32),
+                          dapp: tstr, at: u64,
+                          mints: [{ m: bytes(32), x: float,    // multiplicateur
+                                    nx: float, na: u64,        // le suivant, et sa date
+                                    pd: bytes(32), p: bool,    // délégué, gel
+                                    at: u64 }] },
               price: bytes }           // message Pyth Pro format `solana`
 
 SignResponse { v: 1, kind: "SIGR", sid, sigs: [bytes(64)] }
@@ -113,9 +117,30 @@ nonce, chiffré (graine + tag GCM), clé publique, date de création — soit
 imprimable. Tout ce qui est nécessaire au déchiffrement est dedans, coût de
 la KDF compris : relever le coût plus tard n'orpheline aucune sauvegarde.
 
-> **Non implémenté.** `packages/agqp` transporte aujourd'hui des octets
-> opaques : l'encodage CBOR viendra avec `cbor-x`, et le `manifest` est
-> consommé par `@pixstock/tx-policy`, jamais cru sur parole.
+### `mints` — ce que le vault ne peut pas lire
+
+Les xStocks portent l'extension Token-2022 **ScaledUiAmount** : un montant
+réel vaut `brut / 10^décimales × multiplicateur`, et le multiplicateur vit
+sur le mint. Un vault en mode avion ne peut pas l'y lire, donc il voyage.
+
+C'est le seul chiffre de la fiche d'ordre que l'expéditeur choisit — tous
+les autres sont extraits de la transaction elle-même. Deux propriétés sont
+vérifiables hors ligne et le sont, sous la règle **P11** :
+
+1. un mint que le vault *sait* scalé (table de `@pixstock/shared`) doit
+   déclarer un multiplicateur — l'omettre fausserait chaque montant ;
+2. un mint qu'il sait non scalé ne doit pas en déclarer — sans quoi on
+   pourrait multiplier l'USDC par cinq et le faire afficher.
+
+Aucune des deux ne prouve la valeur. Rien hors ligne ne le peut. La fiche
+l'imprime donc, dit d'où elle vient, et affiche à côté le montant non scalé.
+
+Le champ `nx` (multiplicateur programmé) ne voyage **qu'avec `na`**, sa date :
+« un nouveau multiplicateur arrive » n'est pas actionnable sans « le 3 ».
+
+Attention : le mint stocke *deux* multiplicateurs et une date de bascule, et
+celui en vigueur dépend de l'horloge. Lire le premier champ seul renvoie la
+valeur périmée — voir `MintState` côté relayer.
 
 ---
 

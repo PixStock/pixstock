@@ -27,9 +27,44 @@ const fixture = JSON.parse(
   }>;
 };
 
+/**
+ * Mint state as the relayer read it, recorded alongside the transaction.
+ *
+ * The vault refuses an order that omits it (rule P11): these mints scale
+ * their amounts, and a ticket without the multiplier shows the wrong figure.
+ */
+const mintState = JSON.parse(
+  readFileSync(join(process.cwd(), "apps/relayer/test/mint-state.json"), "utf8"),
+) as {
+  capturedAt: number;
+  states: Array<{
+    mint: string;
+    multiplier: number;
+    nextMultiplier: number;
+    newMultiplierEffectiveTimestamp: number | null;
+    permanentDelegate: string | null;
+  }>;
+};
+
+/** The multiplier in force, by the same clock rule the relayer applies. */
+function factsFor(mint: string) {
+  const state = mintState.states.find((s) => s.mint === mint)!;
+  const at = state.newMultiplierEffectiveTimestamp ?? 0;
+  const pending = mintState.capturedAt < at;
+  return {
+    mint,
+    multiplier: pending ? state.multiplier : state.nextMultiplier,
+    ...(pending ? { nextMultiplier: state.nextMultiplier, nextMultiplierAt: at } : {}),
+    ...(state.permanentDelegate ? { permanentDelegate: state.permanentDelegate } : {}),
+    readAt: mintState.capturedAt,
+  };
+}
+
 export interface Order {
   frames: string[];
   legCount: number;
+  /** What the ticket should read for each leg's output, scaled. */
+  expectedOut: Array<{ mint: string; multiplier: number }>;
 }
 
 /** An order addressed to `vault`, which the test reads out of the browser. */
@@ -54,11 +89,19 @@ export function orderFor(vault: string): Order {
       feePayer: fixture.feePayer,
       dapp: "app.pixstock.xyz",
       quotedAt: Math.floor(Date.now() / 1000) - 4,
+      mints: fixture.legs.map((leg) => factsFor(leg.outMint)),
     },
     price: new Uint8Array(205).fill(9),
   };
 
-  return { frames: encodeFrames(encodePayload(request), { sid }), legCount: fixture.legs.length };
+  return {
+    frames: encodeFrames(encodePayload(request), { sid }),
+    legCount: fixture.legs.length,
+    expectedOut: fixture.legs.map((leg) => ({
+      mint: leg.outMint,
+      multiplier: factsFor(leg.outMint).multiplier,
+    })),
+  };
 }
 
 /** A throwaway vault, for the "this order is not yours" path. */

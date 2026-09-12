@@ -81,8 +81,29 @@ Celui qui compte le plus : **« puts a three-leg basket in ONE transaction »**.
 C'est la feature C en une assertion, et c'est le test qui aurait signalé le
 bug des tables de lookup le jour où il a été introduit.
 
+Le second : **`mint-state.live.test.ts`**, qui simule l'instruction
+`AmountToUiAmount` et fait donc calculer le montant affiché **par token-2022
+lui-même**. Le mint stocke deux multiplicateurs et une date de bascule ; lire
+le premier champ renvoyait la valeur périmée sur quatre des cinq xStocks, et
+aucun test hors ligne ne pouvait le voir — ils étaient tous d'accord entre eux.
+
+La comparaison porte sur le **montant affiché**, pas sur le multiplicateur :
+le programme tronque aux décimales du mint, `scaleRaw` aussi, et l'égalité
+exacte de ce que lit un porteur est à la fois plus stricte et plus pertinente.
+
 Exclus de `npm test` : une suite qui peut rougir parce que Jupiter est lent
 est une suite qu'on apprend à ignorer.
+
+> **La suite hors ligne doit rester hors ligne.** Elle a récemment atteint
+> mainnet sans le dire, via `MintStateService` : cinq appels RPC sur le chemin
+> critique de `npm test`. Une telle suite échoue dans un avion, échoue en CI
+> sans sortie réseau, et masque de vraies régressions derrière une erreur de
+> réseau. L'état des mints est désormais **enregistré** par
+> `scripts/capture-mint-state.mjs`, et le contrôle se vérifie ainsi :
+>
+> ```bash
+> SOLANA_RPC_URL=http://127.0.0.1:9 npm test   # doit passer
+> ```
 
 ## 5. Système — `system/*.spec.ts`
 

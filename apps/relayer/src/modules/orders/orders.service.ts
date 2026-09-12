@@ -4,12 +4,14 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createId } from '@paralleldrive/cuid2';
 import { OrderStatus, type Order, type Prisma } from '@prisma/client';
 import { decimalsOfMint, symbolOfMint } from '@pixstock/shared';
 import { DatabaseService } from '../../database/database.service';
+import { MintStateService } from '../market/mint-state.service';
 import { NoncesService } from '../nonces/nonces.service';
 import { RelayerService } from '../relayer/relayer.service';
 import { TxBuilderService } from '../tx-builder/tx-builder.service';
@@ -40,6 +42,7 @@ export class OrdersService {
     private readonly builder: TxBuilderService,
     private readonly relayer: RelayerService,
     private readonly nonces: NoncesService,
+    private readonly mints: MintStateService,
     private readonly config: ConfigService,
   ) {}
 
@@ -72,6 +75,11 @@ export class OrdersService {
       ...(nonce ? { nonce } : {}),
     });
 
+    // The multiplier is on the mint, and the device that has to display it is
+    // in airplane mode. So it is read here and carried — see P11 in
+    // packages/tx-policy for what the vault is able to check about it.
+    const facts = await this.mintFacts(built.legs);
+
     const manifest = {
       kind: built.kind,
       legs: built.legs.map((leg) => ({
@@ -88,6 +96,7 @@ export class OrdersService {
       feePayer: relayer,
       dapp: this.config.get<string>('app.dapp') ?? 'app.pixstock.xyz',
       quotedAt: Math.floor(Date.now() / 1000),
+      mints: facts,
     };
 
     const order = await this.db.order.create({
@@ -113,6 +122,23 @@ export class OrdersService {
     });
 
     return this.present(order, built.sizes, built.expiry);
+  }
+
+  /**
+   * Mint state for every scaling mint the order touches.
+   *
+   * A failure here fails the order. The alternative is an order whose ticket
+   * shows amounts that are quietly wrong, and the vault refuses those anyway
+   * under P11 — better to say so now, with the reason, than after a scan.
+   */
+  private async mintFacts(legs: Array<{ inMint: string; outMint: string }>) {
+    try {
+      return await this.mints.factsFor(legs.flatMap((leg) => [leg.inMint, leg.outMint]));
+    } catch (err) {
+      throw new ServiceUnavailableException(
+        `Could not read the mints this order touches, so its amounts cannot be shown correctly: ${(err as Error).message}`,
+      );
+    }
   }
 
   async find(id: string) {

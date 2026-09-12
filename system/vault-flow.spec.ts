@@ -82,18 +82,32 @@ test.describe("the vault, end to end in a browser", () => {
     // ── review ──────────────────────────────────────────────────────────
     await expect(page.getByRole("heading", { name: "Check this order" })).toBeVisible();
     await expect(page.getByText("Frames assembled")).toBeVisible();
-    await expect(page.getByText("Policy (9 rules)")).toBeVisible();
+    await expect(page.getByText("Policy (10 rules)")).toBeVisible();
 
     // The order ticket: one line in and one out per leg.
     await expect(page.getByText("You pay").first()).toBeVisible();
     await expect(page.getByText("You receive").first()).toBeVisible();
     await expect(page.getByText("paid by the relayer")).toBeVisible();
-    await expect(page.getByText("AAPLx")).toBeVisible();
-    await expect(page.getByText("NVDAx")).toBeVisible();
-    await expect(page.getByText("MSFTx")).toBeVisible();
+    // Scoped to the ticket lines: each symbol also appears in the
+    // disclosures below, and "is it on the ticket" is the question here.
+    for (const symbol of ["AAPLx", "NVDAx", "MSFTx"]) {
+      await expect(page.locator(".ticket-line dd", { hasText: symbol })).toHaveCount(1);
+    }
 
     // The price cannot be checked yet, and the screen must say so.
     await expect(page.getByText("Price attestation not verified").first()).toBeVisible();
+
+    // Every amount is scaled by the mint's ScaledUiAmount multiplier, which
+    // travelled with the order because an offline vault cannot read it. The
+    // screen must show which one it applied and what the figure would read
+    // without it — the difference reaches half a percent.
+    for (const { multiplier } of order.expectedOut) {
+      await expect(page.getByText(`×${multiplier} applied`).first()).toBeVisible();
+    }
+    await expect(page.getByText(/unscaled/).first()).toBeVisible();
+
+    // And the issuer's reach, on the screen where the decision is made.
+    await expect(page.getByText(/has a permanent delegate/).first()).toBeVisible();
 
     // ── sign ────────────────────────────────────────────────────────────
     await page.getByRole("button", { name: "Approve" }).click();
