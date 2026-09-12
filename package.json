@@ -13,9 +13,9 @@
     "build:apps": "npm run build -w @pixstock/web -w @pixstock/vault -w @pixstock/relayer",
     "dev:packages": "tsc -b --watch packages/shared packages/agqp packages/vault-crypto packages/pyth-verify packages/tx-policy",
     "typecheck": "tsc -b",
-    "test": "vitest run",
-    "test:live": "vitest run --config vitest.live.config.ts",
-    "test:system": "playwright test",
+    "test": "npm run build:packages && vitest run",
+    "test:live": "npm run build:packages && vitest run --config vitest.live.config.ts",
+    "test:system": "npm run build:packages && playwright test",
     "test:all": "npm run test && npm run test:live && npm run test:system",
     "lint": "npm run lint --workspaces --if-present",
     "clean": "rm -rf packages/*/dist packages/*/*.tsbuildinfo apps/web/.next apps/vault/dist apps/relayer/dist"

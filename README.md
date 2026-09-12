@@ -127,15 +127,22 @@ npm run dev:packages     # watch mode for the packages
 
 npm test                 # unit + integration — offline, deterministic
 npm run test:live        # against the real Jupiter API and an RPC node
-npm run test:system      # Playwright, both apps in a browser
+npm run test:system      # Playwright, both apps in a browser (see below)
 npm run test:all         # all three
 
 npm run typecheck        # project-wide type check
 npm run lint             # every workspace that defines a linter
 ```
 
-What each layer catches, and why the live suite is separate:
-[`docs/TESTING.md`](./docs/TESTING.md).
+The system tests need a browser once per machine:
+
+```bash
+npx playwright install chromium
+```
+
+Every test command builds the shared packages first, and Playwright starts the
+dev servers it needs. What each layer catches, and why the live suite is kept
+separate: [`docs/TESTING.md`](./docs/TESTING.md).
 
 ## Status
 

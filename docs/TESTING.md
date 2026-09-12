@@ -6,11 +6,31 @@ tests unitaires passaient pendant que nos transactions faisaient 350 octets de
 trop.
 
 ```bash
-npm test          # unitaire + intégration · hors ligne, déterministe, ~3 s
-npm run test:live # contre Jupiter et un nœud RPC réels · ~2 s, réseau requis
-npm run test:system # Playwright, les deux apps dans un navigateur · ~45 s
-npm run test:all  # les trois
+npm test            # unitaire + intégration · hors ligne, déterministe, ~5 s
+npm run test:live   # contre Jupiter et un nœud RPC réels · ~2 s, réseau requis
+npm run test:system # Playwright, les deux apps dans un navigateur · ~50 s
+npm run test:all    # les trois
 ```
+
+Après un clone, une seule préparation supplémentaire, pour les tests système :
+
+```bash
+npm ci
+npx playwright install chromium   # ~115 Mo, une fois par machine
+```
+
+Les trois commandes compilent les paquets partagés elles-mêmes — les tests les
+importent par leur `dist`, et sans cela un clone frais voit neuf fichiers sur
+quatorze échouer sur « Failed to resolve entry » et croit le dépôt cassé.
+
+> La compilation est appelée **dans** le script, pas par un hook `pretest`.
+> Un `ignore-scripts=true` dans le `~/.npmrc` de quelqu'un désactive
+> silencieusement les hooks `pre`/`post` — et c'était le cas sur la machine où
+> ces tests ont été écrits.
+
+Playwright démarre lui-même les serveurs de développement dont il a besoin
+(`webServer` dans `playwright.config.ts`) et réutilise ceux déjà lancés. Rien
+à démarrer à la main.
 
 ---
 

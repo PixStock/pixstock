@@ -1,3 +1,4 @@
+import swc from "unplugin-swc";
 import { defineConfig } from "vitest/config";
 
 /**
@@ -12,6 +13,20 @@ import { defineConfig } from "vitest/config";
  * merge and before the demo — not on every save.
  */
 export default defineConfig({
+  plugins: [
+    // Same reason as the default config: NestJS reads constructor types from
+    // `design:paramtypes`, which esbuild does not emit. A live test that
+    // builds a testing module would otherwise get undefined services and a
+    // baffling failure.
+    swc.vite({
+      module: { type: "es6" },
+      jsc: {
+        target: "es2022",
+        parser: { syntax: "typescript", decorators: true },
+        transform: { legacyDecorator: true, decoratorMetadata: true },
+      },
+    }),
+  ],
   test: {
     include: ["packages/*/test/**/*.live.test.ts", "apps/*/test/**/*.live.test.ts"],
     exclude: ["**/node_modules/**"],
