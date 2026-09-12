@@ -170,6 +170,9 @@ export default function ProtocolPage() {
         <section className="band band--tight" id="pyth">
           <div className="shell">
             <h2>{p.pyth.title}</h2>
+            <p className="status-note" role="note">
+              {p.pyth.status}
+            </p>
             {p.pyth.body.map((line, i) => (
               <p key={i} className="copy">{line}</p>
             ))}

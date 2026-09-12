@@ -8,6 +8,7 @@ import {
   type PolicyResult,
 } from "@pixstock/tx-policy";
 import type { OrderManifest } from "@pixstock/shared";
+import { checkAttestation, type AttestationStatus } from "@pixstock/pyth-verify";
 
 export interface ReviewProps {
   payload: Uint8Array;
@@ -85,6 +86,9 @@ export function Review({ payload, vault, onApprove, onReject }: ReviewProps) {
 
   const { request, result } = verdict;
   const { ticket, violations, unevaluated } = result;
+  // What the vault may honestly say about the price. Today: that it cannot
+  // check it. See packages/pyth-verify/src/status.ts.
+  const price = checkAttestation({ price: request.price });
   const quoteAgeSeconds = Math.max(0, Math.floor(Date.now() / 1000) - request.manifest.quotedAt);
 
   return (
@@ -95,14 +99,19 @@ export function Review({ payload, vault, onApprove, onReject }: ReviewProps) {
       </header>
 
       <ol className="checks">
-        <Check ok label="Frames assembled" />
+        <Check state="ok" label="Frames assembled" />
+        <Check state={priceCheckState(price)} label={price.label} />
         <Check
-          ok={request.price !== undefined}
-          label={request.price ? "Price attested by Pyth" : "Price not attested"}
-          warn={request.price === undefined}
+          state={violations.length === 0 ? "ok" : "bad"}
+          label={`Policy (${result.evaluated.length} rules)`}
         />
-        <Check ok={violations.length === 0} label={`Policy (${result.evaluated.length} rules)`} />
       </ol>
+
+      {price.state !== "verified" && (
+        <p className="alert" role="alert">
+          <strong>{price.label}.</strong> {price.detail}
+        </p>
+      )}
 
       {violations.length > 0 && (
         <div className="alert" role="alert">
@@ -187,10 +196,21 @@ function Ticket({
   );
 }
 
-function Check({ ok, label, warn }: { ok: boolean; label: string; warn?: boolean }) {
+type CheckState = "ok" | "warn" | "bad";
+
+const MARKS: Record<CheckState, string> = { ok: "✓", warn: "!", bad: "✕" };
+
+function priceCheckState(status: AttestationStatus): CheckState {
+  if (status.state === "verified") return status.warn ? "warn" : "ok";
+  if (status.state === "rejected") return "bad";
+  // Absent or unverifiable: a warning, never a tick.
+  return "warn";
+}
+
+function Check({ state, label }: { state: CheckState; label: string }) {
   return (
-    <li className={ok ? (warn ? "check check--warn" : "check check--ok") : "check check--bad"}>
-      <span aria-hidden="true">{ok ? (warn ? "!" : "✓") : "✕"}</span>
+    <li className={`check check--${state}`}>
+      <span aria-hidden="true">{MARKS[state]}</span>
       {label}
     </li>
   );

@@ -6,6 +6,17 @@
  * the relayer's numbers drift from the oracle's.
  */
 
+export {
+  MAX_AGE_SECONDS,
+  MAX_DEVIATION,
+  VERIFIER_IMPLEMENTED,
+  WARN_DEVIATION,
+  checkAttestation,
+  permitsSigning,
+  type AttestationInput,
+  type AttestationStatus,
+} from "./status.js";
+
 export interface PythPriceUpdate {
   feedId: number;
   price: bigint;

@@ -427,7 +427,8 @@
         "This is the part no hardware wallet does today. A signed price message from Pyth travels with the order, and the phone verifies its Ed25519 signature against trusted keys it already holds — with no network, in a few milliseconds.",
         "If the order's implied price drifts more than one percent from the signed one, the phone refuses to sign and says why. A browser that has been tampered with can show you any number it likes; it cannot forge a signature from an oracle whose keys are already on your phone.",
         "The guard degrades honestly. If no attested price is available, the order ticket says the price is unattested rather than quietly signing anyway."
-      ]
+      ],
+      "status": "Not built yet. The verifier is not written, so the vault reports an attached attestation as unverified and says so on screen rather than showing a tick it has not earned. What follows describes the design."
     },
     "paperVault": {
       "title": "Paper-Vault",
