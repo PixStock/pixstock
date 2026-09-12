@@ -1,6 +1,6 @@
 import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { symbolOfMint } from '@pixstock/shared';
+import type { SwapInstructions } from './swap-instructions';
 
 export interface QuoteRequest {
   inputMint: string;
@@ -10,6 +10,8 @@ export interface QuoteRequest {
   slippageBps: number;
   /** Direct routes keep the transaction small enough for a multi-leg basket. */
   onlyDirectRoutes?: boolean;
+  /** Caps how many accounts a route may touch. Bytes, not safety. */
+  maxAccounts?: number;
 }
 
 export interface Quote {
@@ -57,6 +59,7 @@ export class JupiterService {
       request.amount,
       request.slippageBps,
       request.onlyDirectRoutes ?? false,
+      request.maxAccounts ?? 0,
     ].join(':');
 
     const cached = this.cache.get(key);
@@ -69,6 +72,7 @@ export class JupiterService {
       amount: request.amount,
       slippageBps: String(request.slippageBps),
       ...(request.onlyDirectRoutes ? { onlyDirectRoutes: 'true' } : {}),
+      ...(request.maxAccounts ? { maxAccounts: String(request.maxAccounts) } : {}),
     }).toString();
 
     let body: Record<string, unknown>;
@@ -90,6 +94,44 @@ export class JupiterService {
     const quote = toQuote(body);
     this.cache.set(key, { quote, expiresAt: Date.now() + CACHE_TTL_MS });
     return quote;
+  }
+
+  /**
+   * Asks Jupiter for the instructions rather than a ready-made transaction.
+   *
+   * This is the whole Zero-SOL mechanism: `payer` is the relayer, so it funds
+   * fees and the rent of any token account created, while `userPublicKey` is
+   * the vault, which signs but pays nothing. The relayer then assembles the
+   * message itself, which is what lets it insert the durable nonce advance.
+   */
+  async swapInstructions(quote: Quote, vault: string, payer: string): Promise<SwapInstructions> {
+    let body: Record<string, unknown>;
+    try {
+      const response = await fetch(`${this.baseUrl}/swap-instructions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...this.headers },
+        body: JSON.stringify({
+          quoteResponse: quote.raw,
+          userPublicKey: vault,
+          payer,
+          wrapAndUnwrapSol: false,
+          skipUserAccountsRpcCalls: true,
+          dynamicComputeUnitLimit: false,
+        }),
+      });
+      body = (await response.json()) as Record<string, unknown>;
+      if (!response.ok) {
+        throw new Error(`Jupiter responded ${response.status}: ${JSON.stringify(body).slice(0, 200)}`);
+      }
+    } catch (err) {
+      this.logger.warn(`swap-instructions failed: ${(err as Error).message}`);
+      throw new ServiceUnavailableException('Could not build this swap right now');
+    }
+
+    if (!body.swapInstruction) {
+      throw new ServiceUnavailableException('Could not build this swap right now');
+    }
+    return body as unknown as SwapInstructions;
   }
 
   /** Drops expired entries. Called by the controller; the map stays small. */

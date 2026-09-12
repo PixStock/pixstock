@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { SolanaRpcService } from './solana-rpc.service';
+import { SolanaService } from './solana.service';
 
 @Module({
-  providers: [SolanaRpcService],
-  exports: [SolanaRpcService],
+  providers: [SolanaService],
+  exports: [SolanaService],
 })
 export class SolanaModule {}

@@ -126,29 +126,35 @@ d'ATA Token-2022 incluse).
 
 | Contenu | Octets |
 |---|---|
-| Transaction 1 swap USDC → TSLAx | 581 (message 452) |
-| Panier 2 lignes | 796 |
-| Panier 3 lignes (7 ix, 3 ALT) | 943 — sous la limite Solana de 1 232 |
+| Transaction 1 swap USDC → TSLAx | **581** (mesuré) |
+| Panier 2 lignes | **763** |
+| Panier 3 lignes AAPLx + NVDAx + MSFTx | **910** — sous la limite Solana de 1 232 |
+| Panier 4 lignes | **1 052** |
 | Message Pyth Pro `solana`, 1 feed | ≈ 145 |
 | Message Pyth Pro `solana`, 3 feeds | ≈ 205 |
-| Manifest CBOR 3 lignes + en-tête | ≈ 180 |
-| **SIGN 1 swap**, payload CBOR complet | **1 048 — mesuré → 4 trames en `M`** |
-| **SIGN panier 3 titres**, payload CBOR complet | **1 345 — mesuré → 5 trames en `M`** |
+| **SIGN 1 swap**, payload CBOR complet | **903 → 4 trames en `M`** |
+| **SIGN panier 3 titres**, payload CBOR complet | **1 519 → 6 trames en `M`** |
 | **SIGR** (1 signature) | 107 caractères → 1 QR statique |
 
-> Les deux lignes en gras sont **mesurées** sur le codec réel
-> (`packages/agqp/test/payload.test.ts` les verrouille), les autres restent des
-> composants estimés. L'estimation du panier était juste ; celle du swap simple
-> était 31 % basse — le message v0 réel fait 679 octets et non 581, et le
-> manifest encodé dépasse les 180 octets prévus. Le panier tient toujours en
-> 5 trames, donc la promesse de démo ne bouge pas.
+Mesures du 12 sept. 2026 par `scripts/measure-tx-size.mjs`, routes Jupiter
+mainnet réelles, `payer ≠ signataire`. Les chiffres ci-dessus supposent un
+vault **froid** : chaque ligne crée son compte de tokens. Une fois ces comptes
+créés — l'état dès le deuxième ordre — le panier 3 lignes tombe à **816 o et
+5 trames**, et le swap simple à **507 o et 3 trames**.
+
+> ⚠️ **Les tables de lookup d'adresses ne sont pas optionnelles.** Jupiter
+> nomme les tables que sa route utilise mais renvoie leur contenu vide : il
+> faut les lire sur la chaîne. Sans elles, onze comptes restent en ligne à
+> 32 octets pièce et un swap simple passe de 581 à 955 octets — assez pour
+> faire déborder un panier 2 lignes hors de la limite de transaction. Ce bug a
+> existé et a fait croire que la feature C était irréalisable.
 
 À 8 FPS, un cycle de 5 trames dure 0,625 s. Un téléphone qui décode à 15-30
 fps capte tout en 1 à 2 cycles : **objectif < 1,5 s tenu**.
 
 Si le repli Pyth Hermes est retenu (risque R1), le payload de prix passe de
-~145 à ~1 200 octets : le panier 3 lignes mesure alors 2 341 octets, soit
-8 trames au lieu de 5 — le format ne change pas,
+~145 à ~1 200 octets : le panier 3 lignes passe alors de 6 à environ
+10 trames — le format ne change pas,
 seul le nombre de trames augmente. C'est pourquoi `INDEX`/`TOTAL` vont
 jusqu'à 99.
 
