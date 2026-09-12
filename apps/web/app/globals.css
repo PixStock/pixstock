@@ -1358,3 +1358,18 @@ html:not(.js-anim) .wordmark .rise { transform: none; opacity: 1; }
   color: var(--ink-2);
   font-size: 14.5px;
 }
+
+.mono-input { font-family: var(--mono); font-size: 13.5px; }
+
+.quote-card {
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: grid;
+  gap: 10px;
+}
+.quote-out { font-size: 28px; letter-spacing: -0.01em; }
+.quote-row { display: flex; justify-content: space-between; gap: 16px; font-size: 14px; }
+.quote-row dt { color: var(--ink-3); }
+.quote-row dd { margin: 0; }
+.quote-stale { opacity: 0.45; transition: opacity 0.2s var(--ease-io); }

@@ -1,36 +1,94 @@
 "use client";
 
-import Link from "next/link";
-import { useState } from "react";
-import { ASSETS, formatAmount } from "@pixstock/shared";
-import { CHUNK_SIZES, DEFAULT_FPS } from "@pixstock/agqp";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { ASSETS, USDC_MINT, formatAmount } from "@pixstock/shared";
+import { api, RelayerError, type Quote } from "@/lib/api";
+import { usePairedVault } from "@/lib/vault";
+import { VaultField } from "@/components/VaultField";
+import { RelayerStatus } from "@/components/RelayerStatus";
 import { content } from "@/content/site";
 
-/**
- * Measured on a real mainnet route: a single swap with a fee payer that is not
- * the signer, an ATA creation included, comes to roughly 800 bytes once the
- * manifest and the price attestation travel with it. See docs/AGQP-SPEC.md §3.
- */
-const SINGLE_SWAP_PAYLOAD_BYTES = 800;
+/** USDC has six decimals; a u64 of them is what the vault will check. */
+function toRawUsdc(amount: string): string | null {
+  const parsed = Number(amount);
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+  return BigInt(Math.round(parsed * 1e6)).toString();
+}
 
 export function TradeForm() {
   const t = content.trade;
+  const router = useRouter();
+  const { vault, setVault, isValid } = usePairedVault();
+
   const [symbol, setSymbol] = useState(ASSETS[0]!.symbol);
   const [amount, setAmount] = useState("50");
+  const [quote, setQuote] = useState<Quote | null>(null);
+  const [quoting, setQuoting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
 
   const asset = ASSETS.find((a) => a.symbol === symbol)!;
-  const frames = Math.ceil(SINGLE_SWAP_PAYLOAD_BYTES / CHUNK_SIZES.M);
+  const rawAmount = useMemo(() => toRawUsdc(amount), [amount]);
 
-  // USDC has six decimals. Shown so the figure the vault will check is visible
-  // here too, rather than only appearing after the order is built.
-  const rawAmount = (() => {
-    const parsed = Number(amount);
-    if (!Number.isFinite(parsed) || parsed <= 0) return null;
-    return BigInt(Math.round(parsed * 1e6));
-  })();
+  // Re-quote as the order changes. Debounced, because a keystroke is not an
+  // intention to price.
+  useEffect(() => {
+    let cancelled = false;
+
+    // Everything happens in the timer: setting state in the effect body itself
+    // is what cascades renders.
+    const timer = setTimeout(() => {
+      if (!rawAmount) {
+        setQuote(null);
+        return;
+      }
+      setQuoting(true);
+      api
+        .quote({ in: USDC_MINT, out: asset.mint, amount: rawAmount })
+        .then((next) => {
+          if (!cancelled) {
+            setQuote(next);
+            setError(null);
+          }
+        })
+        .catch((err: RelayerError) => {
+          if (!cancelled) {
+            setQuote(null);
+            setError(err.message);
+          }
+        })
+        .finally(() => {
+          if (!cancelled) setQuoting(false);
+        });
+    }, 350);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [asset.mint, rawAmount]);
+
+  async function send() {
+    if (!rawAmount || !isValid) return;
+    setSending(true);
+    setError(null);
+    try {
+      const order = await api.createOrder({
+        vault,
+        legs: [{ inMint: USDC_MINT, outMint: asset.mint, inAmount: rawAmount }],
+      });
+      router.push(`/sign/${order.orderId}`);
+    } catch (err) {
+      setError((err as RelayerError).message);
+      setSending(false);
+    }
+  }
 
   return (
     <div className="stack-24">
+      <RelayerStatus />
+
       <div className="field-row">
         <label className="field-block">
           <span className="eyebrow">{t.form.assetLabel}</span>
@@ -50,7 +108,7 @@ export function TradeForm() {
               type="number"
               inputMode="decimal"
               min="0"
-              step="1"
+              step="10"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               className="input num"
@@ -60,55 +118,56 @@ export function TradeForm() {
         </label>
       </div>
 
-      <div className="notice">
-        <h3>{t.pending.title}</h3>
-        <p className="copy">{t.pending.body}</p>
-      </div>
+      <VaultField vault={vault} onChange={setVault} />
 
-      <table className="spec-table">
-        <thead>
-          <tr>
-            <th scope="col">{t.form.assetHeaders.symbol}</th>
-            <th scope="col">{t.form.assetHeaders.mint}</th>
-            <th scope="col">{t.form.assetHeaders.program}</th>
-            <th scope="col">{t.form.assetHeaders.feed}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {ASSETS.map((a) => (
-            <tr key={a.symbol} className={a.symbol === symbol ? "row--active" : undefined}>
-              <td>
-                <strong>{a.symbol}</strong>
-                <br />
-                <span className="muted">{a.name}</span>
-              </td>
-              <td className="mono-cell">{a.mint.slice(0, 8)}…{a.mint.slice(-6)}</td>
-              <td>Token-2022</td>
-              <td className="num">
-                {a.pythFeedId}
-                {a.pythExtFeedId !== null && <span className="muted"> / {a.pythExtFeedId}</span>}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {quote && (
+        <div className={`quote-card${quoting ? " quote-stale" : ""}`}>
+          <span className="eyebrow">You receive</span>
+          <p className="quote-out num" style={{ margin: 0 }}>
+            {formatAmount(quote.out.amount, asset.decimals, 6)}{" "}
+            <span style={{ fontSize: 18 }}>{quote.out.symbol}</span>
+          </p>
+          <dl style={{ margin: 0, display: "grid", gap: 6 }}>
+            <div className="quote-row">
+              <dt>At worst</dt>
+              <dd className="num">
+                {formatAmount(quote.minOutAmount, asset.decimals, 6)} {quote.out.symbol}
+              </dd>
+            </div>
+            <div className="quote-row">
+              <dt>Route</dt>
+              <dd>{quote.route.join(" → ")}</dd>
+            </div>
+            <div className="quote-row">
+              <dt>Price impact</dt>
+              <dd className="num">{(Number(quote.priceImpactPct) * 100).toFixed(3)}%</dd>
+            </div>
+            <div className="quote-row">
+              <dt>Network fee</dt>
+              <dd>paid by the relayer</dd>
+            </div>
+          </dl>
+        </div>
+      )}
 
-      <div className="notice">
-        <h3>{t.channel.title}</h3>
-        <p className="copy">{t.channel.body}</p>
-        <p className="copy">
-          {rawAmount !== null && (
-            <>
-              <span className="num">{formatAmount(rawAmount, 6)}</span> USDC → {asset.symbol} ·{" "}
-            </>
-          )}
-          <span className="num">{frames}</span> {t.channel.framesLabel}{" "}
-          <span className="num">{DEFAULT_FPS}</span> FPS ·{" "}
-          <span className="num">{CHUNK_SIZES.M}</span> {t.channel.perFrame}
+      {error && (
+        <p className="alert-inline" role="alert">
+          {error}
         </p>
-        <Link className="btn btn--solid" href="/sign">
-          {t.channel.tryLabel}
-        </Link>
+      )}
+
+      <div className="row-wrap">
+        <button
+          type="button"
+          className="btn btn--solid"
+          disabled={!quote || !isValid || sending}
+          onClick={() => void send()}
+        >
+          {sending ? "Building the order…" : t.form.submit}
+        </button>
+        {!isValid && (
+          <span className="muted">Paste your vault&apos;s public key first.</span>
+        )}
       </div>
     </div>
   );

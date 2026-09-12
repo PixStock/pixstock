@@ -166,8 +166,12 @@ export class OrdersService {
 
     return {
       ...this.present(signed),
-      // Named so nobody reads SIGNED as "sent".
-      pending: ['The relayer has no key, so it cannot co-sign or broadcast this'],
+      // Named so nobody reads SIGNED as "sent". The reason matters: a missing
+      // key and a missing module are different problems with different fixes,
+      // and saying the wrong one sends someone looking in the wrong place.
+      pending: this.config.get<string>('relayer.secretKey')
+        ? ['Co-signing and broadcasting are not built yet, so this has not been sent']
+        : ['The relayer has no key, so it cannot co-sign or broadcast this'],
     };
   }
 

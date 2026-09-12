@@ -17,12 +17,26 @@ type State =
  * exists, and a paste box everywhere else, which is also how the end-to-end
  * test runs without a camera.
  */
-export function SignatureScanner({ expectedSid }: { expectedSid?: string }) {
+export function SignatureScanner({
+  expectedSid,
+  onSignatures,
+  busy,
+}: {
+  expectedSid?: string;
+  /** Called once a reply for this session is read. */
+  onSignatures?: (signatures: Uint8Array[]) => void;
+  busy?: boolean;
+}) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const stream = useRef<MediaStream | null>(null);
   const running = useRef(false);
   const [state, setState] = useState<State>({ status: "idle" });
   const [pasted, setPasted] = useState("");
+  // Held in a ref so a new callback identity does not restart the scan loop.
+  const onSignaturesRef = useRef(onSignatures);
+  useEffect(() => {
+    onSignaturesRef.current = onSignatures;
+  }, [onSignatures]);
 
   const stop = useCallback(() => {
     running.current = false;
@@ -48,6 +62,7 @@ export function SignatureScanner({ expectedSid }: { expectedSid?: string }) {
       }
 
       setState({ status: "done", response });
+      onSignaturesRef.current?.(response.signatures);
       return true;
     },
     [expectedSid]
@@ -139,7 +154,7 @@ export function SignatureScanner({ expectedSid }: { expectedSid?: string }) {
             …
           </pre>
           <p style={{ color: "var(--ink-3)", fontSize: 13, margin: 0 }}>
-            Next: attach it to the message, co-sign as fee payer, broadcast.
+            {busy ? "Sending it to the relayer…" : "Next: co-sign as fee payer, then broadcast."}
           </p>
         </div>
       )}

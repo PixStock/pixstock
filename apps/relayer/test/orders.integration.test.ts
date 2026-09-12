@@ -11,6 +11,7 @@ import { DatabaseModule } from "../src/database/database.module";
 import { DatabaseService } from "../src/database/database.service";
 import { OrdersModule } from "../src/modules/orders/orders.module";
 import { TxBuilderService } from "../src/modules/tx-builder/tx-builder.service";
+import { withEnv } from "./with-env";
 
 /**
  * The order lifecycle against the real database, with the transaction builder
@@ -52,14 +53,15 @@ class RecordedBuilder {
 }
 
 describe("the order lifecycle", () => {
+  // The fixture was built for this fee payer, so R3 has something to agree
+  // with. The secret is cleared: a real one in a developer's .env would derive
+  // a different public key and every signature here would be refused.
+  withEnv({ RELAYER_PUBKEY: fixture.feePayer, RELAYER_SECRET_KEY: "" });
+
   let app: INestApplication;
   let db: DatabaseService;
 
   beforeAll(async () => {
-    // The relayer's identity comes from the environment; the fixture was built
-    // for this fee payer, so the policy's R3 has something to agree with.
-    process.env.RELAYER_PUBKEY = fixture.feePayer;
-
     const moduleRef = await Test.createTestingModule({
       imports: [
         ConfigModule.forRoot({
@@ -182,7 +184,7 @@ describe("the order lifecycle", () => {
 
       expect(body.status).toBe("SIGNED");
       // SIGNED must not be readable as "sent".
-      expect(body.pending[0]).toMatch(/cannot co-sign or broadcast/);
+      expect(body.pending[0]).toMatch(/has not been sent|cannot co-sign or broadcast/);
       expect(body.txSignatures).toEqual([]);
     });
 
