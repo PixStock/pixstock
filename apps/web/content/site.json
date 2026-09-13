@@ -594,8 +594,8 @@
       "stopLabel": "Stop"
     },
     "pending": {
-      "title": "Pairing needs the payload layer",
-      "body": "The frame codec and the reassembler are built and tested; the structured payload that carries a pairing record is not. The scanner below runs, and reports what it reads, but cannot yet turn it into a paired vault."
+      "title": "Hold the vault's code up to the webcam",
+      "body": "On the phone, tap \"Show my address\" and point it at this camera. The scanner reads the pairing record and remembers where to send orders. Anything else you hold up is named rather than accepted — a Paper-Vault backup belongs on paper, never in a browser."
     },
     "watchOnly": {
       "title": "Watch-only, by construction",

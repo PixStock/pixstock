@@ -130,6 +130,19 @@ test.describe("the vault, end to end in a browser", () => {
     await expect(page.getByText(/Sixty-four bytes of signature/)).toBeVisible();
   });
 
+  test("shows its own address as a pairing code", async ({ page }) => {
+    await installFixtureVault(page);
+    await page.getByRole("button", { name: "Show my address" }).click();
+
+    await expect(page.getByRole("heading", { name: "Show this to the laptop" })).toBeVisible();
+    await expect(page.locator("canvas.qr")).toBeVisible();
+    // The address in full, so it can be checked against the laptop by eye.
+    await expect(page.getByText(FIXTURE_VAULT)).toBeVisible();
+
+    await page.getByRole("button", { name: "Done" }).click();
+    await expect(page.getByRole("heading", { name: "Scan the order" })).toBeVisible();
+  });
+
   test("is installable on a phone", async ({ page }) => {
     // Not cosmetic: without a manifest naming real icons, Chrome on Android
     // never offers "add to home screen", and a signer that only exists as a

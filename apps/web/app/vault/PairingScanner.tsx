@@ -1,29 +1,43 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { parseFrame, parseSignatureResponse } from "@pixstock/agqp";
+import {
+  FrameAssembler,
+  decodePayload,
+  parseFrame,
+  parseSignatureResponse,
+} from "@pixstock/agqp";
 import { content } from "@/content/site";
+import { usePairedVault } from "@/lib/vault";
 
 type State =
   | { status: "idle" }
   | { status: "scanning" }
+  | { status: "paired"; vault: string; label: string; network: string }
   | { status: "read"; text: string; recognised: string }
   | { status: "error"; message: string };
 
 /**
- * Reads whatever the vault is showing.
+ * Reads the vault's pairing code and remembers the address.
  *
- * Pairing records are part of the structured payload layer, which is not
- * built — so this reports what it recognises rather than pretending to pair.
- * An interface that claimed a vault was paired when nothing was decoded would
- * be the first lie in a product whose whole argument is that it does not lie
- * to you.
+ * What it saves is the transcription of forty-four base58 characters, which
+ * is where someone sends money to the wrong place. What it does not do is
+ * prove anything: a scanned address is still just an address, and the
+ * guarantee that matters lives on the phone, which refuses to read an order
+ * that does not name its own key.
+ *
+ * Anything else held up to the camera is named rather than swallowed — an
+ * interface that claimed a vault was paired when it had decoded something
+ * else would be the first lie in a product whose argument is that it does
+ * not tell them.
  */
 export function PairingScanner() {
   const v = content.vault;
   const videoRef = useRef<HTMLVideoElement>(null);
   const stream = useRef<MediaStream | null>(null);
   const running = useRef(false);
+  const assembler = useRef(new FrameAssembler());
+  const { setVault } = usePairedVault();
   const [state, setState] = useState<State>({ status: "idle" });
 
   const stop = useCallback(() => {
@@ -33,12 +47,62 @@ export function PairingScanner() {
     setState((current) => (current.status === "scanning" ? { status: "idle" } : current));
   }, []);
 
-  const recognise = (text: string): string | null => {
-    if (parseFrame(text)) return "an order frame (AGQP request)";
-    if (parseSignatureResponse(text)) return "a signature reply";
-    if (text.startsWith("PVLT:")) return "a Paper-Vault backup — do not scan that here";
-    return null;
-  };
+  /**
+   * One decoded code. Returns true when there is nothing left to scan.
+   *
+   * A pairing record is a normal AGQP payload, so it goes through the same
+   * assembler as an order — one decoder, not two.
+   */
+  const consume = useCallback(
+    (text: string): boolean => {
+      if (text.startsWith("PVLT:")) {
+        setState({
+          status: "read",
+          text: "",
+          recognised: "a Paper-Vault backup — that belongs on paper, never in this browser",
+        });
+        return true;
+      }
+
+      if (!parseFrame(text)) {
+        if (parseSignatureResponse(text)) {
+          setState({ status: "read", text: "", recognised: "a signature reply, not a pairing code" });
+          return true;
+        }
+        return false;
+      }
+
+      const progress = assembler.current.push(text);
+      if (!progress.done || !progress.payload) return false;
+
+      try {
+        const payload = decodePayload(progress.payload);
+        if (payload.kind !== "PAIR") {
+          setState({
+            status: "read",
+            text: "",
+            recognised: `a ${payload.kind} code, not a pairing code`,
+          });
+          return true;
+        }
+
+        setVault(payload.vault);
+        setState({
+          status: "paired",
+          vault: payload.vault,
+          label: payload.label,
+          network: payload.network,
+        });
+        return true;
+      } catch (err) {
+        setState({ status: "error", message: (err as Error).message });
+        return true;
+      } finally {
+        assembler.current.reset();
+      }
+    },
+    [setVault],
+  );
 
   const start = useCallback(async () => {
     if (typeof BarcodeDetector === "undefined") {
@@ -69,12 +133,10 @@ export function PairingScanner() {
       if (!running.current) return;
       try {
         for (const barcode of await detector.detect(video)) {
-          const recognised = recognise(barcode.rawValue);
-          if (recognised) {
+          if (consume(barcode.rawValue)) {
             running.current = false;
             stream.current?.getTracks().forEach((t) => t.stop());
             stream.current = null;
-            setState({ status: "read", text: barcode.rawValue.slice(0, 40), recognised });
             return;
           }
         }
@@ -85,7 +147,7 @@ export function PairingScanner() {
     };
 
     void tick();
-  }, []);
+  }, [consume]);
 
   return (
     <div className="stack-24">
@@ -100,10 +162,17 @@ export function PairingScanner() {
 
       {state.status === "error" && <p className="alert-inline">{state.message}</p>}
 
-      {state.status === "read" && (
-        <p className="copy">
-          Read {state.recognised}. <span className="muted">{state.text}…</span>
-        </p>
+      {state.status === "read" && <p className="copy">Read {state.recognised}.</p>}
+
+      {state.status === "paired" && (
+        <div className="notice">
+          <h3>Paired with {state.label}</h3>
+          <p className="copy">
+            Orders on this browser will be built for{" "}
+            <span className="mono-input">{state.vault}</span> on {state.network}. It is a public
+            key — nothing that can sign has touched this page.
+          </p>
+        </div>
       )}
 
       <div className="row-wrap">

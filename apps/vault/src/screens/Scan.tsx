@@ -5,7 +5,13 @@ const hex = (bytes: Uint8Array, limit = 32) =>
   Array.from(bytes.slice(0, limit), (b) => b.toString(16).padStart(2, "0")).join(" ") +
   (bytes.length > limit ? " …" : "");
 
-export function Scan({ onScanned }: { onScanned: (payload: Uint8Array) => void }) {
+export function Scan({
+  onScanned,
+  onPair,
+}: {
+  onScanned: (payload: Uint8Array) => void;
+  onPair: () => void;
+}) {
   const { videoRef, state, start, stop, reset, pushText } = useFrameScanner();
   const [pasted, setPasted] = useState("");
 
@@ -88,6 +94,16 @@ export function Scan({ onScanned }: { onScanned: (payload: Uint8Array) => void }
             Reset
           </button>
         )}
+        <button
+          type="button"
+          className="btn"
+          onClick={() => {
+            stop();
+            onPair();
+          }}
+        >
+          Show my address
+        </button>
       </div>
 
       <details className="glued">
