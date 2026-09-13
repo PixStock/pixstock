@@ -1,6 +1,6 @@
 import { Controller, Get } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { VERIFIER_IMPLEMENTED } from '@pixstock/pyth-verify';
+import { SIGNERS_READ_AT, TRUSTED_SIGNERS } from '@pixstock/pyth-verify';
 import { DatabaseService } from '../../database/database.service';
 import { NoncesService } from '../nonces/nonces.service';
 
@@ -33,12 +33,21 @@ export class HealthController {
     const relayerPublicKey = this.config.get<string>('relayer.publicKey') || null;
     const pythToken = this.config.get<string>('relayer.pythProToken') ? 'set' : 'missing';
 
+    // The vault carries Pyth's signing keys because it has no network, which
+    // makes them a snapshot. An expired one refuses every price, so it is
+    // reported here rather than discovered on a phone.
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    const expiredSigners = TRUSTED_SIGNERS.filter(
+      (signer) => signer.expiresAt <= nowSeconds,
+    ).map((signer) => signer.address);
+
     const missing = [
       database === 'down' && 'database',
       relayerKey === 'missing' && 'relayer key: cannot co-sign or broadcast',
       !this.config.get<string>('relayer.publicKey') && 'relayer public key: cannot build orders',
       pythToken === 'missing' && 'pyth token: prices cannot be attested',
-      !VERIFIER_IMPLEMENTED && 'pyth verifier: an attestation cannot be checked',
+      expiredSigners.length > 0 &&
+        `pyth signers expired: ${expiredSigners.join(', ')} — rebuild against the chain`,
       noncePool === 0 &&
         'no durable nonce: orders expire with their blockhash, in about ninety seconds',
     ].filter(Boolean);
@@ -50,6 +59,7 @@ export class HealthController {
       relayerKey,
       relayerPublicKey,
       pythToken,
+      pythSigners: { count: TRUSTED_SIGNERS.length, readAt: SIGNERS_READ_AT },
       noncePool,
       broadcast: this.config.get<boolean>('relayer.allowBroadcast') ? 'enabled' : 'disabled',
       missing,

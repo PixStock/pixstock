@@ -130,10 +130,14 @@ describe("a real basket crossing the air gap", () => {
     expect(order.vault).toBe(fixture.vault);
     expect(order.manifest.legs).toHaveLength(3);
 
-    // ── vault: the price it cannot check ────────────────────────────────
+    // ── vault: the price it refuses ─────────────────────────────────────
+    // These bytes are filler, sized like a real attestation so the frame
+    // count is honest. They carry no Pyth signature, and the vault says so:
+    // attaching bytes is free, and only a signature makes them evidence.
     const price = checkAttestation({ price: order.price });
-    expect(price.state).toBe("unverifiable");
+    expect(price.state).toBe("rejected");
     expect(permitsSigning(price, true)).toBe(false);
+    expect(permitsSigning(price, false)).toBe(false);
 
     // ── vault: policy ───────────────────────────────────────────────────
     const message = decodeMessage(order.txs[0]!);

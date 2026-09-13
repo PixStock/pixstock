@@ -47,7 +47,15 @@ class StubJupiter {
 describe("the relayer HTTP surface", () => {
   // This suite is about a relayer that cannot sign: no key, so /healthz has
   // something to report as missing.
-  withEnv({ RELAYER_SECRET_KEY: "", RELAYER_PUBKEY: "", DATABASE_URL: TEST_DATABASE_URL });
+  // The token is pinned empty for the same reason as the key: otherwise this
+  // suite reports what the developer's .env happens to hold, and /healthz has
+  // nothing to be missing on a machine that is fully configured.
+  withEnv({
+    RELAYER_SECRET_KEY: "",
+    RELAYER_PUBKEY: "",
+    PYTH_PRO_TOKEN: "",
+    DATABASE_URL: TEST_DATABASE_URL,
+  });
 
   let app: INestApplication;
   let jupiter: StubJupiter;
@@ -151,7 +159,7 @@ describe("the relayer HTTP surface", () => {
       expect(body.missing).toEqual(
         expect.arrayContaining([
           expect.stringContaining("relayer key"),
-          expect.stringContaining("pyth verifier"),
+          expect.stringContaining("pyth token"),
         ]),
       );
     });

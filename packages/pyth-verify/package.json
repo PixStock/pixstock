@@ -22,6 +22,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@pixstock/shared": "*"
+    "@noble/curves": "^2.4.0",
+    "@pixstock/shared": "*",
+    "@scure/base": "^2.4.0"
   }
 }
