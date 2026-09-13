@@ -221,6 +221,23 @@ export function applyPolicy({ message, decoded, manifest, vault }: PolicyInput):
       );
     }
 
+    // The other side of the swap. Checking only the side the sender fixed
+    // leaves the figure the holder actually reads — "you receive" — taken on
+    // trust from the manifest, and a relayer that inflates it shows a ticket
+    // promising shares the transaction will never deliver.
+    const quotedKey = exactOut ? "quotedInAmount" : "quotedOutAmount";
+    const quoted = swap.detail[quotedKey];
+    const declaredQuote = exactOut ? leg.inAmount : leg.expectedOutAmount;
+
+    if (quoted === undefined) {
+      fail("P6", `Leg ${i + 1}: the instruction carries no ${quotedKey} to check`);
+    } else if (String(quoted) !== declaredQuote) {
+      fail(
+        "P6",
+        `Leg ${i + 1}: the manifest expects ${declaredQuote} out, the instruction quotes ${String(quoted)}`
+      );
+    }
+
     const slippageBps = Number(swap.detail.slippageBps ?? 0);
     if (slippageBps > manifest.slippageBps) {
       fail("P7", `Leg ${i + 1}: slippage ${slippageBps} bps exceeds the declared ${manifest.slippageBps}`);
@@ -295,11 +312,17 @@ function buildTicket(
   manifest.legs.forEach((leg, i) => {
     const swap = swaps[i];
 
-    // Amounts come from the instruction where there is one, never the manifest.
+    // Amounts come from the instruction where there is one, never the
+    // manifest — on both sides. P6 has already refused any leg where the two
+    // disagree, so this only decides which of two equal numbers is printed;
+    // taking the instruction's is what keeps that true if P6 ever changes.
     const rawIn = swap ? String(swap.detail.inAmount ?? leg.inAmount) : leg.inAmount;
+    const rawOut = swap
+      ? String(swap.detail.quotedOutAmount ?? swap.detail.outAmount ?? leg.expectedOutAmount)
+      : leg.expectedOutAmount;
 
     lines.push(ticketLine(manifest, leg.inMint, "in", rawIn));
-    lines.push(ticketLine(manifest, leg.outMint, "out", leg.expectedOutAmount));
+    lines.push(ticketLine(manifest, leg.outMint, "out", rawOut));
   });
 
   const applied = [...new Set(lines.map((line) => line.mint))]

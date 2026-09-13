@@ -200,6 +200,31 @@ describe("adversarial mutations", () => {
     expect(result.violations.find((v) => v.rule === "P6")!.detail).toContain(fixture.inAmount);
   });
 
+  it("P6 — the manifest promises more than the swap quotes", () => {
+    // The figure the holder actually reads. Checking only what is being spent
+    // leaves "you receive" taken on trust, and a relayer that inflates it
+    // shows a ticket promising shares the transaction will never deliver.
+    const inflated: OrderManifest = {
+      ...manifest,
+      legs: [
+        { ...manifest.legs[0]!, expectedOutAmount: String(BigInt(manifest.legs[0]!.expectedOutAmount) * 2n) },
+      ],
+    };
+    const result = evaluate({ manifest: inflated });
+    expect(ruleFired("P6", result)).toBe(true);
+    expect(result.violations.find((v) => v.rule === "P6")!.detail).toMatch(/quotes/);
+  });
+
+  it("the ticket's receive line comes from the instruction, not the manifest", () => {
+    const result = evaluate({});
+    const received = result.ticket!.lines.filter((line) => line.direction === "out");
+    const quoted = decoded
+      .filter((ix) => ix.kind === "jupiter-route")
+      .map((ix) => String(ix.detail.quotedOutAmount));
+
+    expect(received.map((line) => line.rawAmount)).toEqual(quoted);
+  });
+
   it("P7 — slippage wider than the manifest declared", () => {
     const tight: OrderManifest = { ...manifest, slippageBps: 10 };
     expect(ruleFired("P7", evaluate({ manifest: tight }))).toBe(true);
