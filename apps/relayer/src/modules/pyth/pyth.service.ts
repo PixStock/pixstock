@@ -2,12 +2,12 @@ import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/commo
 import { ConfigService } from '@nestjs/config';
 import { ASSETS } from '@pixstock/shared';
 import { parsePayload, parseSolanaMessage, type FeedUpdate } from '@pixstock/pyth-verify';
-// `ws` is CommonJS and assigns the class straight to `module.exports`. With
-// this tsconfig's interop a default import compiles to `ws_1.default`
-// (undefined), and the named import to `ws_1.WebSocket` — which only exists
-// from ws 8 onwards, while the hoisted copy in this workspace is 7.5.13. An
-// import-require binds the export itself and is right on both.
-import WebSocket = require('ws');
+// `ws` is CommonJS and assigns the class straight to `module.exports`, so a
+// default import compiles to `ws_1.default` and is undefined. The named
+// export exists from ws 8 onwards, and this workspace also hoists a 7.5.13
+// for @solana/web3.js — which is why the dependency is pinned to ^8 rather
+// than left to whatever npm decides to hoist.
+import { WebSocket } from 'ws';
 
 /**
  * `readyState` when the socket is open.
