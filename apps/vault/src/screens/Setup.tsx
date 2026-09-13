@@ -6,6 +6,7 @@ import {
   lock,
   wipe,
 } from "@pixstock/vault-crypto";
+import { enrolBiometric } from "../vault/biometric";
 import { saveBlob } from "../vault/storage";
 import { QrCode } from "../components/QrCode";
 
@@ -18,6 +19,7 @@ export function Setup({ onReady, onRestore }: { onReady: () => void; onRestore: 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [paper, setPaper] = useState<{ code: string; publicKey: Uint8Array } | null>(null);
+  const [biometric, setBiometric] = useState<"enrolled" | "unavailable" | null>(null);
 
   const tooShort = password.length > 0 && password.length < MIN_PASSWORD_LENGTH;
   const mismatch = confirm.length > 0 && confirm !== password;
@@ -30,6 +32,17 @@ export function Setup({ onReady, onRestore }: { onReady: () => void; onRestore: 
     try {
       const blob = await lock(seed, password);
       saveBlob(blob);
+
+      // Enrol the phone's own biometric, if it has one. A failure here is not
+      // a failure to create a vault: a spare phone with no screen lock is
+      // still a perfectly good air-gapped signer, and the signing screen says
+      // which of the two it is rather than implying a check that never runs.
+      try {
+        setBiometric((await enrolBiometric(publicKey)) ? "enrolled" : "unavailable");
+      } catch {
+        setBiometric("unavailable");
+      }
+
       setPaper({ code: encodePaperVault(blob), publicKey });
     } catch (err) {
       setError((err as Error).message);
@@ -57,6 +70,9 @@ export function Setup({ onReady, onRestore }: { onReady: () => void; onRestore: 
 
         <p className="muted">
           Vault <span className="num">{base58ish(paper.publicKey)}</span>
+          {biometric === "enrolled"
+            ? " · this phone will ask for your fingerprint before it signs"
+            : " · no biometric on this phone, so the master password stands alone"}
         </p>
 
         <div className="row">

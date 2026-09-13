@@ -130,6 +130,28 @@ test.describe("the vault, end to end in a browser", () => {
     await expect(page.getByText(/Sixty-four bytes of signature/)).toBeVisible();
   });
 
+  test("is installable on a phone", async ({ page }) => {
+    // Not cosmetic: without a manifest naming real icons, Chrome on Android
+    // never offers "add to home screen", and a signer that only exists as a
+    // browser tab is not the product.
+    await page.goto("/");
+    const href = await page.locator('link[rel="manifest"]').getAttribute("href");
+    expect(href, "the vault must ship a web app manifest").toBeTruthy();
+
+    const manifest = await (await page.request.get(href!)).json();
+    expect(manifest.display).toBe("standalone");
+    expect(manifest.icons.length).toBeGreaterThan(0);
+    expect(manifest.icons.some((icon: { purpose?: string }) => icon.purpose === "maskable")).toBe(
+      true,
+    );
+
+    for (const icon of manifest.icons) {
+      const response = await page.request.get(`/${icon.src}`.replace(/^\/\//, "/"));
+      expect(response.status(), `${icon.src} must exist`).toBe(200);
+      expect(response.headers()["content-type"]).toContain("image/png");
+    }
+  });
+
   test("restores a vault from a printed Paper-Vault", async ({ page }) => {
     // The half that was missing: a sheet of paper and a password put the same
     // key back on a phone that has never seen it. Nothing is fetched to do

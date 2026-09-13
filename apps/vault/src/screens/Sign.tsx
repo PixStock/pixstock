@@ -3,6 +3,7 @@ import { encodeSessionId, encodeSignatureResponse, type SignRequest } from "@pix
 import type { OrderTicket } from "@pixstock/tx-policy";
 import { signWith, type VaultBlob } from "@pixstock/vault-crypto";
 import { QrCode } from "../components/QrCode";
+import { confirmBiometric, storedCredential } from "../vault/biometric";
 
 export interface SignProps {
   blob: VaultBlob;
@@ -24,11 +25,20 @@ export function Sign({ blob, request, ticket, onDone }: SignProps) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reply, setReply] = useState<string | null>(null);
+  const [biometric, setBiometric] = useState<"passed" | "absent" | null>(null);
+
+  const enrolled = storedCredential() !== null;
 
   async function confirm() {
     setBusy(true);
     setError(null);
     try {
+      // The phone's own check, in front of the password and bound to these
+      // exact bytes. A refusal stops here: a rejected biometric is not
+      // permission to carry on to the key.
+      const passed = await confirmBiometric(request.txs[0]!);
+      setBiometric(passed ? "passed" : "absent");
+
       // Signed over the transaction message itself, not over the payload that
       // carried it — the relayer attaches this to the message it already holds.
       const signature = await signWith(blob, password, request.txs[0]!);
@@ -88,6 +98,12 @@ export function Sign({ blob, request, ticket, onDone }: SignProps) {
         </dl>
       </div>
 
+      <p className="muted">
+        {enrolled
+          ? "This phone will ask for your fingerprint or face before it signs, and the check covers these exact bytes."
+          : "No biometric is enrolled on this phone, so the master password is the only thing in front of your key."}
+      </p>
+
       <label className="field">
         <span>Master password</span>
         <input
@@ -97,6 +113,12 @@ export function Sign({ blob, request, ticket, onDone }: SignProps) {
           autoComplete="current-password"
         />
       </label>
+
+      {biometric === "absent" && (
+        <p className="alert" role="note">
+          Signed without a biometric check: none is enrolled on this device.
+        </p>
+      )}
 
       {error && (
         <p className="alert" role="alert">
