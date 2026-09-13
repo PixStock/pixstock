@@ -142,6 +142,18 @@ describe("what the vault may claim about a price", () => {
     expect(permitsSigning(status, true)).toBe(true);
   });
 
+  it("allows 0.9% and refuses 1.1%, which is where the line is", () => {
+    // The boundary the threat model states. Either side of one percent must
+    // behave differently, or the number in the documentation is decoration.
+    const under = check(attestation(), leg(TSLA, TSLA_PRICE, 500, 0.009));
+    expect(under.state).toBe("verified");
+    expect(permitsSigning(under, true)).toBe(true);
+
+    const over = check(attestation(), leg(TSLA, TSLA_PRICE, 500, 0.011));
+    expect(over.state).toBe("verified");
+    expect(permitsSigning(over, true)).toBe(false);
+  });
+
   it("applies the mint's multiplier before pricing anything", () => {
     // An xStock's raw balance is not its share count. Leaving the multiplier
     // out moves the implied price by however far the mint has scaled — which

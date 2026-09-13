@@ -6,6 +6,8 @@
   "scripts": {
     "build": "prisma generate && nest build",
     "lint": "eslint src",
+    "nonces:status": "node dist/cli/nonce-pool.js status",
+    "nonces:create": "node dist/cli/nonce-pool.js create",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main.js",

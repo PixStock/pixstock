@@ -10,6 +10,7 @@ import { MintStateService } from "../src/modules/market/mint-state.service";
 import { DatabaseModule } from "../src/database/database.module";
 import { HealthModule } from "../src/modules/health/health.module";
 import { MarketModule } from "../src/modules/market/market.module";
+import { PythModule } from "../src/modules/pyth/pyth.module";
 import { QuotesModule } from "../src/modules/quotes/quotes.module";
 import { JupiterService, type Quote } from "../src/modules/quotes/jupiter.service";
 import { RecordedMintState } from "./mint-state.fixture";
@@ -73,6 +74,7 @@ describe("the relayer HTTP surface", () => {
         DatabaseModule,
         HealthModule,
         MarketModule,
+        PythModule,
         QuotesModule,
       ],
       controllers: [AppController],
@@ -147,6 +149,31 @@ describe("the relayer HTTP surface", () => {
       ["slippage past the cap the vault enforces", { ...query, slippageBps: "500" }],
     ])("rejects %s with 400", async (_label, bad) => {
       await request(app.getHttpServer()).get("/v1/quotes").query(bad).expect(400);
+    });
+  });
+
+  describe("GET /v1/prices", () => {
+    it("names every asset it cannot price, instead of dropping it", async () => {
+      // A screen that silently omits an asset shows a catalogue with holes in
+      // it. With no token configured, every row should say why.
+      const { body } = await request(app.getHttpServer()).get("/v1/prices").expect(200);
+
+      expect(body.prices).toHaveLength(ASSETS.length);
+      for (const price of body.prices) {
+        expect(price.session).toBe("closed");
+        expect(price.unavailable, `${price.symbol} must say why`).toBe("no price stream");
+      }
+      expect(body.verifiedBy).toMatch(/offline/);
+    });
+
+    it("answers only for the symbols asked about", async () => {
+      const { body } = await request(app.getHttpServer())
+        .get("/v1/prices")
+        .query({ symbols: "TSLAx" })
+        .expect(200);
+
+      expect(body.prices).toHaveLength(1);
+      expect(body.prices[0].symbol).toBe("TSLAx");
     });
   });
 

@@ -273,6 +273,40 @@ describe("adversarial mutations", () => {
     expect(ruleFired("P8", evaluate({ decoded: decodedWith }))).toBe(false);
   });
 
+  it("P12 — the swap is authorised by someone other than the vault", () => {
+    // Jupiter moves tokens on one account's authority. If that is not this
+    // vault, the transaction is reaching into something else — or is arranged
+    // so a second signature could.
+    const hijacked = decoded.map((ix) =>
+      ix.kind === "jupiter-route"
+        ? { ...ix, accounts: [ix.accounts[0]!, "5aMNNLQJwAEeoemTEMkv5NVjqKwvvefRYCQ5Z67HFvEq", ...ix.accounts.slice(2)] }
+        : ix
+    );
+    expect(ruleFired("P12", evaluate({ decoded: hijacked }))).toBe(true);
+  });
+
+  it("P12 — the authority hides behind a lookup table", () => {
+    const hidden = decoded.map((ix) =>
+      ix.kind === "jupiter-route"
+        ? { ...ix, accounts: [ix.accounts[0]!, "lookup:12", ...ix.accounts.slice(2)] }
+        : ix
+    );
+    expect(ruleFired("P12", evaluate({ decoded: hidden }))).toBe(true);
+  });
+
+  it("P12 — a route variant this build has never seen is refused, not skipped", () => {
+    // Checking the wrong index is worse than refusing: it would report a
+    // green tick for an account nobody looked at.
+    const unknown = decoded.map((ix) =>
+      ix.kind === "jupiter-route"
+        ? { ...ix, detail: { ...ix.detail, route: "someFutureRoute" } }
+        : ix
+    );
+    const result = evaluate({ decoded: unknown });
+    expect(ruleFired("P12", result)).toBe(true);
+    expect(result.violations.find((v) => v.rule === "P12")!.detail).toMatch(/does not know/);
+  });
+
   it("P7 — slippage wider than the manifest declared", () => {
     const tight: OrderManifest = { ...manifest, slippageBps: 10 };
     expect(ruleFired("P7", evaluate({ manifest: tight }))).toBe(true);

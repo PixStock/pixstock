@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { ASSETS, USDC_MINT, formatAmount } from "@pixstock/shared";
-import { api, RelayerError, type Quote } from "@/lib/api";
+import { api, RelayerError, type DisplayPrice, type Quote } from "@/lib/api";
 import { usePairedVault } from "@/lib/vault";
 import { VaultField } from "@/components/VaultField";
 import { RelayerStatus } from "@/components/RelayerStatus";
@@ -30,6 +30,29 @@ export function TradeForm() {
 
   const asset = ASSETS.find((a) => a.symbol === symbol)!;
   const rawAmount = useMemo(() => toRawUsdc(amount), [amount]);
+  const [price, setPrice] = useState<DisplayPrice | null>(null);
+
+  // Pyth's own price, beside the route's. Shown so the two can be compared by
+  // eye; neither is proof of anything here, and the phone is what checks the
+  // signature that makes one of them evidence.
+  useEffect(() => {
+    let cancelled = false;
+
+    const read = () =>
+      api
+        .prices([symbol])
+        .then((result) => !cancelled && setPrice(result.prices[0] ?? null))
+        .catch(() => {
+          // The relayer already has a status banner of its own on this page.
+        });
+
+    void read();
+    const timer = setInterval(read, 10_000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [symbol]);
 
   // Re-quote as the order changes. Debounced, because a keystroke is not an
   // intention to price.
@@ -145,6 +168,23 @@ export function TradeForm() {
             <div className="quote-row">
               <dt>Network fee</dt>
               <dd>paid by the relayer</dd>
+            </div>
+            <div className="quote-row">
+              <dt>Pyth price</dt>
+              <dd className="num">
+                {price?.symbol !== symbol ? (
+                  <span className="muted">…</span>
+                ) : price.unavailable ? (
+                  <span className="muted">{price.unavailable}</span>
+                ) : (
+                  <>
+                    {price.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}{" "}
+                    <span className="muted">
+                      {price.session === "ext" ? "extended hours" : "live"}
+                    </span>
+                  </>
+                )}
+              </dd>
             </div>
           </dl>
         </div>

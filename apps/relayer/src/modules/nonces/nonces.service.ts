@@ -113,6 +113,11 @@ export class NoncesService {
     );
   }
 
+  /** Lamports of rent one nonce account costs, from the cluster itself. */
+  async rentPerAccount(): Promise<number> {
+    return this.solana.rpc.getMinimumBalanceForRentExemption(NONCE_ACCOUNT_LENGTH);
+  }
+
   /**
    * Creates nonce accounts and records them.
    *

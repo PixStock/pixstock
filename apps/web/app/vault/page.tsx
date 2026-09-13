@@ -4,6 +4,7 @@ import { Footer } from "@/components/Footer";
 import { SiteScript } from "@/components/SiteScript";
 import { content } from "@/content/site";
 import { PairingScanner } from "./PairingScanner";
+import { VaultBalances } from "./VaultBalances";
 
 export function generateMetadata(): Metadata {
   const m = content.vault.meta;
@@ -48,6 +49,8 @@ export default function VaultPage() {
               <h2>{v.watchOnly.title}</h2>
               <p className="copy">{v.watchOnly.body}</p>
             </div>
+
+            <VaultBalances />
           </div>
         </section>
       </main>

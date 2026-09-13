@@ -1,5 +1,5 @@
 /**
- * The signing policy: P1 to P11.
+ * The signing policy: P1 to P12.
  *
  * This is the half that decides. The decoder says what the transaction does;
  * this says whether the vault is allowed to sign it, and produces the ticket
@@ -36,7 +36,7 @@ import { deriveAta } from "./pda.js";
 
 export type PolicyRule =
   | "P1" | "P2" | "P3" | "P4" | "P5"
-  | "P6" | "P7" | "P8" | "P9" | "P10" | "P11";
+  | "P6" | "P7" | "P8" | "P9" | "P10" | "P11" | "P12";
 
 export const POLICY_RULES: Record<PolicyRule, string> = {
   P1: "The vault must not be the fee payer",
@@ -50,6 +50,27 @@ export const POLICY_RULES: Record<PolicyRule, string> = {
   P9: "The number of swap legs must match the manifest",
   P10: "No lamports may leave the vault",
   P11: "Scaled mints must declare a plausible multiplier, and only scaled mints may declare one",
+  P12: "Every swap must be authorised by this vault, and by nothing else",
+};
+
+/**
+ * Where `user_transfer_authority` sits in each Jupiter route's accounts.
+ *
+ * The index differs by variant, and getting it wrong checks the wrong
+ * account — so a variant whose layout this build does not know is refused
+ * rather than skipped.
+ *
+ * `route` is verified against the recorded mainnet basket, where the vault
+ * sits at index 1 of all three legs. The shared-accounts variants are taken
+ * from Jupiter's IDL and have not been seen in a captured transaction; if one
+ * ever arrives and this index is wrong, the order is refused by name, which
+ * is the direction an error here should fail in.
+ */
+const AUTHORITY_INDEX: Record<string, number> = {
+  route: 1,
+  exactOutRoute: 1,
+  sharedAccountsRoute: 2,
+  sharedAccountsExactOutRoute: 2,
 };
 
 /** Nothing above this signs, whatever the manifest asks for. */
@@ -124,7 +145,7 @@ export interface PolicyResult {
 
 /** Implemented today. The rest are listed so nothing looks checked that is not. */
 export const EVALUATED_RULES: readonly PolicyRule[] = [
-  "P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9", "P10", "P11",
+  "P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9", "P10", "P11", "P12",
 ];
 export const UNEVALUATED_RULES: readonly PolicyRule[] = [];
 
@@ -244,6 +265,30 @@ export function applyPolicy({ message, decoded, manifest, vault }: PolicyInput):
     }
     if (slippageBps > MAX_SLIPPAGE_BPS) {
       fail("P7", `Leg ${i + 1}: slippage ${slippageBps} bps is over the hard cap of ${MAX_SLIPPAGE_BPS}`);
+    }
+  });
+
+  // P12 — who authorises the swap. Jupiter moves tokens on the authority of
+  // one account, and if that account is not this vault then the transaction
+  // is spending something else's balance, or is arranged so a second
+  // signature could. P5 pins where the output lands; this pins who is
+  // reaching in.
+  swaps.forEach((swap, i) => {
+    const route = String(swap.detail.route ?? "");
+    const index = AUTHORITY_INDEX[route];
+
+    if (index === undefined) {
+      fail("P12", `Leg ${i + 1}: this build does not know where ${route || "that route"} keeps its authority`);
+      return;
+    }
+
+    const authority = swap.accounts[index];
+    if (authority === undefined) {
+      fail("P12", `Leg ${i + 1}: the swap names no transfer authority`);
+    } else if (authority.startsWith("lookup:")) {
+      fail("P12", `Leg ${i + 1}: the transfer authority comes from a lookup table and cannot be checked offline`);
+    } else if (authority !== vault) {
+      fail("P12", `Leg ${i + 1}: the swap is authorised by ${authority.slice(0, 8)}…, not by this vault`);
     }
   });
 

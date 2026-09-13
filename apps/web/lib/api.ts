@@ -135,8 +135,61 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
   return body as T;
 }
 
+/**
+ * What Pyth says an asset costs, for display.
+ *
+ * Shown, never trusted. This page cannot prove any of it — the phone does
+ * that, against the signed bytes that travel with the order — so the screen
+ * says where the number comes from and who checks it.
+ */
+export interface DisplayPrice {
+  symbol: string;
+  price: number;
+  confidence: number | null;
+  expo: number;
+  publisherCount: number | null;
+  feedId: number;
+  session: "regular" | "ext" | "closed";
+  publishTime: number;
+  unavailable?: string;
+}
+
+/** One token account the vault holds. Read-only: this page cannot move any of it. */
+export interface VaultBalance {
+  symbol: string;
+  mint: string;
+  account: string;
+  /** Raw u64, as a string. The only figure that is exact. */
+  raw: string;
+  decimals: number;
+  /** ScaledUiAmount multiplier from the mint. */
+  multiplier: number;
+  /** raw / 10^decimals * multiplier. */
+  amount: number;
+  exists: boolean;
+  frozen: boolean;
+}
+
+export interface VaultOrder {
+  orderId: string;
+  status: Order["status"];
+  kind: Order["kind"];
+  createdAt: string;
+  txSignatures: string[];
+}
+
 export const api = {
   health: () => call<Health>("/healthz"),
+
+  prices: (symbols?: string[]) =>
+    call<{ prices: DisplayPrice[]; verifiedBy: string }>(
+      `/v1/prices${symbols?.length ? `?symbols=${symbols.join(",")}` : ""}`,
+    ),
+
+  vault: (pubkey: string) =>
+    call<{ vault: string; balances: VaultBalance[]; orders: VaultOrder[] }>(
+      `/v1/vaults/${pubkey}`,
+    ),
 
   assets: () => call<{ quoteMint: string; quoteDecimals: number; assets: Asset[] }>("/v1/assets"),
 

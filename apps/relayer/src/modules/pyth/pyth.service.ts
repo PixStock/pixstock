@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ASSETS } from '@pixstock/shared';
-import { parsePayload, parseSolanaMessage } from '@pixstock/pyth-verify';
+import { parsePayload, parseSolanaMessage, type FeedUpdate } from '@pixstock/pyth-verify';
 // Named, not default: `ws` is CommonJS and assigns `module.exports`, so the
 // default import compiles to `undefined` under this tsconfig's interop.
 import { WebSocket } from 'ws';
@@ -23,10 +23,36 @@ export interface Attestation {
   bytes: Uint8Array;
   /** Feed ids it actually carries a price for. */
   feedIds: number[];
+  /** What those feeds say, decoded once here rather than on every read. */
+  feeds: FeedUpdate[];
   /** When Pyth signed it, unix seconds. */
   signedAt: number;
   /** When this process received it. */
   receivedAt: number;
+}
+
+/**
+ * A price for the screen, from the same message the vault will verify.
+ *
+ * Served for display only. The web app cannot prove any of this — that is the
+ * phone's job, on the bytes themselves — so the figures here exist to let
+ * someone see a quote in context, never to be trusted.
+ */
+export interface DisplayPrice {
+  symbol: string;
+  /** `price * 10 ** expo`, already applied. */
+  price: number;
+  /** Pyth's own uncertainty, same units. */
+  confidence: number | null;
+  expo: number;
+  publisherCount: number | null;
+  feedId: number;
+  /** Which of the asset's two feeds answered, or that neither did. */
+  session: 'regular' | 'ext' | 'closed';
+  /** Unix seconds, from the signed payload. */
+  publishTime: number;
+  /** Why there is no price, when there is none. */
+  unavailable?: string;
 }
 
 /** A price older than this is not worth attaching; the vault would refuse it. */
@@ -112,6 +138,58 @@ export class PythService implements OnModuleInit, OnModuleDestroy {
     const age = Math.floor(Date.now() / 1000) - this.latest.signedAt;
     if (age > MAX_ATTESTATION_AGE_SECONDS) return null;
     return this.latest;
+  }
+
+  /**
+   * The current price of each asset asked for, for display.
+   *
+   * An asset with no price gets a row saying why rather than being dropped:
+   * "we could not price this" and "you did not ask about it" are different
+   * answers, and a screen that silently omits one shows a catalogue with
+   * holes in it.
+   */
+  prices(symbols?: readonly string[]): DisplayPrice[] {
+    const wanted = symbols?.length
+      ? ASSETS.filter((asset) => symbols.includes(asset.symbol))
+      : ASSETS;
+    const attestation = this.attestation();
+
+    return wanted.map((asset) => {
+      const regular = attestation?.feeds.find((feed) => feed.feedId === asset.pythFeedId);
+      const ext =
+        asset.pythExtFeedId === null
+          ? undefined
+          : attestation?.feeds.find((feed) => feed.feedId === asset.pythExtFeedId);
+      const feed = regular ?? ext;
+
+      if (!feed || feed.price === undefined || feed.exponent === undefined) {
+        return {
+          symbol: asset.symbol,
+          price: 0,
+          confidence: null,
+          expo: 0,
+          publisherCount: null,
+          feedId: asset.pythFeedId,
+          session: 'closed' as const,
+          publishTime: 0,
+          unavailable:
+            this.refused.get(asset.pythFeedId) ??
+            (attestation ? 'not in the current message' : 'no price stream'),
+        };
+      }
+
+      const scale = 10 ** feed.exponent;
+      return {
+        symbol: asset.symbol,
+        price: Number(feed.price) * scale,
+        confidence: feed.confidence === undefined ? null : Number(feed.confidence) * scale,
+        expo: feed.exponent,
+        publisherCount: feed.publisherCount ?? null,
+        feedId: feed.feedId,
+        session: feed === regular ? ('regular' as const) : ('ext' as const),
+        publishTime: attestation!.signedAt,
+      };
+    });
   }
 
   /** What /healthz says about the price stream. */
@@ -209,9 +287,11 @@ export class PythService implements OnModuleInit, OnModuleDestroy {
       // Parsed here so a malformed message is caught at the source rather
       // than on a phone that cannot report it.
       const payload = parsePayload(parseSolanaMessage(bytes).payload);
+      const priced = payload.feeds.filter((feed) => feed.price !== undefined);
       this.latest = {
         bytes,
-        feedIds: payload.feeds.filter((feed) => feed.price !== undefined).map((feed) => feed.feedId),
+        feeds: priced,
+        feedIds: priced.map((feed) => feed.feedId),
         signedAt: Number(payload.timestampUs / 1_000_000n),
         receivedAt: Math.floor(Date.now() / 1000),
       };
