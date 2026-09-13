@@ -143,6 +143,38 @@ test.describe("the vault, end to end in a browser", () => {
     await expect(page.getByRole("heading", { name: "Scan the order" })).toBeVisible();
   });
 
+  test("lets the price tolerance be tightened, and only tightened", async ({ page }) => {
+    await installFixtureVault(page);
+    await page.getByRole("button", { name: "Settings" }).click();
+
+    await expect(page.getByRole("heading", { name: "This vault", exact: true })).toBeVisible();
+    await expect(page.getByText(FIXTURE_VAULT)).toBeVisible();
+
+    // Two choices, and the looser of them is the built-in maximum: there is
+    // no control here that widens what the vault will accept.
+    const choices = await page.locator(".row button", { hasText: /%$/ }).allTextContents();
+    expect(choices).toEqual(["0.5%", "1.0%"]);
+
+    await page.getByRole("button", { name: "0.5%" }).click();
+    const stored = await page.evaluate(() =>
+      localStorage.getItem("pixstock.vault.settings.v1"),
+    );
+    expect(JSON.parse(stored!).maxDeviation).toBe(0.005);
+  });
+
+  test("erases the vault only after asking twice", async ({ page }) => {
+    await installFixtureVault(page);
+    await page.getByRole("button", { name: "Settings" }).click();
+
+    await page.getByRole("button", { name: "Erase this vault" }).click();
+    // Still there: the first click only asks.
+    expect(await page.evaluate(() => localStorage.getItem("pixstock.vault.v1"))).not.toBeNull();
+
+    await page.getByRole("button", { name: "Erase it. I have the paper." }).click();
+    await expect(page.getByText(/gone from this phone/)).toBeVisible();
+    expect(await page.evaluate(() => localStorage.getItem("pixstock.vault.v1"))).toBeNull();
+  });
+
   test("is installable on a phone", async ({ page }) => {
     // Not cosmetic: without a manifest naming real icons, Chrome on Android
     // never offers "add to home screen", and a signer that only exists as a

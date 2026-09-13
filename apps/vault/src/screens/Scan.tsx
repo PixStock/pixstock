@@ -8,9 +8,11 @@ const hex = (bytes: Uint8Array, limit = 32) =>
 export function Scan({
   onScanned,
   onPair,
+  onSettings,
 }: {
   onScanned: (payload: Uint8Array) => void;
   onPair: () => void;
+  onSettings: () => void;
 }) {
   const { videoRef, state, start, stop, reset, pushText } = useFrameScanner();
   const [pasted, setPasted] = useState("");
@@ -103,6 +105,16 @@ export function Scan({
           }}
         >
           Show my address
+        </button>
+        <button
+          type="button"
+          className="btn"
+          onClick={() => {
+            stop();
+            onSettings();
+          }}
+        >
+          Settings
         </button>
       </div>
 

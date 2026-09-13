@@ -14,6 +14,7 @@ import {
   permitsSigning,
   type AttestationStatus,
 } from "@pixstock/pyth-verify";
+import { loadSettings } from "../vault/settings";
 
 export interface ReviewProps {
   payload: Uint8Array;
@@ -121,7 +122,14 @@ export function Review({ payload, vault, onApprove, onReject }: ReviewProps) {
   //     cover every asset and a grant does not cover every feed; refusing
   //     outright would make the vault useless for those, and pretending would
   //     be worse. So it says what it could not check, and asks.
-  const priceVerified = permitsSigning(price, true);
+  //
+  // The holder's own tolerance rides on top and can only tighten — see
+  // vault/settings.ts — so choosing a stricter number can never turn a
+  // refusal into an approval.
+  const tolerance = loadSettings().maxDeviation;
+  const priceVerified =
+    permitsSigning(price, true) &&
+    (price.state !== "verified" || Math.abs(price.deviation) <= tolerance);
   const priceRefuses = !priceVerified && !canAcknowledge(price);
   const priceAllowsSigning = priceVerified || (canAcknowledge(price) && acknowledged);
   const quoteAgeSeconds = Math.max(0, Math.floor(Date.now() / 1000) - request.manifest.quotedAt);

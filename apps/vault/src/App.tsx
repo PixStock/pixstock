@@ -7,6 +7,7 @@ import { Pair } from "./screens/Pair";
 import { Restore } from "./screens/Restore";
 import { Review } from "./screens/Review";
 import { Scan } from "./screens/Scan";
+import { Settings } from "./screens/Settings";
 import { Setup } from "./screens/Setup";
 import { Sign } from "./screens/Sign";
 import { loadBlob } from "./vault/storage";
@@ -16,6 +17,7 @@ type Screen =
   | { name: "restore" }
   | { name: "scan" }
   | { name: "pair" }
+  | { name: "settings" }
   | { name: "review"; payload: Uint8Array }
   | { name: "sign"; request: SignRequest; ticket: OrderTicket };
 
@@ -100,9 +102,12 @@ export function App() {
           <Scan
             onScanned={(payload) => setScreen({ name: "review", payload })}
             onPair={() => setScreen({ name: "pair" })}
+            onSettings={() => setScreen({ name: "settings" })}
           />
         ) : screen.name === "pair" ? (
           blob && <Pair blob={blob} onDone={() => setScreen({ name: "scan" })} />
+        ) : screen.name === "settings" ? (
+          blob && <Settings blob={blob} onDone={() => setScreen({ name: "scan" })} />
         ) : screen.name === "review" ? (
           blob && (
             <Review
