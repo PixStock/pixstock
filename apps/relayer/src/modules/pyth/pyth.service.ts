@@ -2,7 +2,9 @@ import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/commo
 import { ConfigService } from '@nestjs/config';
 import { ASSETS } from '@pixstock/shared';
 import { parsePayload, parseSolanaMessage } from '@pixstock/pyth-verify';
-import WebSocket from 'ws';
+// Named, not default: `ws` is CommonJS and assigns `module.exports`, so the
+// default import compiles to `undefined` under this tsconfig's interop.
+import { WebSocket } from 'ws';
 
 /**
  * Keeps the latest price Pyth signed, ready to travel with an order.
@@ -41,6 +43,16 @@ export class PythService implements OnModuleInit, OnModuleDestroy {
   private stopped = false;
 
   private latest: Attestation | null = null;
+  /**
+   * The feeds currently asked for.
+   *
+   * Instance state rather than a closure argument: a refusal closes the
+   * socket, and the close handler must reconnect with the narrowed list. When
+   * that list lived in the closure the two paths disagreed, and the service
+   * resubscribed to the refused feeds forever.
+   */
+  private feeds: number[] = [];
+  private routerIndex = 0;
   /** Feeds the router refused, with the reason it gave. Reported by /healthz. */
   private readonly refused = new Map<number, string>();
 
@@ -58,6 +70,7 @@ export class PythService implements OnModuleInit, OnModuleDestroy {
       this.logger.warn('PYTH_ROUTER_URLS is not set: no price attestation will be attached.');
       return;
     }
+    this.feeds = this.wantedFeeds;
     this.connect();
   }
 
@@ -112,14 +125,16 @@ export class PythService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
-  private connect(feeds = this.wantedFeeds, routerIndex = 0): void {
+  private connect(): void {
     if (this.stopped) return;
 
-    const url = this.routers[routerIndex % this.routers.length]!;
-    if (feeds.length === 0) {
+    if (this.feeds.length === 0) {
       this.logger.error('Every feed was refused by the router; nothing left to subscribe to.');
       return;
     }
+
+    const feeds = this.feeds;
+    const url = this.routers[this.routerIndex % this.routers.length]!;
 
     const socket = new WebSocket(url, { headers: { Authorization: `Bearer ${this.token}` } });
     this.socket = socket;
@@ -141,20 +156,21 @@ export class PythService implements OnModuleInit, OnModuleDestroy {
       );
     });
 
-    socket.on('message', (raw: Buffer) => this.onMessage(raw.toString(), feeds, routerIndex));
+    socket.on('message', (raw: Buffer) => this.onMessage(raw.toString()));
 
     socket.on('error', (err: Error) => {
       this.logger.warn(`${url}: ${err.message}`);
     });
 
     socket.on('close', (code: number) => {
-      if (this.stopped) return;
+      if (this.stopped || socket !== this.socket) return;
+      this.routerIndex += 1;
       this.logger.warn(`${url} closed (${code}); reconnecting in ${this.reconnectDelay / 1000}s`);
-      this.scheduleReconnect(feeds, routerIndex + 1);
+      this.scheduleReconnect();
     });
   }
 
-  private onMessage(text: string, feeds: number[], routerIndex: number): void {
+  private onMessage(text: string): void {
     let message: Record<string, unknown>;
     try {
       message = JSON.parse(text) as Record<string, unknown>;
@@ -164,22 +180,24 @@ export class PythService implements OnModuleInit, OnModuleDestroy {
 
     if (message['type'] === 'subscriptionError' || message['error']) {
       const reason = String(message['error'] ?? text);
-      const surviving = this.dropRefusedFeeds(feeds, reason);
+      const before = this.feeds.length;
+      // The router refuses the whole subscription if any one feed is
+      // unavailable, so the unavailable ones are dropped and the rest asked
+      // for again. A grant that does not cover an asset is a fact about the
+      // account, not a failure to retry into.
+      this.feeds = this.dropRefusedFeeds(this.feeds, reason);
 
-      if (surviving.length < feeds.length && surviving.length > 0) {
-        // The router refuses the whole subscription if any one feed is
-        // unavailable, so the unavailable ones are dropped and the rest are
-        // asked for again. A grant that does not cover an asset is a fact
-        // about the account, not a failure to retry into.
+      if (this.feeds.length < before && this.feeds.length > 0) {
         this.logger.warn(
-          `Router refused ${feeds.length - surviving.length} feed(s); retrying with ` +
-            `${surviving.join(', ')}. Reason: ${reason}`,
+          `Router refused ${before - this.feeds.length} feed(s); retrying with ` +
+            `${this.feeds.join(', ')}. Reason: ${reason}`,
         );
-        this.socket?.close();
-        this.scheduleReconnect(surviving, routerIndex, 0);
       } else {
         this.logger.error(`Router refused the subscription: ${reason}`);
       }
+
+      // The close handler reconnects, with whatever is left.
+      this.socket?.close();
       return;
     }
 
@@ -211,25 +229,44 @@ export class PythService implements OnModuleInit, OnModuleDestroy {
     return typeof parsed === 'string' && parsed.length > 0 ? parsed : null;
   }
 
-  /** Removes the feeds the router named in its refusal, remembering why. */
+  /**
+   * Removes the feeds the router named in its refusal, remembering why.
+   *
+   * The two reasons are not the same problem and must not be reported as one:
+   * a feed outside the grant needs an account change, while an inactive one
+   * is a closed session and comes back on its own. The router states them in
+   * separate clauses of the same sentence, so each clause is read for the
+   * ids it names.
+   */
   private dropRefusedFeeds(feeds: number[], reason: string): number[] {
     const named = new Set<number>();
-    for (const match of reason.matchAll(/feed\s+(\d+)|(\d+)\s*\((?:inactive|unavailable)/g)) {
-      const id = Number(match[1] ?? match[2]);
-      if (Number.isFinite(id)) {
-        named.add(id);
-        this.refused.set(id, reason.includes('entitled') ? 'not entitled' : 'inactive');
+
+    const entitledAt = reason.indexOf('Not entitled');
+    const unstable = entitledAt >= 0 ? reason.slice(0, entitledAt) : reason;
+    const unentitled = entitledAt >= 0 ? reason.slice(entitledAt) : '';
+
+    const collect = (clause: string, why: string) => {
+      for (const match of clause.matchAll(/(\d{2,})/g)) {
+        const id = Number(match[1]);
+        if (feeds.includes(id)) {
+          named.add(id);
+          this.refused.set(id, why);
+        }
       }
-    }
+    };
+
+    collect(unstable, 'inactive');
+    collect(unentitled, 'not entitled');
+
     return feeds.filter((feed) => !named.has(feed));
   }
 
-  private scheduleReconnect(feeds: number[], routerIndex: number, delay?: number): void {
+  private scheduleReconnect(): void {
     if (this.stopped) return;
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
 
-    const wait = delay ?? this.reconnectDelay;
+    const wait = this.reconnectDelay;
     this.reconnectDelay = Math.min(this.reconnectDelay * 2, MAX_RECONNECT_DELAY_MS);
-    this.reconnectTimer = setTimeout(() => this.connect(feeds, routerIndex), wait);
+    this.reconnectTimer = setTimeout(() => this.connect(), wait);
   }
 }
