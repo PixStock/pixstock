@@ -10,6 +10,7 @@ import {
 import {
   COMPUTE_BUDGET_PROGRAM,
   MAX_SLIPPAGE_BPS,
+  POLICY_RULES,
   SYSTEM_PROGRAM,
   applyPolicy,
   decompile,
@@ -113,12 +114,15 @@ describe("an honest order", () => {
     expect(delegate!.symbol).toBe("TSLAx");
   });
 
-  it("is still not ok, because P8 is not enforced yet", () => {
+  it("is ok, with every rule actually evaluated", () => {
     // A policy that reports success while skipping a rule hands the holder a
-    // green tick it has not earned.
+    // green tick it has not earned, so `ok` is only allowed to be true when
+    // `unevaluated` is empty.
     const result = evaluate();
-    expect(result.unevaluated).toContain("P8");
-    expect(result.ok).toBe(false);
+    expect(result.unevaluated).toEqual([]);
+    expect(result.evaluated).toHaveLength(Object.keys(POLICY_RULES).length);
+    expect(result.violations).toEqual([]);
+    expect(result.ok).toBe(true);
   });
 });
 
@@ -223,6 +227,50 @@ describe("adversarial mutations", () => {
       .map((ix) => String(ix.detail.quotedOutAmount));
 
     expect(received.map((line) => line.rawAmount)).toEqual(quoted);
+  });
+
+  // P8 — the durable nonce. The recorded basket is blockhash-bound and
+  // carries no advance, so each of these adds one.
+  const nonceAdvance = (authority: string): DecodedInstruction => ({
+    programId: SYSTEM_PROGRAM,
+    kind: "advance-nonce",
+    // Nonce account, recent blockhashes sysvar, authority.
+    accounts: ["NonceAccount1111111111111111111111111111111", "SysvarRecentB1ockHashes11111111111111111111", authority],
+    detail: {},
+  });
+
+  it("P8 — the vault is made the nonce authority", () => {
+    // It would have the vault authorise a state change on an account whose
+    // contents it does not control.
+    const decodedWith = [nonceAdvance(fixture.vault), ...decoded];
+    const result = evaluate({ decoded: decodedWith });
+    expect(ruleFired("P8", result)).toBe(true);
+    expect(result.violations.find((v) => v.rule === "P8")!.detail).toMatch(/never be/);
+  });
+
+  it("P8 — two nonce advances in one transaction", () => {
+    const relayer = fixture.payer;
+    const decodedWith = [nonceAdvance(relayer), ...decoded, nonceAdvance(relayer)];
+    expect(ruleFired("P8", evaluate({ decoded: decodedWith }))).toBe(true);
+  });
+
+  it("P8 — the advance is not the first instruction", () => {
+    const decodedWith = [...decoded, nonceAdvance(fixture.payer)];
+    const result = evaluate({ decoded: decodedWith });
+    expect(ruleFired("P8", result)).toBe(true);
+    expect(result.violations.find((v) => v.rule === "P8")!.detail).toMatch(/must be the first/);
+  });
+
+  it("P8 — the authority hides behind a lookup table", () => {
+    // Unreadable is not the same as safe: the vault cannot tell whether that
+    // index resolves to itself.
+    const decodedWith = [nonceAdvance("lookup:7"), ...decoded];
+    expect(ruleFired("P8", evaluate({ decoded: decodedWith }))).toBe(true);
+  });
+
+  it("P8 — a relayer-authorised advance, first, is fine", () => {
+    const decodedWith = [nonceAdvance(fixture.payer), ...decoded];
+    expect(ruleFired("P8", evaluate({ decoded: decodedWith }))).toBe(false);
   });
 
   it("P7 — slippage wider than the manifest declared", () => {

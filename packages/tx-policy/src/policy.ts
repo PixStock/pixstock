@@ -124,9 +124,9 @@ export interface PolicyResult {
 
 /** Implemented today. The rest are listed so nothing looks checked that is not. */
 export const EVALUATED_RULES: readonly PolicyRule[] = [
-  "P1", "P2", "P3", "P4", "P5", "P6", "P7", "P9", "P10", "P11",
+  "P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9", "P10", "P11",
 ];
-export const UNEVALUATED_RULES: readonly PolicyRule[] = ["P8"];
+export const UNEVALUATED_RULES: readonly PolicyRule[] = [];
 
 const EVALUATED = EVALUATED_RULES as PolicyRule[];
 const UNEVALUATED = UNEVALUATED_RULES as PolicyRule[];
@@ -246,6 +246,42 @@ export function applyPolicy({ message, decoded, manifest, vault }: PolicyInput):
       fail("P7", `Leg ${i + 1}: slippage ${slippageBps} bps is over the hard cap of ${MAX_SLIPPAGE_BPS}`);
     }
   });
+
+  // P8 — the nonce. A durable nonce is what lets a signature be produced
+  // offline without a clock running, and its authority is the one account
+  // that can advance it. If the vault were that authority, an order could
+  // make the vault authorise a state change on an account it does not
+  // control the contents of — so the rule is: at most one advance, it comes
+  // first, and the vault is not behind it.
+  //
+  // Account order for AdvanceNonceAccount: nonce account, recent blockhashes
+  // sysvar, authority.
+  const advances = decoded
+    .map((instruction, index) => ({ instruction, index }))
+    .filter(({ instruction }) => instruction.kind === "advance-nonce");
+
+  if (advances.length > 1) {
+    fail("P8", `${advances.length} nonce advances in one transaction; at most one is allowed`);
+  }
+
+  for (const { instruction, index } of advances) {
+    if (index !== 0) {
+      // Solana requires it first for the nonce to be consumed at all. An
+      // advance anywhere else is either broken or arranged to be overlooked.
+      fail("P8", `The nonce advance is instruction ${index + 1}, and must be the first`);
+    }
+
+    const authority = instruction.accounts[2];
+    if (authority === undefined) {
+      fail("P8", "The nonce advance names no authority");
+    } else if (authority.startsWith("lookup:")) {
+      // Unreadable is not the same as safe: the vault cannot tell whether
+      // that index resolves to itself.
+      fail("P8", "The nonce authority comes from a lookup table and cannot be checked offline");
+    } else if (authority === vault) {
+      fail("P8", "This vault is the nonce authority, and must never be");
+    }
+  }
 
   // P11 — the multiplier. It is not on the transaction and an air-gapped
   // vault cannot look it up, so it travels with the order; that makes it the

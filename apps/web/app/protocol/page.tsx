@@ -160,7 +160,9 @@ export default function ProtocolPage() {
             </table>
 
             <p className="copy">
-              {p.policy.honesty.replace("{unevaluated}", UNEVALUATED_RULES.join(", "))}
+              {UNEVALUATED_RULES.length === 0
+                ? p.policy.allEnforced
+                : p.policy.honesty.replace("{unevaluated}", UNEVALUATED_RULES.join(", "))}
             </p>
             <p className="copy">{p.policy.cap.replace("{cap}", String(MAX_SLIPPAGE_BPS))}</p>
           </div>

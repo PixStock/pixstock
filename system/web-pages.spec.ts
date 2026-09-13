@@ -79,14 +79,18 @@ test.describe("the optical channel on screen", () => {
 });
 
 test.describe("the protocol page", () => {
-  test("reports P8 as unenforced, because the code says so", async ({ page }) => {
+  test("reports each rule's state from the code, not from the copy", async ({ page }) => {
+    // The table is generated from EVALUATED_RULES, so it cannot drift from
+    // what the vault actually runs. Every rule is enforced today; if one ever
+    // stops being, this page says so on its own.
     await page.goto(`${WEB}/protocol`);
 
-    const row = page.locator("tr", { has: page.locator("code", { hasText: /^P8$/ }) });
-    await expect(row).toContainText("Not yet");
+    for (const rule of ["P1", "P6", "P8", "P11"]) {
+      const row = page.locator("tr", { has: page.locator("code", { hasText: new RegExp(`^${rule}$`) }) });
+      await expect(row, `${rule} must report its state`).toContainText("Enforced");
+    }
 
-    const enforced = page.locator("tr", { has: page.locator("code", { hasText: /^P1$/ }) });
-    await expect(enforced).toContainText("Enforced");
+    await expect(page.getByText(/Every rule in this table is evaluated/)).toBeVisible();
   });
 
   test("says the offline price guard is enforced, and names its limit", async ({ page }) => {

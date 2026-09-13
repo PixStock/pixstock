@@ -83,7 +83,7 @@ test.describe("the vault, end to end in a browser", () => {
     // ── review ──────────────────────────────────────────────────────────
     await expect(page.getByRole("heading", { name: "Check this order" })).toBeVisible();
     await expect(page.getByText("Frames assembled")).toBeVisible();
-    await expect(page.getByText("Policy (10 rules)")).toBeVisible();
+    await expect(page.getByText("Policy (11 rules)")).toBeVisible();
 
     // The order ticket: one line in and one out per leg.
     await expect(page.getByText("You pay").first()).toBeVisible();

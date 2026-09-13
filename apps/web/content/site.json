@@ -419,6 +419,7 @@
       "enforced": "Enforced",
       "notEnforced": "Not yet",
       "honesty": "A rule that is not implemented is not a rule that passes. While {unevaluated} is unenforced the policy refuses to return a clean verdict at all, and says which rule is missing. A green tick that skipped a check is worse than no tick.",
+      "allEnforced": "Every rule in this table is evaluated on the phone, and the policy returns a clean verdict only when all of them pass. The result carries the list it checked, so a rule that were ever removed would show as missing rather than silently stop applying. A green tick that skipped a check is worse than no tick.",
       "cap": "Slippage is capped at {cap} basis points in the phone itself, whatever an order asks for."
     },
     "pyth": {
