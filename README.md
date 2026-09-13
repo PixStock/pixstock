@@ -9,9 +9,10 @@ The only signer that checks the market price offline before it signs.
 [![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](./LICENSE)
 [![Built on Solana](https://img.shields.io/badge/Built%20on-Solana-14F195.svg)](https://solana.com)
 
-[Live demo](#) · [Vault PWA](#) · [Demo video](#) · [AGQP spec](./docs/AGQP-SPEC.md)
+[AGQP spec](./docs/AGQP-SPEC.md) · [Threat model](./docs/THREAT-MODEL.md) ·
+[Reproduce the demo](./docs/DEMO.md)
 
-<!-- TODO: fill the three links above once deployed. -->
+<!-- Deployment: add the app, vault and video URLs to this line at submission. -->
 
 </div>
 
@@ -146,11 +147,27 @@ separate: [`docs/TESTING.md`](./docs/TESTING.md).
 
 ## Status
 
-Day 1 of the hackathon. The monorepo, the shared package boundaries and the
-three app shells are in place; `crc32` and Base45 are implemented and tested
-against the RFC 9285 vectors. Everything else — the frame format, the policy
-engine, the Pyth verifier, the vault screens, the relayer domain modules — is
-the week's work, tracked in `docs/ARCHITECTURE.md`.
+The loop is closed and runs on mainnet data: the web app builds a real
+Jupiter order, the phone reads it through the camera, checks Pyth's signature
+on the price with no network, prints a readable ticket, signs, and the
+relayer co-signs and broadcasts. 283 unit and integration tests, 25 system
+tests in a real browser.
+
+Three things are worth saying plainly, because a demo that hides them is
+worse than one that does not:
+
+- **Broadcasting is off by default.** It spends real SOL and cannot be
+  undone, so it stays behind `RELAYER_ALLOW_BROADCAST` until someone turns it
+  on deliberately. Everything up to it — building, quoting, co-signing,
+  simulating — works with it off.
+- **Our Pyth grant covers the Tesla feed.** Apple, Nvidia, Microsoft and SPY
+  come back `no grant accepts this feed`, and the extended-hours feeds are
+  inactive out of session. An order for those travels with a price for the
+  legs it covers, the ticket names the ones it does not, and the phone asks
+  the holder to accept that before it will sign.
+- **P8 is not enforced.** Ten of the eleven signing rules are; the nonce rule
+  is listed as unenforced on `/protocol` and in the policy result, rather
+  than quietly counted as passing.
 
 Every public function that is not written yet throws with a pointer to the
 spec section that defines it, so nothing fails silently.
