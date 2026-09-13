@@ -86,11 +86,11 @@ apps/
 └── relayer/    NestJS — quotes, transaction building, fee payer, nonce pool, broadcast
 packages/
 ├── agqp/           The optical protocol: frames, Base45, CRC32, session assembler
-├── tx-policy/      v0 message decompilation, instruction decoding, P1..P11 signing policy
+├── tx-policy/      v0 message decompilation, instruction decoding, P1..P12 signing policy
 ├── pyth-verify/    Offline Pyth Pro parsing and Ed25519 verification
 ├── vault-crypto/   Key generation, AES-GCM-256, Argon2id, Paper-Vault, signing
 └── shared/         Asset table, program ids, order types
-docs/           ARCHITECTURE · AGQP-SPEC · THREAT-MODEL · DEMO
+docs/           ARCHITECTURE · AGQP-SPEC · THREAT-MODEL · DEMO · DEPLOY · TESTING
 ```
 
 ## Quickstart
@@ -150,8 +150,8 @@ separate: [`docs/TESTING.md`](./docs/TESTING.md).
 The loop is closed and runs on mainnet data: the web app builds a real
 Jupiter order, the phone reads it through the camera, checks Pyth's signature
 on the price with no network, prints a readable ticket, signs, and the
-relayer co-signs and broadcasts. 283 unit and integration tests, 25 system
-tests in a real browser.
+relayer co-signs and broadcasts. 296 unit and integration tests, 25 system
+tests in a real browser, and every one of the twelve signing rules enforced.
 
 Three things are worth saying plainly, because a demo that hides them is
 worse than one that does not:
@@ -165,9 +165,10 @@ worse than one that does not:
   inactive out of session. An order for those travels with a price for the
   legs it covers, the ticket names the ones it does not, and the phone asks
   the holder to accept that before it will sign.
-- **P8 is not enforced.** Ten of the eleven signing rules are; the nonce rule
-  is listed as unenforced on `/protocol` and in the policy result, rather
-  than quietly counted as passing.
+- **The nonce pool has to be created before a demo.** Without a durable
+  nonce an order dies with its blockhash in about ninety seconds. Creating
+  one costs rent, so it is a command someone runs — `npm run nonces:create`
+  — never a side effect of the service starting.
 
 Every public function that is not written yet throws with a pointer to the
 spec section that defines it, so nothing fails silently.
@@ -180,8 +181,9 @@ spec section that defines it, so nothing fails silently.
 |---|---|
 | [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) | Components, end-to-end flow, target timings |
 | [`docs/AGQP-SPEC.md`](./docs/AGQP-SPEC.md) | The optical protocol, frame by frame |
-| [`docs/THREAT-MODEL.md`](./docs/THREAT-MODEL.md) | What each component may never do, policies P1..P11 |
+| [`docs/THREAT-MODEL.md`](./docs/THREAT-MODEL.md) | What each component may never do, policies P1..P12 |
 | [`docs/DEMO.md`](./docs/DEMO.md) | How to reproduce the demo end to end |
+| [`docs/DEPLOY.md`](./docs/DEPLOY.md) | Deploying the three pieces, and what each may do |
 | [`docs/TESTING.md`](./docs/TESTING.md) | The four test layers and what each one catches |
 | [`CLAUDE.md`](./CLAUDE.md) | Development conventions (French — team working document) |
 | [`GIT.md`](./GIT.md) | Branch, commit and PR conventions (French) |

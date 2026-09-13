@@ -2,9 +2,21 @@ import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/commo
 import { ConfigService } from '@nestjs/config';
 import { ASSETS } from '@pixstock/shared';
 import { parsePayload, parseSolanaMessage, type FeedUpdate } from '@pixstock/pyth-verify';
-// Named, not default: `ws` is CommonJS and assigns `module.exports`, so the
-// default import compiles to `undefined` under this tsconfig's interop.
-import { WebSocket } from 'ws';
+// `ws` is CommonJS and assigns the class straight to `module.exports`. With
+// this tsconfig's interop a default import compiles to `ws_1.default`
+// (undefined), and the named import to `ws_1.WebSocket` — which only exists
+// from ws 8 onwards, while the hoisted copy in this workspace is 7.5.13. An
+// import-require binds the export itself and is right on both.
+import WebSocket = require('ws');
+
+/**
+ * `readyState` when the socket is open.
+ *
+ * The number is from the WebSocket standard, not from `ws`: reading it off
+ * the class is what broke in production, because which `ws` a monorepo
+ * actually resolves is not something this file should depend on.
+ */
+const SOCKET_OPEN = 1;
 
 /**
  * Keeps the latest price Pyth signed, ready to travel with an order.
@@ -196,7 +208,7 @@ export class PythService implements OnModuleInit, OnModuleDestroy {
   status() {
     const attestation = this.attestation();
     return {
-      connected: this.socket?.readyState === WebSocket.OPEN,
+      connected: this.socket?.readyState === SOCKET_OPEN,
       feeds: attestation?.feedIds ?? [],
       ageSeconds: attestation ? Math.floor(Date.now() / 1000) - attestation.signedAt : null,
       refused: Object.fromEntries(this.refused),
