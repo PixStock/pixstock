@@ -33,6 +33,31 @@ export function OrderSigner({ orderId }: { orderId: string }) {
       .catch((err: RelayerError) => setError(err.message));
   }, [orderId]);
 
+  // A transaction that has left is not yet a transaction that landed. While
+  // the cluster has not answered, the order is read back until it has — the
+  // relayer settles the row on each read, so this converges even if the
+  // process that sent it has since restarted.
+  useEffect(() => {
+    if (submitted?.status !== "BROADCAST") return;
+
+    let live = true;
+    const timer = setInterval(() => {
+      api
+        .order(orderId)
+        .then((fresh) => {
+          if (live) setSubmitted(fresh);
+        })
+        .catch(() => {
+          // A blip while polling is not news; the next tick asks again.
+        });
+    }, 1_500);
+
+    return () => {
+      live = false;
+      clearInterval(timer);
+    };
+  }, [orderId, submitted?.status]);
+
   const sid = useMemo(() => newSessionId(), []);
 
   // Encoding is pure, so it happens during render. Returning the failure
@@ -108,6 +133,8 @@ export function OrderSigner({ orderId }: { orderId: string }) {
 
   if (!order || !payload) return <p className="muted">Loading the order…</p>;
 
+  const settled = submitted ?? order;
+
   const spent = order.manifest.legs.reduce((sum, leg) => sum + BigInt(leg.inAmount), 0n);
 
   return (
@@ -135,17 +162,33 @@ export function OrderSigner({ orderId }: { orderId: string }) {
           ))}
           <div className="quote-row">
             <dt>Status</dt>
-            <dd>{submitted?.status ?? order.status}</dd>
+            <dd>{STATUS_LABELS[settled.status]}</dd>
           </div>
         </dl>
       </div>
 
       {submitted ? (
         <div className="notice">
-          <h3>Signature accepted</h3>
-          <p className="copy">
-            The relayer checked it against the message it built and stored it.
-          </p>
+          <h3>{HEADLINES[submitted.status] ?? "Signature accepted"}</h3>
+          <p className="copy">{BODY[submitted.status] ?? BODY.SIGNED}</p>
+
+          {submitted.explorerUrls.map((url, i) => (
+            <p key={url} style={{ margin: 0 }}>
+              <a href={url} target="_blank" rel="noreferrer">
+                {submitted.explorerUrls.length > 1
+                  ? `Transaction ${i + 1} on Solscan`
+                  : "See it on Solscan"}
+              </a>{" "}
+              <span className="muted num">{truncate(submitted.txSignatures[i] ?? "")}</span>
+            </p>
+          ))}
+
+          {submitted.error && (
+            <p className="alert-inline" role="alert">
+              {submitted.error}
+            </p>
+          )}
+
           {submitted.pending?.map((line) => (
             <p key={line} className="alert-inline">
               {line}
@@ -185,6 +228,42 @@ export function OrderSigner({ orderId }: { orderId: string }) {
       )}
     </div>
   );
+}
+
+/**
+ * What each status means to someone watching, rather than to the database.
+ *
+ * BROADCAST is the one that matters: it says the transaction has left and the
+ * cluster has not answered yet, which is true for about a second and must not
+ * read as "done".
+ */
+const STATUS_LABELS: Record<Order["status"], string> = {
+  BUILT: "Built",
+  AWAITING_SIGNATURE: "Waiting for your vault",
+  SIGNED: "Signed, not sent",
+  BROADCAST: "Sent — waiting for the cluster",
+  CONFIRMED: "Confirmed on chain",
+  FAILED: "Failed",
+  EXPIRED: "Expired",
+};
+
+const HEADLINES: Partial<Record<Order["status"], string>> = {
+  SIGNED: "Signature accepted",
+  BROADCAST: "Sent to Solana",
+  CONFIRMED: "Confirmed on chain",
+  FAILED: "It did not go through",
+};
+
+const BODY: Record<string, string> = {
+  SIGNED: "The relayer checked it against the message it built and stored it.",
+  BROADCAST: "The relayer co-signed and sent it. Waiting for the cluster to confirm.",
+  CONFIRMED: "The relayer paid the fees. Your vault's SOL balance is untouched.",
+  FAILED: "Nothing was signed away — the details are below.",
+};
+
+/** Enough of a signature to recognise it, never enough to retype it wrongly. */
+function truncate(signature: string): string {
+  return signature.length > 16 ? `${signature.slice(0, 8)}…${signature.slice(-8)}` : signature;
 }
 
 /**

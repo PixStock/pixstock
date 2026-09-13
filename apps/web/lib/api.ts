@@ -67,6 +67,14 @@ export interface Order {
     mints?: MintFacts[];
   };
   txSignatures: string[];
+  /**
+   * One explorer link per signature, built by the relayer.
+   *
+   * The cluster an order was built against is the relayer's fact, not the
+   * browser's, and a link to the wrong explorer says the transaction does not
+   * exist.
+   */
+  explorerUrls: string[];
   error: string | null;
   createdAt: string;
   sizes?: number[];

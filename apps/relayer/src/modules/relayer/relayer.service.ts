@@ -18,6 +18,18 @@ export interface BroadcastResult {
   signature: string;
 }
 
+export interface ConfirmResult {
+  /** Confirmed by the cluster and the transaction succeeded. */
+  ok: boolean;
+  /** Set when the cluster confirmed it and the transaction itself failed. */
+  error?: string;
+  /** True while the cluster has not seen it yet. Neither success nor failure. */
+  pending?: boolean;
+  /** `confirmed` or `finalized`, once it has one. */
+  confirmationStatus?: string;
+  slot?: number;
+}
+
 /**
  * Custody of the hot key: co-signing, simulating, and — only when explicitly
  * enabled — sending.
@@ -133,6 +145,65 @@ export class RelayerService {
 
     this.logger.log(`Broadcast ${signature}`);
     return { signature };
+  }
+
+  /**
+   * Asks the cluster what became of a signature.
+   *
+   * A durable nonce has no blockhash to expire, so `confirmTransaction`'s
+   * blockhash strategy does not apply: the status is polled instead, and a
+   * signature the cluster has not seen yet is reported as pending rather than
+   * as a failure. Callers decide how long to wait.
+   */
+  async status(signature: string): Promise<ConfirmResult> {
+    const response = await this.solana.rpc.getSignatureStatuses([signature], {
+      searchTransactionHistory: true,
+    });
+    const value = response.value[0];
+
+    if (!value) return { ok: false, pending: true };
+    if (value.err) {
+      return {
+        ok: false,
+        error: JSON.stringify(value.err),
+        slot: value.slot,
+        ...(value.confirmationStatus ? { confirmationStatus: value.confirmationStatus } : {}),
+      };
+    }
+    if (value.confirmationStatus === 'processed') {
+      return { ok: false, pending: true, confirmationStatus: 'processed', slot: value.slot };
+    }
+
+    return {
+      ok: true,
+      slot: value.slot,
+      ...(value.confirmationStatus ? { confirmationStatus: value.confirmationStatus } : {}),
+    };
+  }
+
+  /**
+   * Waits for a signature to reach `confirmed`, or gives up saying so.
+   *
+   * Solana's finality is under a second in the normal case; the timeout is
+   * generous because the answer that matters to a holder is the real one, and
+   * a timeout here means "not yet", never "failed".
+   */
+  async confirm(signature: string, timeoutMs = 45_000): Promise<ConfirmResult> {
+    const deadline = Date.now() + timeoutMs;
+    let last: ConfirmResult = { ok: false, pending: true };
+
+    while (Date.now() < deadline) {
+      try {
+        last = await this.status(signature);
+        if (!last.pending) return last;
+      } catch (err) {
+        // An RPC that is briefly unavailable is not a failed transaction.
+        this.logger.warn(`Status check for ${signature} failed: ${(err as Error).message}`);
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1_000));
+    }
+
+    return last;
   }
 
   /** Lamports the hot key holds. Used by the health check and the balance alert. */

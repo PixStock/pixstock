@@ -13,7 +13,7 @@ import { decimalsOfMint, symbolOfMint } from '@pixstock/shared';
 import { DatabaseService } from '../../database/database.service';
 import { MintStateService } from '../market/mint-state.service';
 import { NoncesService } from '../nonces/nonces.service';
-import { RelayerService } from '../relayer/relayer.service';
+import { RelayerService, type ConfirmResult } from '../relayer/relayer.service';
 import { TxBuilderService } from '../tx-builder/tx-builder.service';
 import type { CreateOrderDto } from './dto/create-order.dto';
 import {
@@ -144,16 +144,17 @@ export class OrdersService {
   async find(id: string) {
     const order = await this.db.order.findUnique({ where: { id } });
     if (!order) throw new NotFoundException(`No order ${id}`);
-    return this.present(await this.expireIfStale(order));
+    return this.present(await this.refreshIfInFlight(await this.expireIfStale(order)));
   }
 
   /**
-   * Takes the vault's signature, checks it, and stops short of broadcasting.
+   * Takes the vault's signature, checks it, and sends the transaction.
    *
-   * Co-signing and sending need the hot key, which is not configured. Rather
-   * than pretend, the order moves to SIGNED and says what is missing — a
-   * status of BROADCAST that never reached a validator would be worse than
-   * useless.
+   * The order of operations is the whole safety argument: the policy runs
+   * before anything is stored, the simulation runs before anything is spent,
+   * and the broadcast runs only if the simulation agreed. An order that gets
+   * as far as SIGNED but no further always says why — a status of BROADCAST
+   * that never reached a validator would be worse than useless.
    */
   async submitSignature(id: string, signaturesBase64: string[]) {
     const found = await this.db.order.findUnique({ where: { id } });
@@ -210,19 +211,146 @@ export class OrdersService {
       ? await this.simulate(signed.id, order.txMessages[0]!, signaturesBase64[0]!)
       : null;
 
+    // A simulation that failed is a transaction that would fail on chain, at
+    // the relayer's expense. It is never sent.
+    const sent =
+      simulation?.ok && this.relayer.canBroadcast
+        ? await this.send(signed, signaturesBase64)
+        : null;
+
     return {
-      ...this.present(signed),
+      ...this.present(sent ?? signed),
       ...(simulation ? { simulation } : {}),
       // Named so nobody reads SIGNED as "sent". The reason matters: a missing
-      // key and a missing module are different problems with different fixes,
-      // and saying the wrong one sends someone looking in the wrong place.
-      pending: this.pendingReasons(),
+      // key and a refused simulation are different problems with different
+      // fixes, and saying the wrong one sends someone looking in the wrong
+      // place.
+      pending: this.pendingReasons(simulation),
     };
   }
 
+  /**
+   * Sends every message of the order, in order, and records what happened.
+   *
+   * A basket normally fits in one transaction; when it does not, the second
+   * only goes out if the first was accepted, and a partial send is recorded
+   * as such — with the signatures that did leave — rather than rolled up into
+   * a single word.
+   */
+  private async send(order: Order, signaturesBase64: string[]): Promise<Order> {
+    const signatures: string[] = [];
+
+    for (let i = 0; i < order.txMessages.length; i++) {
+      try {
+        const { signature } = await this.relayer.broadcast(
+          Uint8Array.from(Buffer.from(order.txMessages[i]!, 'base64')),
+          Uint8Array.from(Buffer.from(signaturesBase64[i]!, 'base64')),
+        );
+        signatures.push(signature);
+        await this.audit(order.id, 'order.broadcast', { signature, index: i });
+      } catch (err) {
+        const message = (err as Error).message;
+        this.logger.error(`Broadcast of ${order.id} failed at message ${i}: ${message}`);
+        await this.audit(order.id, 'broadcast.failed', { index: i, message, signatures });
+        return this.db.order.update({
+          where: { id: order.id },
+          data: {
+            status: OrderStatus.FAILED,
+            txSignatures: signatures,
+            error:
+              signatures.length > 0
+                ? `Sent ${signatures.length} of ${order.txMessages.length} transactions, then: ${message}`
+                : message,
+          },
+        });
+      }
+    }
+
+    const broadcast = await this.db.order.update({
+      where: { id: order.id },
+      data: { status: OrderStatus.BROADCAST, txSignatures: signatures },
+    });
+
+    // Confirmation takes about a second, and the caller should not wait on
+    // it: the signature is already a fact, and a read of the order settles
+    // the row on its own if this process dies before the cluster answers.
+    void this.settle(broadcast).catch((err: Error) =>
+      this.logger.error(`Settling ${order.id} failed: ${err.message}`),
+    );
+
+    return broadcast;
+  }
+
+  /**
+   * Asks the cluster what became of the signatures and writes the answer down.
+   *
+   * "Not seen yet" is left alone deliberately: the next read asks again, and
+   * an order that is genuinely in flight must not be filed as failed because
+   * one poll was early.
+   */
+  private async settle(order: Order): Promise<Order> {
+    if (order.txSignatures.length === 0) return order;
+
+    const results = await Promise.all(
+      order.txSignatures.map((signature) => this.relayer.confirm(signature)),
+    );
+    return this.recordOutcome(order, results);
+  }
+
+  /**
+   * Asks the cluster about an order that is still in flight, once.
+   *
+   * A read of an order should be fast, so this polls rather than waits; an
+   * order the cluster has not seen yet stays exactly as it was.
+   */
+  private async refreshIfInFlight(order: Order): Promise<Order> {
+    if (order.status !== OrderStatus.BROADCAST || order.txSignatures.length === 0) return order;
+    try {
+      const results = await Promise.all(
+        order.txSignatures.map((signature) => this.relayer.status(signature)),
+      );
+      return await this.recordOutcome(order, results);
+    } catch (err) {
+      // An unreachable RPC leaves the order exactly as it was.
+      this.logger.warn(`Could not refresh ${order.id}: ${(err as Error).message}`);
+      return order;
+    }
+  }
+
+  /** Turns what the cluster said into a terminal status, or leaves it pending. */
+  private async recordOutcome(order: Order, results: ConfirmResult[]): Promise<Order> {
+    const failed = results.find((result) => result.error);
+    if (failed) {
+      await this.audit(order.id, 'order.failed', { error: failed.error });
+      await this.nonces.release(order.id);
+      return this.db.order.update({
+        where: { id: order.id },
+        data: { status: OrderStatus.FAILED, error: `The cluster rejected it: ${failed.error}` },
+      });
+    }
+
+    if (results.some((result) => result.pending)) return order;
+
+    await this.audit(order.id, 'order.confirmed', {
+      signatures: order.txSignatures,
+      slots: results.map((result) => result.slot),
+    });
+    await this.nonces.release(order.id);
+    return this.db.order.update({
+      where: { id: order.id },
+      data: { status: OrderStatus.CONFIRMED },
+    });
+  }
+
   /** Why an order that is SIGNED has not been sent. */
-  private pendingReasons(): string[] {
+  private pendingReasons(simulation: { ok: boolean; error?: string } | null): string[] {
     if (!this.relayer.canSign) return ['The relayer has no key, so it cannot co-sign this'];
+    if (simulation && !simulation.ok) {
+      return [
+        'It was not sent: the simulation says it would fail on chain ' +
+          `(${simulation.error ?? 'no reason given'}).`,
+      ];
+    }
     if (!this.relayer.canBroadcast) {
       return [
         'Broadcasting is off. It spends real SOL and cannot be undone, ' +
@@ -276,11 +404,23 @@ export class OrdersService {
       txMessages: order.txMessages,
       manifest: order.manifest,
       txSignatures: order.txSignatures,
+      // Built here rather than in the browser: only this process knows which
+      // cluster the order was built against, and a link to the wrong explorer
+      // is a link that says the transaction does not exist.
+      explorerUrls: order.txSignatures.map((signature) => this.explorerUrl(signature)),
       error: order.error,
       createdAt: order.createdAt.toISOString(),
       ...(sizes ? { sizes } : {}),
       ...(expiry ? { expiry } : {}),
     };
+  }
+
+  /** Where a holder can go and look at the transaction themselves. */
+  private explorerUrl(signature: string): string {
+    const cluster = this.config.get<string>('solana.cluster');
+    return cluster === 'mainnet-beta'
+      ? `https://solscan.io/tx/${signature}`
+      : `https://solscan.io/tx/${signature}?cluster=${cluster ?? 'devnet'}`;
   }
 
   private async audit(orderId: string, type: string, detail: unknown) {

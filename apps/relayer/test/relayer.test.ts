@@ -74,6 +74,90 @@ describe("what the relayer is allowed to do", () => {
   });
 });
 
+/**
+ * A cluster that answers with the shapes a real one answers with.
+ *
+ * `getSignatureStatuses` returns null for a signature it has never seen, and
+ * otherwise a row whose `err` and `confirmationStatus` are the entire story.
+ * Those four shapes are the whole contract, and each one means something
+ * different to a holder waiting on a trade.
+ */
+const withStatuses = (...values: Array<Record<string, unknown> | null>) => {
+  let call = 0;
+  return {
+    rpc: {
+      getSignatureStatuses: async () => ({
+        value: [values[Math.min(call++, values.length - 1)] ?? null],
+      }),
+    },
+  } as unknown as SolanaService;
+};
+
+const relayerWith = (solana: SolanaService) =>
+  new RelayerService(
+    new ConfigService({ relayer: { secretKey: "", allowBroadcast: false } }),
+    solana,
+  );
+
+describe("what the cluster says became of a transaction", () => {
+  const signature = "5".repeat(88);
+
+  it("reports a signature the cluster has never seen as pending, not failed", async () => {
+    // The difference matters: an order sent a moment ago and an order that
+    // failed look identical here, and calling the first one failed would tell
+    // a holder their trade did not happen when it did.
+    const result = await relayerWith(withStatuses(null)).status(signature);
+    expect(result).toEqual({ ok: false, pending: true });
+  });
+
+  it("treats `processed` as still in flight", async () => {
+    const result = await relayerWith(
+      withStatuses({ slot: 341_002_118, err: null, confirmationStatus: "processed" }),
+    ).status(signature);
+    expect(result.pending).toBe(true);
+    expect(result.ok).toBe(false);
+  });
+
+  it("confirms once the cluster says confirmed", async () => {
+    const result = await relayerWith(
+      withStatuses({ slot: 341_002_118, err: null, confirmationStatus: "confirmed" }),
+    ).status(signature);
+    expect(result).toEqual({ ok: true, slot: 341_002_118, confirmationStatus: "confirmed" });
+  });
+
+  it("confirms a finalized signature too", async () => {
+    const result = await relayerWith(
+      withStatuses({ slot: 341_002_118, err: null, confirmationStatus: "finalized" }),
+    ).status(signature);
+    expect(result.ok).toBe(true);
+  });
+
+  it("reports a program error as an error, and never as pending", async () => {
+    const result = await relayerWith(
+      withStatuses({
+        slot: 341_002_118,
+        err: { InstructionError: [2, { Custom: 6001 }] },
+        confirmationStatus: "confirmed",
+      }),
+    ).status(signature);
+    expect(result.ok).toBe(false);
+    expect(result.pending).toBeUndefined();
+    expect(result.error).toContain("InstructionError");
+  });
+
+  it("waits for a signature the cluster has not seen yet, then answers", async () => {
+    const relayer = relayerWith(
+      withStatuses(null, { slot: 341_002_119, err: null, confirmationStatus: "confirmed" }),
+    );
+    await expect(relayer.confirm(signature, 5_000)).resolves.toMatchObject({ ok: true });
+  });
+
+  it("gives up saying `not yet`, never saying `failed`", async () => {
+    const result = await relayerWith(withStatuses(null)).confirm(signature, 10);
+    expect(result).toEqual({ ok: false, pending: true });
+  });
+});
+
 describe("assembling a signed transaction", () => {
   it("refuses a message this key does not sign", async () => {
     // The fixture's fee payer is not this keypair, so there is no slot for it.
