@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { decodePayload, type SignRequest } from "@pixstock/agqp";
 import {
   applyPolicy,
@@ -8,7 +8,12 @@ import {
   type PolicyResult,
 } from "@pixstock/tx-policy";
 import type { OrderManifest } from "@pixstock/shared";
-import { checkAttestation, type AttestationStatus } from "@pixstock/pyth-verify";
+import {
+  checkAttestation,
+  formatDeviation,
+  permitsSigning,
+  type AttestationStatus,
+} from "@pixstock/pyth-verify";
 
 export interface ReviewProps {
   payload: Uint8Array;
@@ -31,6 +36,8 @@ type Verdict =
  * instructions — never from the description that travelled with them.
  */
 export function Review({ payload, vault, onApprove, onReject }: ReviewProps) {
+  const [acknowledged, setAcknowledged] = useState(false);
+
   const verdict = useMemo<Verdict>(() => {
     let request: SignRequest;
     try {
@@ -90,9 +97,33 @@ export function Review({ payload, vault, onApprove, onReject }: ReviewProps) {
 
   const { request, result } = verdict;
   const { ticket, violations, unevaluated } = result;
-  // What the vault may honestly say about the price. Today: that it cannot
-  // check it. See packages/pyth-verify/src/status.ts.
-  const price = checkAttestation({ price: request.price });
+
+  // The price check, against the ticket's own amounts — the ones read out of
+  // the compiled instructions, never the manifest's. Pyth's signature is
+  // verified here, on this device, with no network.
+  const price = checkAttestation({
+    ...(request.price ? { price: request.price } : {}),
+    lines: (ticket?.lines ?? []).map((line) => ({
+      mint: line.mint,
+      rawAmount: line.rawAmount,
+      multiplier: line.multiplier,
+      direction: line.direction,
+    })),
+  });
+  // Three outcomes, not two.
+  //
+  //   A price that verifies and holds  → sign.
+  //   A price that is forged, stale or off the market → never sign. There is
+  //     no checkbox for this, and there should not be: the vault knows the
+  //     order is wrong, and a confirmation dialog would only be a way of
+  //     talking someone into it.
+  //   No price at all → the holder decides, once, in the open. Pyth does not
+  //     cover every asset and a grant does not cover every feed; refusing
+  //     outright would make the vault useless for those, and pretending would
+  //     be worse. So it says what it could not check, and asks.
+  const priceVerified = permitsSigning(price, true);
+  const priceRefuses = !priceVerified && !canAcknowledge(price);
+  const priceAllowsSigning = priceVerified || (canAcknowledge(price) && acknowledged);
   const quoteAgeSeconds = Math.max(0, Math.floor(Date.now() / 1000) - request.manifest.quotedAt);
 
   return (
@@ -111,10 +142,27 @@ export function Review({ payload, vault, onApprove, onReject }: ReviewProps) {
         />
       </ol>
 
-      {price.state !== "verified" && (
+      {(price.state !== "verified" || !priceAllowsSigning || price.warn) && (
         <p className="alert" role="alert">
           <strong>{price.label}.</strong> {price.detail}
         </p>
+      )}
+
+      {price.state === "verified" && (
+        <dl className="ticket-meta">
+          {price.legs.map((leg) => (
+            <div key={leg.feedId}>
+              <dt>{leg.symbol} vs Pyth</dt>
+              <dd className={`dev dev--${leg.severity}`}>
+                <span className="num">{formatDeviation(leg.deviation)}</span>{" "}
+                <span className="muted">
+                  (<span className="num">{leg.oracle.toFixed(2)}</span> quoted,{" "}
+                  <span className="num">{leg.implied.toFixed(2)}</span> here)
+                </span>
+              </dd>
+            </div>
+          ))}
+        </dl>
       )}
 
       {violations.length > 0 && (
@@ -139,11 +187,32 @@ export function Review({ payload, vault, onApprove, onReject }: ReviewProps) {
         </p>
       )}
 
+      {canAcknowledge(price) && violations.length === 0 && ticket && (
+        <label className="ack">
+          <input
+            type="checkbox"
+            checked={acknowledged}
+            onChange={(event) => setAcknowledged(event.target.checked)}
+          />
+          <span>
+            Sign without a verified price. Nothing on this screen has been checked against the
+            market.
+          </span>
+        </label>
+      )}
+
+      {priceRefuses && (
+        <p className="alert" role="alert">
+          <strong>This order cannot be signed.</strong> The price it carries did not verify, so
+          there is nothing to approve.
+        </p>
+      )}
+
       <div className="row">
         <button
           type="button"
           className="btn btn--solid"
-          disabled={violations.length > 0 || !ticket}
+          disabled={violations.length > 0 || !ticket || !priceAllowsSigning}
           onClick={() => ticket && onApprove(request, ticket)}
         >
           Approve
@@ -232,6 +301,18 @@ function Ticket({
 /** How stale the mint reading is. Multipliers change; this says when. */
 function mintAgeMinutes(readAt: number): number {
   return Math.max(0, Math.round((Date.now() / 1000 - readAt) / 60));
+}
+
+/**
+ * Whether the holder may take responsibility for an unchecked price.
+ *
+ * Only where the vault could not check: no attestation, or one that is
+ * genuine but carries no price for this asset. A price that was checked and
+ * came back wrong is not on this list, and adding it later would quietly undo
+ * the guard.
+ */
+function canAcknowledge(status: AttestationStatus): boolean {
+  return status.state === "absent" || status.state === "unverifiable";
 }
 
 type CheckState = "ok" | "warn" | "bad";

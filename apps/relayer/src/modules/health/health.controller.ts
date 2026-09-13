@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { SIGNERS_READ_AT, TRUSTED_SIGNERS } from '@pixstock/pyth-verify';
 import { DatabaseService } from '../../database/database.service';
 import { NoncesService } from '../nonces/nonces.service';
+import { PythService } from '../pyth/pyth.service';
 
 /**
  * `GET /healthz` — what works, and what does not.
@@ -17,6 +18,7 @@ export class HealthController {
     private readonly db: DatabaseService,
     private readonly config: ConfigService,
     private readonly nonces: NoncesService,
+    private readonly pyth: PythService,
   ) {}
 
   @Get('healthz')
@@ -41,11 +43,16 @@ export class HealthController {
       (signer) => signer.expiresAt <= nowSeconds,
     ).map((signer) => signer.address);
 
+    const pyth = this.pyth.status();
+
     const missing = [
       database === 'down' && 'database',
       relayerKey === 'missing' && 'relayer key: cannot co-sign or broadcast',
       !this.config.get<string>('relayer.publicKey') && 'relayer public key: cannot build orders',
       pythToken === 'missing' && 'pyth token: prices cannot be attested',
+      pythToken === 'set' &&
+        pyth.feeds.length === 0 &&
+        'pyth stream: no current price, so orders travel unattested',
       expiredSigners.length > 0 &&
         `pyth signers expired: ${expiredSigners.join(', ')} — rebuild against the chain`,
       noncePool === 0 &&
@@ -60,6 +67,7 @@ export class HealthController {
       relayerPublicKey,
       pythToken,
       pythSigners: { count: TRUSTED_SIGNERS.length, readAt: SIGNERS_READ_AT },
+      pythStream: pyth,
       noncePool,
       broadcast: this.config.get<boolean>('relayer.allowBroadcast') ? 'enabled' : 'disabled',
       missing,

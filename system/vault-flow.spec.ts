@@ -94,8 +94,13 @@ test.describe("the vault, end to end in a browser", () => {
       await expect(page.locator(".ticket-line dd", { hasText: symbol })).toHaveCount(1);
     }
 
-    // The price cannot be checked yet, and the screen must say so.
-    await expect(page.getByText("Price attestation not verified").first()).toBeVisible();
+    // No price travelled with this order — our Pyth grant does not cover
+    // these three — so the vault says so and will not sign until the holder
+    // says they accept it.
+    await expect(page.getByText("No price attestation").first()).toBeVisible();
+    await expect(page.getByRole("button", { name: "Approve" })).toBeDisabled();
+    await page.getByRole("checkbox").check();
+    await expect(page.getByRole("button", { name: "Approve" })).toBeEnabled();
 
     // Every amount is scaled by the mint's ScaledUiAmount multiplier, which
     // travelled with the order because an offline vault cannot read it. The
@@ -124,6 +129,20 @@ test.describe("the vault, end to end in a browser", () => {
     await expect(page.getByText(/Sixty-four bytes of signature/)).toBeVisible();
   });
 
+  test("refuses an order whose price attestation is forged", async ({ page }) => {
+    // A relayer that wants a green tick can attach anything it likes. What it
+    // cannot do is produce Pyth's signature over it — and there is no
+    // checkbox for this case, because the vault knows the answer.
+    await installFixtureVault(page);
+    await feed(page, orderFor(FIXTURE_VAULT, { attestation: "forged" }).frames);
+    await page.getByRole("button", { name: "Continue" }).click();
+
+    await expect(page.getByText("Price attestation could not be read").first()).toBeVisible();
+    await expect(page.getByText("This order cannot be signed")).toBeVisible();
+    await expect(page.getByRole("checkbox")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Approve" })).toBeDisabled();
+  });
+
   test("refuses an order addressed to another vault", async ({ page }) => {
     await installFixtureVault(page);
     const order = orderFor(strangerVault());
@@ -141,6 +160,7 @@ test.describe("the vault, end to end in a browser", () => {
 
     await feed(page, orderFor(FIXTURE_VAULT).frames);
     await page.getByRole("button", { name: "Continue" }).click();
+    await page.getByRole("checkbox").check();
     await page.getByRole("button", { name: "Approve" }).click();
 
     await page.getByLabel("Master password", { exact: true }).fill("definitely not it");

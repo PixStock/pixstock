@@ -428,7 +428,7 @@
         "If the order's implied price drifts more than one percent from the signed one, the phone refuses to sign and says why. A browser that has been tampered with can show you any number it likes; it cannot forge a signature from an oracle whose keys are already on your phone.",
         "The guard degrades honestly. If no attested price is available, the order ticket says the price is unattested rather than quietly signing anyway."
       ],
-      "status": "Not built yet. The verifier is not written, so the vault reports an attached attestation as unverified and says so on screen rather than showing a tick it has not earned. What follows describes the design."
+      "status": "Built and enforced. The vault parses Pyth's signed message, checks its Ed25519 signature against the keys Pyth publishes on chain, and refuses to sign past one percent — all offline. One limit, stated plainly: our Pyth grant currently covers the Tesla feed, so a basket of the other four travels with a price for the legs it covers and the ticket names the ones it does not."
     },
     "paperVault": {
       "title": "Paper-Vault",

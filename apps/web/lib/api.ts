@@ -66,6 +66,14 @@ export interface Order {
      */
     mints?: MintFacts[];
   };
+  /**
+   * The Pyth `solana` message the relayer attached, base64, or null.
+   *
+   * The web app carries it across the gap untouched. Editing it would only
+   * break a signature this app cannot make — which is the entire point of
+   * sending it through a browser nobody has to trust.
+   */
+  attestation: string | null;
   txSignatures: string[];
   /**
    * One explorer link per signature, built by the relayer.

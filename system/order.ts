@@ -67,9 +67,24 @@ export interface Order {
   expectedOut: Array<{ mint: string; multiplier: number }>;
 }
 
+export interface OrderOptions {
+  /**
+   * What price travels with the order.
+   *
+   * `none` is the honest default for this fixture: our Pyth grant does not
+   * cover Apple, Nvidia or Microsoft, so a real order for them arrives
+   * unattested and the vault asks the holder to say so out loud.
+   *
+   * `forged` is 205 bytes of noise — what a relayer that wanted a green tick
+   * would attach if attaching bytes were enough.
+   */
+  attestation?: "none" | "forged";
+}
+
 /** An order addressed to `vault`, which the test reads out of the browser. */
-export function orderFor(vault: string): Order {
+export function orderFor(vault: string, options: OrderOptions = {}): Order {
   const sid = newSessionId();
+  const attestation = options.attestation ?? "none";
 
   const request: SignRequest = {
     kind: "SIGN",
@@ -91,7 +106,7 @@ export function orderFor(vault: string): Order {
       quotedAt: Math.floor(Date.now() / 1000) - 4,
       mints: fixture.legs.map((leg) => factsFor(leg.outMint)),
     },
-    price: new Uint8Array(205).fill(9),
+    ...(attestation === "forged" ? { price: new Uint8Array(205).fill(9) } : {}),
   };
 
   return {

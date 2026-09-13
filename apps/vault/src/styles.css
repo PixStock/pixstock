@@ -246,5 +246,26 @@ h2 { font-size: 19px; margin: 0; letter-spacing: -0.01em; }
 .ticket-meta dt { color: var(--ink-3); }
 .ticket-meta dd { margin: 0; text-align: right; }
 
+/* Taking responsibility for a price the vault could not check. Deliberately
+   plain: this is a decision, not a dismissable banner. */
+.ack {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.ack input { margin-top: 2px; flex-shrink: 0; }
+
+/* How far the order's own amounts sit from Pyth's price. The colour is the
+   verdict: green signs, orange signs with a warning, red does not sign. */
+.dev--ok { color: var(--ok); }
+.dev--warn { color: var(--warn); }
+.dev--refuse { color: var(--crit); font-weight: 600; }
+
 .violations { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 6px; font-size: 14px; }
 .violations code { font-family: var(--mono); color: var(--crit); margin-right: 4px; }

@@ -13,6 +13,7 @@ import { decimalsOfMint, symbolOfMint } from '@pixstock/shared';
 import { DatabaseService } from '../../database/database.service';
 import { MintStateService } from '../market/mint-state.service';
 import { NoncesService } from '../nonces/nonces.service';
+import { PythService } from '../pyth/pyth.service';
 import { RelayerService, type ConfirmResult } from '../relayer/relayer.service';
 import { TxBuilderService } from '../tx-builder/tx-builder.service';
 import type { CreateOrderDto } from './dto/create-order.dto';
@@ -43,6 +44,7 @@ export class OrdersService {
     private readonly relayer: RelayerService,
     private readonly nonces: NoncesService,
     private readonly mints: MintStateService,
+    private readonly pyth: PythService,
     private readonly config: ConfigService,
   ) {}
 
@@ -99,12 +101,18 @@ export class OrdersService {
       mints: facts,
     };
 
+    // The signed price, if the stream has a current one. The relayer cannot
+    // vouch for it and does not try: it carries bytes it cannot forge from
+    // Pyth to a phone with no network, and the phone decides.
+    const attestation = this.pyth.attestation();
+
     const order = await this.db.order.create({
       data: {
         id: orderId,
         vault: dto.vault,
         kind: built.kind,
         manifest: manifest as unknown as Prisma.InputJsonValue,
+        attestation: attestation ? Buffer.from(attestation.bytes).toString('base64') : null,
         txMessages: built.messages.map((m) => Buffer.from(m).toString('base64')),
         // Recorded now so a signature can be checked against the message this
         // relayer built, not against whatever comes back later.
@@ -119,6 +127,7 @@ export class OrdersService {
       expiry: built.expiry,
       legs: built.legs.length,
       nonceAccount: nonce?.account ?? null,
+      attestedFeeds: attestation?.feedIds ?? [],
     });
 
     return this.present(order, built.sizes, built.expiry);
@@ -403,6 +412,10 @@ export class OrdersService {
       kind: order.kind,
       txMessages: order.txMessages,
       manifest: order.manifest,
+      // Base64 of the `solana` message Pyth signed, or null. The web app
+      // passes it across the gap untouched; editing it would only break a
+      // signature it cannot make.
+      attestation: order.attestation,
       txSignatures: order.txSignatures,
       // Built here rather than in the browser: only this process knows which
       // cluster the order was built against, and a link to the wrong explorer

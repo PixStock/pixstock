@@ -90,8 +90,12 @@ export function OrderSigner({ orderId }: { orderId: string }) {
             // cannot read it off the mint for itself.
             mints: order.manifest.mints,
           },
-          // No attestation: the price stream is not built, and the vault says
-          // so rather than showing a tick it has not earned.
+          // The signed price, passed through byte for byte. This app cannot
+          // forge it and cannot usefully edit it: the vault checks Pyth's
+          // signature over these exact bytes, with no network of its own.
+          ...(order.attestation
+            ? { price: Uint8Array.from(atob(order.attestation), (c) => c.charCodeAt(0)) }
+            : {}),
         }),
       };
     } catch (err) {
