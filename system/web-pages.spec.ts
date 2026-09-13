@@ -57,10 +57,17 @@ test.describe("the optical channel on screen", () => {
     await expect(page.getByText(/5 frames/)).toBeVisible();
     await expect(page.getByRole("img", { name: /Order frame/ })).toBeVisible();
 
-    const first = await page.getByRole("img", { name: /Order frame/ }).getAttribute("aria-label");
-    await page.waitForTimeout(700);
-    const later = await page.getByRole("img", { name: /Order frame/ }).getAttribute("aria-label");
-    expect(later, "the frames must keep cycling").not.toBe(first);
+    // Polled rather than slept on: one fixed wait lands on the same frame
+    // whenever the machine is busy enough to skip a cycle, and a test that
+    // fails on a loaded runner teaches everyone to ignore it.
+    const frame = page.getByRole("img", { name: /Order frame/ });
+    const first = await frame.getAttribute("aria-label");
+    await expect
+      .poll(() => frame.getAttribute("aria-label"), {
+        message: "the frames must keep cycling",
+        timeout: 5_000,
+      })
+      .not.toBe(first);
   });
 
   test("changing the frame size changes the frame count", async ({ page }) => {

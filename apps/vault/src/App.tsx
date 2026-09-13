@@ -3,6 +3,7 @@ import type { SignRequest } from "@pixstock/agqp";
 import type { OrderTicket } from "@pixstock/tx-policy";
 import type { VaultBlob } from "@pixstock/vault-crypto";
 import { base58 } from "@scure/base";
+import { Restore } from "./screens/Restore";
 import { Review } from "./screens/Review";
 import { Scan } from "./screens/Scan";
 import { Setup } from "./screens/Setup";
@@ -11,6 +12,7 @@ import { loadBlob } from "./vault/storage";
 
 type Screen =
   | { name: "setup" }
+  | { name: "restore" }
   | { name: "scan" }
   | { name: "review"; payload: Uint8Array }
   | { name: "sign"; request: SignRequest; ticket: OrderTicket };
@@ -82,6 +84,15 @@ export function App() {
               setBlob(loadBlob());
               setScreen({ name: "scan" });
             }}
+            onRestore={() => setScreen({ name: "restore" })}
+          />
+        ) : screen.name === "restore" ? (
+          <Restore
+            onRestored={() => {
+              setBlob(loadBlob());
+              setScreen({ name: "scan" });
+            }}
+            onCancel={() => setScreen({ name: "setup" })}
           />
         ) : screen.name === "scan" ? (
           <Scan onScanned={(payload) => setScreen({ name: "review", payload })} />

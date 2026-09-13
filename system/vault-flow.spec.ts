@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import {
   FIXTURE_VAULT,
+  PAPER_VAULT,
   STORED_BLOB,
   VAULT_PASSWORD,
   orderFor,
@@ -127,6 +128,47 @@ test.describe("the vault, end to end in a browser", () => {
     });
     await expect(page.locator("canvas.qr")).toBeVisible();
     await expect(page.getByText(/Sixty-four bytes of signature/)).toBeVisible();
+  });
+
+  test("restores a vault from a printed Paper-Vault", async ({ page }) => {
+    // The half that was missing: a sheet of paper and a password put the same
+    // key back on a phone that has never seen it. Nothing is fetched to do
+    // it — the sheet holds everything.
+    await page.goto("/");
+    await page.getByRole("button", { name: "Restore from Paper-Vault" }).click();
+
+    await page.getByLabel("Paper-Vault code").fill(PAPER_VAULT.code);
+    await page.getByLabel("Master password", { exact: true }).fill(PAPER_VAULT.password);
+    await page.getByRole("button", { name: "Restore" }).click();
+
+    await expect(page.getByRole("heading", { name: "Your vault is back" })).toBeVisible({
+      timeout: 15_000,
+    });
+
+    // The restored key is the one on the sheet, byte for byte.
+    const publicKey = await page.evaluate(() => {
+      const stored = localStorage.getItem("pixstock.vault.v1")!;
+      const bytes = Uint8Array.from(atob(stored), (c) => c.charCodeAt(0));
+      return Array.from(bytes.slice(87, 119));
+    });
+    expect(toBase58(publicKey)).toBe(PAPER_VAULT.publicKey);
+
+    await page.getByRole("button", { name: "Continue" }).click();
+    await expect(page.getByRole("heading", { name: "Scan the order" })).toBeVisible();
+  });
+
+  test("refuses a Paper-Vault opened with the wrong password", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "Restore from Paper-Vault" }).click();
+
+    await page.getByLabel("Paper-Vault code").fill(PAPER_VAULT.code);
+    await page.getByLabel("Master password", { exact: true }).fill("not the password at all");
+    await page.getByRole("button", { name: "Restore" }).click();
+
+    await expect(page.getByText(/does not open this code/)).toBeVisible({ timeout: 15_000 });
+    // And nothing was installed on the strength of a wrong guess.
+    const stored = await page.evaluate(() => localStorage.getItem("pixstock.vault.v1"));
+    expect(stored).toBeNull();
   });
 
   test("refuses an order whose price attestation is forged", async ({ page }) => {

@@ -12,7 +12,7 @@ import { QrCode } from "../components/QrCode";
 const base58ish = (bytes: Uint8Array) =>
   Array.from(bytes.slice(0, 8), (b) => b.toString(16).padStart(2, "0")).join("") + "…";
 
-export function Setup({ onReady }: { onReady: () => void }) {
+export function Setup({ onReady, onRestore }: { onReady: () => void; onRestore: () => void }) {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
@@ -124,6 +124,9 @@ export function Setup({ onReady }: { onReady: () => void }) {
           onClick={() => void create()}
         >
           {busy ? "Encrypting…" : "Create vault"}
+        </button>
+        <button type="button" className="btn" onClick={onRestore}>
+          Restore from Paper-Vault
         </button>
       </div>
     </section>

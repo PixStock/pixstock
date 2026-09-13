@@ -145,3 +145,21 @@ export const FIXTURE_VAULT = fixture.vault;
  */
 export const STORED_BLOB = fixture.storedBlob;
 export const VAULT_PASSWORD = fixture.testPassword;
+
+/**
+ * A Paper-Vault sheet, exactly as the export prints one.
+ *
+ * Recorded rather than computed here: Playwright compiles these files to
+ * CommonJS and cannot load the vault's crypto chain. Regenerate with
+ *
+ *   node -e "import('./packages/vault-crypto/dist/index.js').then(async v => {
+ *     const b = await v.lock(new Uint8Array(32), 'a recorded paper vault');
+ *     console.log(v.encodePaperVault(b));
+ *   })"
+ */
+export const PAPER_VAULT = {
+  code:
+    "PVLT:W503H0000000V50KA0N65/I3O3EZNGYSK6ESGZCS+CSLH7C5DTHNS19XI5GCKUD9I5-%KZSCH14E/7:89TQEWG7O9QZUHJMOCHQW1WHJV$SS59SA0PT9JE/0/$L2YRPXH8RI+K2I7JQLNJRS-G4/XJ5MHCDU1GUENGRQSKG2%68S-0NP4Q73NWN1ID00000",
+  publicKey: "3mLxV9ce1EE77Ac7DVw7NgHo8UTcmBvdsD3tMH2PgcTr",
+  password: "a recorded paper vault",
+} as const;
