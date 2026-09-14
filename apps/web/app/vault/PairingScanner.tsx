@@ -8,6 +8,7 @@ import {
   parseSignatureResponse,
 } from "@pixstock/agqp";
 import { makeDecoder } from "@/lib/qr-decoder";
+import { openCamera } from "@/lib/camera";
 import { content } from "@/content/site";
 import { usePairedVault } from "@/lib/vault";
 
@@ -109,7 +110,7 @@ export function PairingScanner() {
     setState({ status: "scanning" });
 
     try {
-      stream.current = await navigator.mediaDevices.getUserMedia({ video: true });
+      stream.current = await openCamera();
     } catch (err) {
       setState({ status: "error", message: `Webcam unavailable: ${(err as Error).message}` });
       return;

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { parseSignatureResponse, type SignatureResponse } from "@pixstock/agqp";
 import { makeDecoder } from "@/lib/qr-decoder";
+import { openCamera } from "@/lib/camera";
 
 type State =
   | { status: "idle" }
@@ -77,7 +78,7 @@ export function SignatureScanner({
     setState({ status: "starting" });
 
     try {
-      stream.current = await navigator.mediaDevices.getUserMedia({ video: true });
+      stream.current = await openCamera();
     } catch (err) {
       setState({ status: "error", message: `Webcam unavailable: ${(err as Error).message}` });
       return;
