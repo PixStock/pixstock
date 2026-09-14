@@ -11,6 +11,7 @@ import { Settings } from "./screens/Settings";
 import { Setup } from "./screens/Setup";
 import { Sign } from "./screens/Sign";
 import { loadBlob } from "./vault/storage";
+import { useInstallPrompt } from "./vault/useInstallPrompt";
 
 type Screen =
   | { name: "setup" }
@@ -37,6 +38,7 @@ export function App() {
   const [blob, setBlob] = useState<VaultBlob | null>(null);
   const [screen, setScreen] = useState<Screen>({ name: "setup" });
   const [fatal, setFatal] = useState<string | null>(null);
+  const install = useInstallPrompt();
 
   // Reported, never relied upon. A phone in airplane mode is the real control;
   // this only tells the holder when it is not.
@@ -77,6 +79,31 @@ export function App() {
             ? "This device has a network. Turn on airplane mode before signing."
             : "Offline. Nothing can leave this device."}
         </p>
+
+        {/*
+          Offered rather than left to Chrome's own menu. A tab is not a signer:
+          it closes by accident, has no icon to open, and on a phone with no
+          network it reads as a broken website. Installed, everything is
+          precached and the app runs with the radios off.
+        */}
+        {install.status === "ready" && (
+          <div className="notice">
+            <h3>Install this on the phone</h3>
+            <p className="copy">
+              It runs from the home screen with no network at all. That is the point:
+              turn on airplane mode afterwards and nothing here stops working.
+            </p>
+            <div className="row">
+              <button type="button" className="btn btn--solid" onClick={() => void install.install()}>
+                Install
+              </button>
+            </div>
+          </div>
+        )}
+
+        {install.status === "manual" && (
+          <p className="muted">Install it on the home screen: {install.how}</p>
+        )}
 
         {fatal ? (
           <p className="alert" role="alert">

@@ -56,8 +56,12 @@ The camera and WebAuthn need HTTPS on a real device. Either:
 - serve the vault over a trusted local certificate (`mkcert`), or
 - open the deployed vault URL.
 
-Then **install it**: Chrome offers "Add to home screen". Everything is
+Then **install it**: the vault offers an Install button of its own, and
+Chrome's "Add to home screen" does the same thing from the menu. Everything is
 precached, so from that moment the app runs with no network at all.
+
+On iOS there is no way to ask programmatically, so the vault prints the two
+taps instead: Share, then Add to Home Screen.
 
 Open it, create a vault, and **print the Paper-Vault** when it asks. On a
 phone with a screen lock it also enrols a biometric; on one without, it says
