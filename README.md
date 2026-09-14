@@ -188,6 +188,32 @@ spec section that defines it, so nothing fails silently.
 | [`CLAUDE.md`](./CLAUDE.md) | Development conventions (French — team working document) |
 | [`GIT.md`](./GIT.md) | Branch, commit and PR conventions (French) |
 
+## Getting your keys out
+
+The vault holds an ordinary Ed25519 key. There is no proprietary format to be
+locked into and no service to ask permission from, and the way out does not
+depend on this project still existing.
+
+The app itself has no "send" button — the signing policy allows Jupiter swaps
+and nothing else, so a plain transfer is not something it can build or the
+vault would sign. Moving funds somewhere else means taking the key with you,
+which is a supported path rather than an escape hatch:
+
+```bash
+node scripts/export-key.mjs
+```
+
+It takes either the Paper-Vault code — **Settings → Show my Paper-Vault**, any
+time, since the sheet is ciphertext and needs no password to display — or the
+raw blob from the vault's `localStorage`. It prints the account's private key
+in the base58 form Phantom and Solflare import, and as the JSON array
+`solana-keygen` expects.
+
+It reads both the vault and the password from stdin rather than from
+arguments, so neither reaches your shell history or the process list, and it
+performs no network I/O. What it prints is the account itself: anyone holding
+it can move everything, with no password and no second step.
+
 ## Open source components
 
 Jupiter Swap API · Pyth Pro (ex-Lazer) · Backed Finance xStocks ·

@@ -1,22 +1,31 @@
 import { useState } from "react";
 import { base58 } from "@scure/base";
-import type { VaultBlob } from "@pixstock/vault-crypto";
+import { encodePaperVault, type VaultBlob } from "@pixstock/vault-crypto";
+import { QrCode } from "../components/QrCode";
 import { SIGNERS_READ_AT, TRUSTED_SIGNERS } from "@pixstock/pyth-verify";
 import { clearBlob } from "../vault/storage";
 import { forgetCredential, storedCredential } from "../vault/biometric";
 import { DEVIATION_CHOICES, loadSettings, saveSettings } from "../vault/settings";
 
 /**
- * What this vault is, what it will refuse, and how to erase it.
+ * What this vault is, what it will refuse, how to back it up, and how to
+ * erase it.
  *
  * The price tolerance can only be tightened — see vault/settings.ts. Erasing
  * asks twice and says exactly what is lost, because the Paper-Vault is the
  * only thing that brings it back and there is no support desk that can.
+ *
+ * The Paper-Vault is shown on demand rather than only at setup. It is the
+ * encrypted blob: rendering it needs no password and reveals nothing to
+ * anyone who does not have one, so there was never a reason to show it once
+ * and never again — while the reason to show it again is that a backup you
+ * cannot re-take is a backup you have already lost.
  */
 export function Settings({ blob, onDone }: { blob: VaultBlob; onDone: () => void }) {
   const [settings, setSettings] = useState(loadSettings);
   const [confirming, setConfirming] = useState(false);
   const [wiped, setWiped] = useState(false);
+  const [paper, setPaper] = useState<string | null>(null);
 
   const vault = base58.encode(blob.publicKey);
   const biometric = storedCredential() !== null;
@@ -101,6 +110,41 @@ export function Settings({ blob, onDone }: { blob: VaultBlob; onDone: () => void
             </button>
           ))}
         </div>
+      </div>
+
+      <div className="stack stack--tight">
+        <h3>Back this vault up</h3>
+        <p className="muted">
+          The same Paper-Vault you were shown when this vault was made. It is encrypted
+          with your master password, so a photograph of it spends nothing on its own.
+          Print it, or read it into a wallet that takes a private key.
+        </p>
+        {paper ? (
+          <>
+            <QrCode text={paper} px={280} />
+            <p
+              className="num"
+              style={{ wordBreak: "break-all", fontSize: 12, lineHeight: 1.5 }}
+            >
+              {paper}
+            </p>
+            <div className="row">
+              <button type="button" className="btn" onClick={() => setPaper(null)}>
+                Hide it
+              </button>
+            </div>
+          </>
+        ) : (
+          <div className="row">
+            <button
+              type="button"
+              className="btn"
+              onClick={() => setPaper(encodePaperVault(blob))}
+            >
+              Show my Paper-Vault
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="stack stack--tight">
