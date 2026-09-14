@@ -11,15 +11,18 @@ import { useEffect, useState } from "react";
  *
  * So the event is caught and held, and offered as a button instead.
  *
- * Safari never fires `beforeinstallprompt` — there is no way to ask
- * programmatically on iOS — so that case returns the instruction instead of a
- * button. Saying the two taps out loud beats a button that does nothing.
+ * The button is shown whether or not the event ever arrives. Chrome decides
+ * on its own schedule — a prompt dismissed once, an engagement threshold, a
+ * fork that behaves differently — and a button that only exists when the
+ * browser feels like it is a button nobody can be told to look for. Without
+ * the event, and on Safari which never fires one, the same button says where
+ * the browser keeps the command instead.
  */
 export type InstallState =
   | { status: "installed" }
   | { status: "ready"; install: () => Promise<"accepted" | "dismissed"> }
-  | { status: "manual"; how: string }
-  | { status: "unavailable" };
+  /** No programmatic prompt available; `how` is where the browser keeps it. */
+  | { status: "manual"; how: string };
 
 function isInstalled(): boolean {
   return (
@@ -84,5 +87,10 @@ export function useInstallPrompt(): InstallState {
     return { status: "manual", how: "Share, then Add to Home Screen." };
   }
 
-  return { status: "unavailable" };
+  // Chrome, but no event yet. It still installs from the menu, and saying so
+  // is better than an empty space where a button was supposed to be.
+  return {
+    status: "manual",
+    how: "Open the browser menu (\u22ee) and choose Install app, or Add to Home screen.",
+  };
 }

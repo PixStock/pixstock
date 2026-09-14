@@ -39,6 +39,7 @@ export function App() {
   const [screen, setScreen] = useState<Screen>({ name: "setup" });
   const [fatal, setFatal] = useState<string | null>(null);
   const install = useInstallPrompt();
+  const [showHow, setShowHow] = useState(false);
 
   // Reported, never relied upon. A phone in airplane mode is the real control;
   // this only tells the holder when it is not.
@@ -81,28 +82,48 @@ export function App() {
         </p>
 
         {/*
-          Offered rather than left to Chrome's own menu. A tab is not a signer:
-          it closes by accident, has no icon to open, and on a phone with no
-          network it reads as a broken website. Installed, everything is
-          precached and the app runs with the radios off.
+          Shown whenever this is not the installed app, with a button either
+          way. A tab is not a signer: it closes by accident, has no icon to
+          open, and on a phone with the radios off it reads as a broken
+          website rather than one working exactly as designed.
+
+          The button does not wait for Chrome to offer the prompt. Chrome
+          decides that on its own schedule, and a button that appears only
+          when the browser feels like it is one nobody can be told to look
+          for — so without the event it says where the menu command lives.
         */}
-        {install.status === "ready" && (
+        {install.status !== "installed" && (
           <div className="notice">
             <h3>Install this on the phone</h3>
             <p className="copy">
               It runs from the home screen with no network at all. That is the point:
               turn on airplane mode afterwards and nothing here stops working.
             </p>
-            <div className="row">
-              <button type="button" className="btn btn--solid" onClick={() => void install.install()}>
-                Install
-              </button>
-            </div>
+            {install.status === "ready" ? (
+              <div className="row">
+                <button
+                  type="button"
+                  className="btn btn--solid"
+                  onClick={() => void install.install()}
+                >
+                  Install
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="row">
+                  <button
+                    type="button"
+                    className="btn btn--solid"
+                    onClick={() => setShowHow(true)}
+                  >
+                    Install
+                  </button>
+                </div>
+                {showHow && <p className="muted">{install.how}</p>}
+              </>
+            )}
           </div>
-        )}
-
-        {install.status === "manual" && (
-          <p className="muted">Install it on the home screen: {install.how}</p>
         )}
 
         {fatal ? (
