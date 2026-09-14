@@ -4,6 +4,7 @@ import { ConfigService } from "@nestjs/config";
 import { Keypair, VersionedMessage, VersionedTransaction } from "@solana/web3.js";
 import { ed25519 } from "@noble/curves/ed25519.js";
 import { RelayerService } from "../src/modules/relayer/relayer.service";
+import { PythService } from "../src/modules/pyth/pyth.service";
 import type { SolanaService } from "../src/modules/solana/solana.service";
 
 /**
@@ -98,6 +99,18 @@ const relayerWith = (solana: SolanaService) =>
     new ConfigService({ relayer: { secretKey: "", allowBroadcast: false } }),
     solana,
   );
+
+describe("the price stream's socket", () => {
+  it("has a WebSocket it can actually construct", () => {
+    // This has failed in production twice, in opposite directions: ws 7 has
+    // no named export and ws 8 does, the workspace hoists 7 for
+    // @solana/web3.js, and tsc and the test runner disagree about what a
+    // namespace import of a CommonJS module contains. The symptom both times
+    // was the whole relayer failing to boot, and no test noticed — the socket
+    // is only built once a Pyth token is configured, which no suite sets.
+    expect(PythService.socketConstructorAvailable).toBe(true);
+  });
+});
 
 describe("what the cluster says became of a transaction", () => {
   const signature = "5".repeat(88);

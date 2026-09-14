@@ -2,12 +2,35 @@ import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/commo
 import { ConfigService } from '@nestjs/config';
 import { ASSETS } from '@pixstock/shared';
 import { parsePayload, parseSolanaMessage, type FeedUpdate } from '@pixstock/pyth-verify';
-// `ws` is CommonJS and assigns the class straight to `module.exports`, so a
-// default import compiles to `ws_1.default` and is undefined. The named
-// export exists from ws 8 onwards, and this workspace also hoists a 7.5.13
-// for @solana/web3.js — which is why the dependency is pinned to ^8 rather
-// than left to whatever npm decides to hoist.
-import { WebSocket } from 'ws';
+import * as WsModule from 'ws';
+
+/**
+ * The WebSocket class, whichever shape `ws` arrives in.
+ *
+ * This has broken in production twice, in opposite directions, so it is
+ * resolved once here rather than trusted:
+ *
+ *   ws 7 is CommonJS and assigns the class to `module.exports` — no named
+ *   export at all. ws 8 adds `.WebSocket`. Under tsc's CommonJS output a
+ *   namespace import is the module object itself; under the ES-module output
+ *   the test runner uses, it is a namespace whose `default` holds it.
+ *
+ * Four combinations, one expression. The workspace pins ^8 and also hoists a
+ * 7.5.13 for @solana/web3.js, and which one a given directory resolves is not
+ * something this file should have an opinion about.
+ */
+const WebSocketImpl = ((WsModule as { WebSocket?: unknown }).WebSocket ??
+  (WsModule as { default?: unknown }).default ??
+  WsModule) as typeof WsModule.WebSocket;
+
+/**
+ * An open socket, as `ws` types it.
+ *
+ * Named explicitly because the bare name resolves to the DOM's WebSocket in
+ * this tsconfig, which has no `.on` and would make every handler below an
+ * error.
+ */
+type WsSocket = InstanceType<typeof WsModule.WebSocket>;
 
 /**
  * `readyState` when the socket is open.
@@ -75,7 +98,7 @@ const MAX_RECONNECT_DELAY_MS = 60_000;
 @Injectable()
 export class PythService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PythService.name);
-  private socket: WebSocket | null = null;
+  private socket: WsSocket | null = null;
   private reconnectTimer: NodeJS.Timeout | null = null;
   private reconnectDelay = RECONNECT_DELAY_MS;
   private stopped = false;
@@ -110,6 +133,17 @@ export class PythService implements OnModuleInit, OnModuleDestroy {
     }
     this.feeds = this.wantedFeeds;
     this.connect();
+  }
+
+  /**
+   * Whether the price stream can be constructed at all.
+   *
+   * Exposed for the test that asserts it: `ws` has resolved to a version
+   * without the named export twice now, and the symptom was the whole relayer
+   * failing to boot.
+   */
+  static get socketConstructorAvailable(): boolean {
+    return typeof WebSocketImpl === 'function';
   }
 
   onModuleDestroy(): void {
@@ -226,7 +260,18 @@ export class PythService implements OnModuleInit, OnModuleDestroy {
     const feeds = this.feeds;
     const url = this.routers[this.routerIndex % this.routers.length]!;
 
-    const socket = new WebSocket(url, { headers: { Authorization: `Bearer ${this.token}` } });
+    let socket: WsSocket;
+    try {
+      socket = new WebSocketImpl(url, { headers: { Authorization: `Bearer ${this.token}` } });
+    } catch (err) {
+      // A price stream that cannot start is a degraded relayer, not a dead
+      // one: orders still build, they simply travel unattested and the vault
+      // says so. Taking the whole service down over it would be a worse
+      // failure than the one being reported.
+      this.logger.error(`Could not open the price stream: ${(err as Error).message}`);
+      this.scheduleReconnect();
+      return;
+    }
     this.socket = socket;
 
     socket.on('open', () => {

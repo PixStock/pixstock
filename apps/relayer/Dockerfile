@@ -42,6 +42,15 @@ COPY --from=build /app/apps/relayer/dist ./apps/relayer/dist
 COPY --from=build /app/apps/relayer/package.json ./apps/relayer/
 COPY --from=build /app/apps/relayer/prisma ./apps/relayer/prisma
 
+# The workspace's own node_modules, not just the hoisted root.
+#
+# npm hoists what it can and nests what it cannot: @solana/web3.js pulls ws 7,
+# which wins the root, so the relayer's own ws 8 lands here. Leaving this
+# directory behind made `require('ws')` resolve to 7 at run time and the
+# service died on boot — but only once a Pyth token was configured, because
+# nothing constructed a socket before that.
+COPY --from=build /app/apps/relayer/node_modules ./apps/relayer/node_modules
+
 USER node
 EXPOSE 4000
 
