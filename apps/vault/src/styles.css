@@ -534,3 +534,89 @@ h2 { font-size: 19px; margin: 0; letter-spacing: -0.01em; }
 .actionbar .btn--reject { flex: 1; }
 .actionbar .btn--approve { flex: 2; }
 .actionbar .btn--only { flex: 1; }
+
+/* ================================================================ scan */
+
+/* Brackets rather than a full overlay: they say where to aim without
+   covering the thing being aimed at. */
+.viewport { border-radius: 16px; }
+.bracket {
+  position: absolute;
+  width: 38px;
+  height: 38px;
+  opacity: 0.85;
+  pointer-events: none;
+}
+.bracket--tl { top: 18px; left: 18px; border-top: 2px solid var(--ink); border-left: 2px solid var(--ink); border-top-left-radius: 6px; }
+.bracket--tr { top: 18px; right: 18px; border-top: 2px solid var(--ink); border-right: 2px solid var(--ink); border-top-right-radius: 6px; }
+.bracket--bl { bottom: 18px; left: 18px; border-bottom: 2px solid var(--ink); border-left: 2px solid var(--ink); border-bottom-left-radius: 6px; }
+.bracket--br { bottom: 18px; right: 18px; border-bottom: 2px solid var(--ink); border-right: 2px solid var(--ink); border-bottom-right-radius: 6px; }
+
+/* One segment per frame. No transition: it has to read as instantaneous,
+   because it is the only proof the channel is moving. */
+.frames { display: flex; gap: 3px; }
+.frame-seg { flex: 1; height: 4px; border-radius: 2px; background: var(--rule); }
+.frame-seg--got { background: var(--ink); }
+
+.frames-line { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.frames-count { margin: 0; font-size: 15px; }
+.frames-count .num { font-size: 17px; }
+.frames-drop { margin: 0; font-size: 13px; color: var(--ink-3); }
+
+/* One decision per row. The primary fills the width; the two side trips sit
+   under it and are visibly not the thing to press. */
+.btn--wide { width: 100%; height: 52px; font-size: 16px; font-weight: 600; }
+.btn-pair { display: flex; gap: 10px; }
+.btn-pair .btn { flex: 1; height: 44px; font-size: 14.5px; color: var(--ink-2); }
+
+/* ================================================================ sign */
+
+/* Two rows, one rule. What leaves, and what arrives. */
+.recap { display: grid; gap: 0; border: 1px solid var(--rule); border-radius: 14px; background: var(--surface); }
+.recap-row { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 14px 16px; }
+.recap-row + .recap-row { border-top: 1px solid var(--rule); }
+.recap-row dt { font-size: 13px; color: var(--ink-3); }
+.recap-row dd { margin: 0; font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 17px; text-align: right; }
+.recap-row--out dd { font-size: 22px; color: var(--ok); }
+.recap-row dd .sym { font-family: var(--ui); font-size: 14px; }
+
+/* What stands in front of the key, stated rather than implied. */
+.biometric {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+}
+.biometric-ring {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 2px solid var(--rule);
+  display: grid;
+  place-items: center;
+  color: var(--ink-3);
+}
+.biometric--on .biometric-ring { border-color: var(--ok); color: var(--ok); }
+.biometric p { margin: 0; font-size: 13.5px; line-height: 1.45; color: var(--ink-2); }
+
+.field--tall input { height: 52px; font-size: 17px; border-radius: 14px; padding: 0 15px; }
+
+/* ================================================================ reply */
+
+.qr--full { max-width: 100%; border-radius: 16px; }
+.reply-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-top: 1px solid var(--rule-2);
+  border-bottom: 1px solid var(--rule-2);
+  font-size: 14px;
+}
+.reply-meta dt { color: var(--ink-3); }
+.reply-meta dd { margin: 0; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.closing { margin: 0; text-align: center; font-size: 13px; color: var(--ink-3); }

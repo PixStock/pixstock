@@ -48,7 +48,7 @@ async function installFixtureVault(page: Page) {
     ["pixstock.vault.v1", STORED_BLOB] as const,
   );
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Scan the order" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Point at the laptop" })).toBeVisible();
 }
 
 /** Feeds frames through the glued channel — the same path as the camera. */
@@ -67,7 +67,7 @@ test.describe("the vault, end to end in a browser", () => {
   test("creates a vault and shows the Paper-Vault before anything else", async ({ page }) => {
     const vault = await createVault(page);
     expect(vault).toHaveLength(44);
-    await expect(page.getByRole("heading", { name: "Scan the order" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Point at the laptop" })).toBeVisible();
   });
 
   test("reads an order, shows a ticket, and signs it", async ({ page }) => {
@@ -77,9 +77,7 @@ test.describe("the vault, end to end in a browser", () => {
     // ── scan ────────────────────────────────────────────────────────────
     await feed(page, order.frames);
 
-    await expect(page.getByText("Order received.")).toBeVisible();
-    await page.getByRole("button", { name: "Continue" }).click();
-
+    // No Continue step: a scan that completed is a scan that completed.
     // ── review ──────────────────────────────────────────────────────────
     // The screen opens with the outcome in words, before any figure.
     await expect(page.getByText("No signed price for this order")).toBeVisible();
@@ -125,22 +123,22 @@ test.describe("the vault, end to end in a browser", () => {
 
     // ── sign ────────────────────────────────────────────────────────────
     await page.getByRole("button", { name: "Approve" }).click();
-    await expect(page.getByRole("heading", { name: "Confirm and sign" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Confirm what you approved" })).toBeVisible();
 
     await page.getByLabel("Master password", { exact: true }).fill(PASSWORD);
-    await page.getByRole("button", { name: "Sign", exact: true }).click();
+    await page.getByRole("button", { name: "Sign this order" }).click();
 
     // ── reply ───────────────────────────────────────────────────────────
-    await expect(page.getByRole("heading", { name: "Show this to the webcam" })).toBeVisible({
+    await expect(page.getByRole("heading", { name: "Hold this up to the webcam" })).toBeVisible({
       timeout: 15_000,
     });
     await expect(page.locator("canvas.qr")).toBeVisible();
-    await expect(page.getByText(/Sixty-four bytes of signature/)).toBeVisible();
+    await expect(page.getByText("Nothing left this phone but a signature.")).toBeVisible();
   });
 
   test("shows its own address as a pairing code", async ({ page }) => {
     await installFixtureVault(page);
-    await page.getByRole("button", { name: "Show my address" }).click();
+    await page.getByRole("button", { name: "My address" }).click();
 
     await expect(page.getByRole("heading", { name: "Show this to the laptop" })).toBeVisible();
     await expect(page.locator("canvas.qr")).toBeVisible();
@@ -148,7 +146,7 @@ test.describe("the vault, end to end in a browser", () => {
     await expect(page.getByText(FIXTURE_VAULT)).toBeVisible();
 
     await page.getByRole("button", { name: "Done" }).click();
-    await expect(page.getByRole("heading", { name: "Scan the order" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Point at the laptop" })).toBeVisible();
   });
 
   test("lets the price tolerance be tightened, and only tightened", async ({ page }) => {
@@ -229,7 +227,7 @@ test.describe("the vault, end to end in a browser", () => {
     expect(toBase58(publicKey)).toBe(PAPER_VAULT.publicKey);
 
     await page.getByRole("button", { name: "Continue" }).click();
-    await expect(page.getByRole("heading", { name: "Scan the order" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Point at the laptop" })).toBeVisible();
   });
 
   test("refuses a Paper-Vault opened with the wrong password", async ({ page }) => {
@@ -252,7 +250,6 @@ test.describe("the vault, end to end in a browser", () => {
     // checkbox for this case, because the vault knows the answer.
     await installFixtureVault(page);
     await feed(page, orderFor(FIXTURE_VAULT, { attestation: "forged" }).frames);
-    await page.getByRole("button", { name: "Continue" }).click();
 
     await expect(page.getByText("This phone will not sign")).toBeVisible();
     await expect(page.getByRole("checkbox")).toHaveCount(0);
@@ -267,7 +264,6 @@ test.describe("the vault, end to end in a browser", () => {
     const order = orderFor(strangerVault());
 
     await feed(page, order.frames);
-    await page.getByRole("button", { name: "Continue" }).click();
 
     await expect(page.getByText("This order is for another vault")).toBeVisible();
     // And there is no way forward from here.
@@ -278,12 +274,11 @@ test.describe("the vault, end to end in a browser", () => {
     await installFixtureVault(page);
 
     await feed(page, orderFor(FIXTURE_VAULT).frames);
-    await page.getByRole("button", { name: "Continue" }).click();
     await page.getByRole("checkbox").check();
     await page.getByRole("button", { name: "Approve" }).click();
 
     await page.getByLabel("Master password", { exact: true }).fill("definitely not it");
-    await page.getByRole("button", { name: "Sign", exact: true }).click();
+    await page.getByRole("button", { name: "Sign this order" }).click();
 
     await expect(page.getByText("wrong password")).toBeVisible({ timeout: 15_000 });
   });
@@ -292,8 +287,8 @@ test.describe("the vault, end to end in a browser", () => {
     await installFixtureVault(page);
     await feed(page, ["hello there", "PS1:broken", ""]);
 
-    await expect(page.getByText("Order received.")).toHaveCount(0);
-    await expect(page.getByRole("heading", { name: "Scan the order" })).toBeVisible();
+    await expect(page.getByText("No signed price for this order")).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "Point at the laptop" })).toBeVisible();
   });
 
   test("says the device is online, because it is", async ({ page }) => {
