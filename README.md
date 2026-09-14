@@ -203,5 +203,4 @@ Never open a public issue for a vulnerability — see
 [`SECURITY.md`](./SECURITY.md).
 
 ## License
-
 [MIT](./LICENSE) © 2026 PixStock
