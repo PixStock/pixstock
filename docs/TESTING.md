@@ -1,147 +1,160 @@
-# Tests
+# Testing
 
-Quatre niveaux, trois commandes. Chacun attrape une classe de défaut que les
-autres ne peuvent pas voir — le bug des tables de lookup l'a montré : tous les
-tests unitaires passaient pendant que nos transactions faisaient 350 octets de
-trop.
+Four levels, three commands. Each catches a class of defect the others cannot
+see — the lookup-table bug proved it: every unit test passed while our
+transactions were 350 bytes too large.
 
 ```bash
-npm test            # unitaire + intégration · hors ligne, déterministe, ~5 s
-npm run test:live   # contre Jupiter et un nœud RPC réels · ~2 s, réseau requis
-npm run test:system # Playwright, les deux apps dans un navigateur · ~50 s
-npm run test:all    # les trois
+npm test            # unit + integration · offline, deterministic, ~5 s
+npm run test:live   # against real Jupiter and a real RPC node · ~2 s, needs network
+npm run test:system # Playwright, both apps in a browser · ~50 s
+npm run test:all    # all three
 ```
 
-Après un clone, deux préparations, une fois par machine :
+Today: **304 unit and integration tests**, **17 live**, **29 system**.
+
+After a clone, two preparations, once per machine:
 
 ```bash
 npm ci
-npx playwright install chromium   # ~115 Mo, pour les tests système
+npx playwright install chromium   # ~115 MB, for the system tests
 
-# Une base séparée pour les tests d'intégration : ils vident les tables entre
-# chaque test, et la base de développement contient des ordres en cours de
-# signature. Lancer la suite ne doit jamais coûter son travail à quelqu'un.
+# A separate database for the integration tests: they truncate tables between
+# each test, and the development database holds orders mid-signature. Running
+# the suite must never cost someone their work.
 createdb pixstock_test
 DATABASE_URL="postgresql://$USER@localhost/pixstock_test?host=/var/run/postgresql" \
   npx prisma migrate deploy --schema apps/relayer/prisma/schema.prisma
 ```
 
-Les trois commandes compilent les paquets partagés elles-mêmes — les tests les
-importent par leur `dist`, et sans cela un clone frais voit neuf fichiers sur
-quatorze échouer sur « Failed to resolve entry » et croit le dépôt cassé.
+All three commands build the shared packages themselves — the tests import
+them through their `dist`, and without that a fresh clone sees nine files out
+of fourteen fail on "Failed to resolve entry" and concludes the repo is
+broken.
 
-> La compilation est appelée **dans** le script, pas par un hook `pretest`.
-> Un `ignore-scripts=true` dans le `~/.npmrc` de quelqu'un désactive
-> silencieusement les hooks `pre`/`post` — et c'était le cas sur la machine où
-> ces tests ont été écrits.
+> The build is called **inside** the script, not from a `pretest` hook. An
+> `ignore-scripts=true` in someone's `~/.npmrc` silently disables `pre`/`post`
+> hooks — and that was the case on the machine these tests were written on.
 
-Playwright démarre lui-même les serveurs de développement dont il a besoin
-(`webServer` dans `playwright.config.ts`) et réutilise ceux déjà lancés. Rien
-à démarrer à la main.
+Playwright starts the dev servers it needs on its own (`webServer` in
+`playwright.config.ts`) and reuses any already running. Nothing to start by
+hand.
 
 ---
 
-## 1. Unitaire — `packages/*/test`, `apps/*/test`
+## 1. Unit — `packages/*/test`, `apps/*/test`
 
-Fonctions pures, formats, invariants. Aucune E/S.
+Pure functions, formats, invariants. No I/O.
 
-Ce qu'ils verrouillent : les vecteurs RFC 9285 de Base45, la valeur canonique
-CRC-32, l'aller-retour du codec sur 1 000 payloads, les 14 mutations adverses
-de la politique, le refus d'un mauvais mot de passe, et le fait qu'un prix ne
-peut **jamais** être déclaré vérifié tant que le vérificateur n'existe pas.
+What they pin down: the RFC 9285 Base45 vectors, the canonical CRC-32 value,
+the codec round trip over 1,000 payloads, the policy's adversarial mutations,
+the refusal of a wrong password, and the fact that a price may **never** be
+reported as verified unless the signature actually checked out.
 
-## 2. Intégration — `apps/relayer/test/api.integration.test.ts`
+## 2. Integration — `apps/relayer/test/*.integration.test.ts`
 
-La surface HTTP à travers la pile NestJS réelle : routage, injection,
-`ValidationPipe`, contrôleurs. Jupiter est remplacé par une réponse
-enregistrée, donc c'est déterministe et hors ligne.
+The HTTP surface through the real NestJS stack: routing, injection,
+`ValidationPipe`, controllers. Jupiter is replaced by a recorded response, so
+it is deterministic and offline.
 
-> ⚠️ NestJS résout ses dépendances via `design:paramtypes`, que esbuild
-> n'émet pas. Sans le greffon SWC de `vitest.config.ts`, chaque route répond
-> 500 et le service injecté vaut `undefined`.
+> NestJS resolves its dependencies through `design:paramtypes`, which esbuild
+> does not emit. Without the SWC plugin in `vitest.config.ts`, every route
+> answers 500 and the injected service is `undefined`.
 
-## 3. Bout en bout — `packages/tx-policy/test/e2e-airgap.test.ts`
+## 3. End to end — `packages/tx-policy/test/e2e-airgap.test.ts`
 
-Toutes les couches dans l'ordre d'une vraie signature : un panier que le
-relayer a réellement construit sur des routes mainnet → payload CBOR → trames
-→ réassemblage désordonné et dupliqué → décodage → politique → fiche →
-signature → réponse vérifiée contre le message émis.
+Every layer in the order a real signature happens: a basket the relayer
+actually built on mainnet routes → CBOR payload → frames → out-of-order and
+duplicated reassembly → decode → policy → ticket → signature → reply verified
+against the message that was sent.
 
-La fixture est **enregistrée**, pas fabriquée
-(`scripts/capture-order-fixture.mjs`). Un ordre construit à la main ne prouve
-que la cohérence des morceaux entre eux — ce qui était vrai pendant tout le
-temps où les tables de lookup étaient perdues.
+The fixture is **recorded**, not fabricated
+(`scripts/capture-order-fixture.mjs`). An order built by hand only proves the
+pieces agree with each other — which was true the whole time the lookup tables
+were being lost.
 
 ## 4. Live — `*.live.test.ts`
 
-Jupiter et un nœud RPC réels. Ce sont les seuls qui peuvent voir qu'une route
-a changé de forme, ou qu'une transaction a grossi.
+Real Jupiter, a real RPC node. These are the only ones that can see that a
+route changed shape, or that a transaction grew.
 
-Celui qui compte le plus : **« puts a three-leg basket in ONE transaction »**.
-C'est la feature C en une assertion, et c'est le test qui aurait signalé le
-bug des tables de lookup le jour où il a été introduit.
+The one that matters most: **"puts a three-leg basket in ONE transaction"**.
+That is the whole basket feature in a single assertion, and it is the test
+that would have flagged the lookup-table bug the day it was introduced.
 
-Le second : **`mint-state.live.test.ts`**, qui simule l'instruction
-`AmountToUiAmount` et fait donc calculer le montant affiché **par token-2022
-lui-même**. Le mint stocke deux multiplicateurs et une date de bascule ; lire
-le premier champ renvoyait la valeur périmée sur quatre des cinq xStocks, et
-aucun test hors ligne ne pouvait le voir — ils étaient tous d'accord entre eux.
+The second: **`mint-state.live.test.ts`**, which simulates the
+`AmountToUiAmount` instruction and so has **token-2022 itself** compute the
+displayed amount. The mint stores two multipliers and a switch-over date;
+reading the first field returned the stale value on four of the five xStocks,
+and no offline test could see it — they all agreed with each other.
 
-La comparaison porte sur le **montant affiché**, pas sur le multiplicateur :
-le programme tronque aux décimales du mint, `scaleRaw` aussi, et l'égalité
-exacte de ce que lit un porteur est à la fois plus stricte et plus pertinente.
+The comparison is on the **displayed amount**, not the multiplier: the program
+truncates to the mint's decimals and so does `scaleRaw`, and exact equality of
+what a holder actually reads is both stricter and more relevant.
 
-Exclus de `npm test` : une suite qui peut rougir parce que Jupiter est lent
-est une suite qu'on apprend à ignorer.
+Excluded from `npm test`: a suite that can go red because Jupiter is slow is a
+suite people learn to ignore.
 
-> **La suite hors ligne doit rester hors ligne.** Elle a récemment atteint
-> mainnet sans le dire, via `MintStateService` : cinq appels RPC sur le chemin
-> critique de `npm test`. Une telle suite échoue dans un avion, échoue en CI
-> sans sortie réseau, et masque de vraies régressions derrière une erreur de
-> réseau. L'état des mints est désormais **enregistré** par
-> `scripts/capture-mint-state.mjs`, et le contrôle se vérifie ainsi :
+> **The offline suite must stay offline.** It once reached mainnet without
+> saying so, through `MintStateService`: five RPC calls on the critical path
+> of `npm test`. Such a suite fails on a plane, fails in CI with no network
+> egress, and hides real regressions behind a network error. Mint state is now
+> **recorded** by `scripts/capture-mint-state.mjs`, and the guarantee is
+> checked like this:
 >
 > ```bash
-> SOLANA_RPC_URL=http://127.0.0.1:9 npm test   # doit passer
+> SOLANA_RPC_URL=http://127.0.0.1:9 npm test   # must pass
 > ```
 
-## 5. Système — `system/*.spec.ts`
+## 5. System — `system/*.spec.ts`
 
-Les deux apps qui tournent, pilotées dans un navigateur.
+Both apps running, driven through a browser.
 
-- **`vault-flow`** : créer un coffre, imprimer le Paper-Vault, scanner par le
-  canal collé, lire la fiche, refuser un ordre destiné à un autre vault,
-  refuser un mauvais mot de passe, signer, afficher le QR de réponse.
-- **`web-pages`** : chaque route répond, **chaque lien interne de la landing
-  résout**, le sitemap ne liste que des pages réelles, les QR tournent
-  vraiment, et `/protocol` affiche `P8` comme non appliquée parce que le code
-  le dit.
+- **`vault-flow`** — create a vault, print the Paper-Vault, scan through the
+  paste channel, read the ticket, refuse an order addressed to another vault,
+  refuse a forged price attestation, refuse a wrong password, sign, show the
+  reply QR.
+- **`web-pages`** — every route answers, **every internal link on the landing
+  page resolves**, the sitemap lists only real pages, the QR frames really
+  cycle, and `/protocol` reports each rule's state from the code rather than
+  from the copy.
 
-Le contrôle des liens existe parce que les cinq routes `/trade`, `/basket`,
-`/vault`, `/protocol` et `/legal` ont été annoncées dans la navigation, le
-pied de page et le sitemap alors qu'elles renvoyaient toutes 404 — avec un
-build vert.
+- **`hit-targets`** — walks twelve vault screens measuring every button,
+  link, input and `<summary>`, and fails if one is under 44 px. Computing it
+  from the CSS is not the same as measuring it in a browser, and two
+  `<summary>` toggles were 21 px until this was written.
 
-Le canal collé est utilisé plutôt qu'une caméra : c'est le même chemin de
-code, et c'est aussi le mode qu'un juge avec un seul appareil emprunte.
+The link check exists because `/trade`, `/basket`, `/vault`, `/protocol` and
+`/legal` were all announced in the navigation, the footer and the sitemap
+while all five returned 404 — with a green build.
+
+`web-pages` also asserts that the landing page's closing band is still a band:
+the app routes and the marketing pages share one stylesheet, and a button
+class that took a name the landing page already used once squashed a whole
+section to 54 px. Lint, typecheck and every test that reads text were green
+through it.
+
+The paste channel is used instead of a camera: it is the same code path, and
+it is also the mode a judge with a single device will take.
 
 ---
 
-## Ajouter un test
+## Adding a test
 
-| Ce qu'on veut prouver | Où |
+| What you want to prove | Where |
 |---|---|
-| Une fonction se comporte comme spécifié | `packages/<paquet>/test/*.test.ts` |
-| Une route valide, refuse, répond | `apps/relayer/test/*.integration.test.ts` |
-| Les couches s'emboîtent sur un ordre réel | `packages/tx-policy/test/e2e-airgap.test.ts` |
-| Un service externe tient sa parole | `apps/*/test/*.live.test.ts` |
-| Une personne peut faire la manipulation | `system/*.spec.ts` |
+| A function behaves as specified | `packages/<package>/test/*.test.ts` |
+| A route validates, refuses, answers | `apps/relayer/test/*.integration.test.ts` |
+| The layers fit together on a real order | `packages/tx-policy/test/e2e-airgap.test.ts` |
+| An external service keeps its word | `apps/*/test/*.live.test.ts` |
+| A person can actually do it | `system/*.spec.ts` |
 
-Rafraîchir les fixtures enregistrées après un changement de schéma :
+Refresh the recorded fixtures after a schema change:
 
 ```bash
 npm run build -w @pixstock/relayer
-node scripts/capture-jupiter-fixture.mjs   # un swap mainnet
-node scripts/capture-order-fixture.mjs     # un panier complet + coffre chiffré
-node scripts/measure-tx-size.mjs           # les tailles publiées au §3 de la spec
+node scripts/capture-jupiter-fixture.mjs   # one mainnet swap
+node scripts/capture-order-fixture.mjs     # a full basket + an encrypted vault
+node scripts/capture-mint-state.mjs        # the five mints, as token-2022 reports them
+node scripts/measure-tx-size.mjs           # the sizes published in §3 of the spec
 ```

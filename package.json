@@ -12,7 +12,7 @@
     "build:packages": "tsc -b packages/shared packages/agqp packages/vault-crypto packages/pyth-verify packages/tx-policy",
     "build:apps": "npm run build -w @pixstock/web -w @pixstock/vault -w @pixstock/relayer",
     "dev:packages": "tsc -b --watch packages/shared packages/agqp packages/vault-crypto packages/pyth-verify packages/tx-policy",
-    "typecheck": "tsc -b",
+    "typecheck": "npm run typegen -w @pixstock/web && tsc -b",
     "test": "npm run build:packages && vitest run",
     "test:live": "npm run build:packages && vitest run --config vitest.live.config.ts",
     "test:system": "npm run build:packages && playwright test",

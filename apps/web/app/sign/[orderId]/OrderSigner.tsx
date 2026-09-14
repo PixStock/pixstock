@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { encodePayload, encodeSessionId, newSessionId } from "@pixstock/agqp";
+import { CHUNK_SIZES, DEFAULT_FPS, encodePayload, encodeSessionId, newSessionId } from "@pixstock/agqp";
 import {
   factsForMint,
   formatAmount,
@@ -10,6 +10,7 @@ import {
   type MintFacts,
 } from "@pixstock/shared";
 import { api, RelayerError, type Order } from "@/lib/api";
+import { AppShell, type RailStep } from "@/components/AppShell";
 import { AnimatedQr } from "@/components/AnimatedQr";
 import { SignatureScanner } from "@/components/SignatureScanner";
 
@@ -25,6 +26,11 @@ export function OrderSigner({ orderId }: { orderId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState<Order | null>(null);
+  // Where the cycle has got to. The bar below the code is driven from this,
+  // and step one of the phone rail can only be inferred from it: nothing
+  // here can see the phone, so "shown" is the honest word, not "read".
+  const [cycle, setCycle] = useState<{ frames: number; index: number } | null>(null);
+  const [cycled, setCycled] = useState(false);
 
   useEffect(() => {
     api
@@ -127,113 +133,225 @@ export function OrderSigner({ orderId }: { orderId: string }) {
     }
   }
 
+  const shell = {
+    current: "sign" as const,
+    eyebrow: "Crossing the gap",
+    title: "Show this screen to your phone",
+    lede:
+      "Hold the phone up to the code. The frames repeat, so it can join anywhere " +
+      "— nothing to time, nothing to click.",
+    session: encodeSessionId(sid),
+    // The order is already built by the time anyone reads this, so the first
+    // two steps name states rather than things to go and do.
+    railLabels: ["Built", "Showing", "Phone signs", "We broadcast"] as const,
+  };
+
   if (problem && !order) {
     return (
-      <p className="alert-inline" role="alert">
-        {problem}
-      </p>
+      <AppShell {...shell} step={2}>
+        <p className="alert-inline" role="alert">
+          {problem}
+        </p>
+      </AppShell>
     );
   }
 
-  if (!order || !payload) return <p className="muted">Loading the order…</p>;
+  if (!order || !payload) {
+    return (
+      <AppShell {...shell} step={2}>
+        <p className="muted">Loading the order…</p>
+      </AppShell>
+    );
+  }
 
   const settled = submitted ?? order;
 
   const spent = order.manifest.legs.reduce((sum, leg) => sum + BigInt(leg.inAmount), 0n);
 
+  // Two once it is on screen, four once it has left for the cluster.
+  const step: RailStep = submitted ? 4 : 2;
+
   return (
-    <div className="stack-24">
-      <div className="quote-card">
-        <span className="eyebrow">{order.kind}</span>
-        <p className="quote-out num" style={{ margin: 0 }}>
-          {formatAmount(spent, 6)} <span style={{ fontSize: 18 }}>USDC</span>
-        </p>
-        <dl style={{ margin: 0, display: "grid", gap: 6 }}>
-          {order.manifest.legs.map((leg) => (
-            <div key={leg.outMint} className="quote-row">
-              <dt>
-                {formatAmount(leg.inAmount, 6)} USDC via {leg.route.join(" → ")}
-              </dt>
-              <dd className="num">
-                {formatScaled(
-                  leg.expectedOutAmount,
-                  leg.decimals,
-                  multiplierFor(order.manifest.mints, leg.outMint),
-                )}{" "}
-                {leg.symbol}
-              </dd>
-            </div>
-          ))}
-          <div className="quote-row">
-            <dt>Status</dt>
-            <dd>{STATUS_LABELS[settled.status]}</dd>
+    <AppShell {...shell} step={step}>
+      <div className="app-cols app-cols--even">
+        <figure className="qr-figure">
+          <AnimatedQr
+            payload={payload}
+            sid={sid}
+            className="qr-canvas"
+            onCycle={(info) => {
+              setCycle(info);
+              // A full pass means every frame has been on screen at least
+              // once, which is the most this side can honestly claim.
+              if (info.index === info.frames - 1) setCycled(true);
+            }}
+          />
+
+          <div className="frames" aria-hidden="true">
+            {Array.from({ length: cycle?.frames ?? 0 }, (_, i) => (
+              <span
+                key={i}
+                className={`frame-seg${i <= (cycle?.index ?? -1) ? " frame-seg--got" : ""}`}
+              />
+            ))}
           </div>
-        </dl>
-      </div>
 
-      {submitted ? (
-        <div className="notice">
-          <h3>{HEADLINES[submitted.status] ?? "Signature accepted"}</h3>
-          <p className="copy">{BODY[submitted.status] ?? BODY.SIGNED}</p>
+          <figcaption className="qr-caption">
+            <span className="l">
+              Frame <span className="num">{(cycle?.index ?? 0) + 1}</span> of{" "}
+              <span className="num">{cycle?.frames ?? "?"}</span> · the cycle restarts every{" "}
+              <span className="num">{cycleSeconds(cycle?.frames)}</span>s
+            </span>
+            <span className="r">
+              {CHUNK_SIZES.M} B · {DEFAULT_FPS} fps
+            </span>
+          </figcaption>
+        </figure>
 
-          {submitted.explorerUrls.map((url, i) => (
-            <p key={url} style={{ margin: 0 }}>
-              <a href={url} target="_blank" rel="noreferrer">
-                {submitted.explorerUrls.length > 1
-                  ? `Transaction ${i + 1} on Solscan`
-                  : "See it on Solscan"}
-              </a>{" "}
-              <span className="muted num">{truncate(submitted.txSignatures[i] ?? "")}</span>
-            </p>
-          ))}
+        <div className="stack-24">
+          <div className="inside-card">
+            <span className="eyebrow">What is inside this code</span>
+            <span className="v">{formatAmount(spent, 6)} USDC</span>
+            <span className="d">
+              into {legWord(order.manifest.legs.length)}, one signature
+            </span>
+            <dl className="dl-rows">
+              {order.manifest.legs.map((leg) => (
+                <div key={leg.outMint}>
+                  <dt>{leg.symbol}</dt>
+                  <dd className="num">
+                    {formatScaled(
+                      leg.expectedOutAmount,
+                      leg.decimals,
+                      multiplierFor(order.manifest.mints, leg.outMint),
+                    )}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </div>
 
-          {submitted.error && (
-            <p className="alert-inline" role="alert">
-              {submitted.error}
-            </p>
+          {submitted ? (
+            <div className="notice">
+              <h3>{HEADLINES[submitted.status] ?? "Signature accepted"}</h3>
+              <p className="copy">{BODY[submitted.status] ?? BODY.SIGNED}</p>
+              <p className="muted" style={{ margin: 0 }}>
+                {STATUS_LABELS[settled.status]}
+              </p>
+
+              {submitted.explorerUrls.map((url, i) => (
+                <p key={url} style={{ margin: 0 }}>
+                  <a href={url} target="_blank" rel="noreferrer">
+                    {submitted.explorerUrls.length > 1
+                      ? `Transaction ${i + 1} on Solscan`
+                      : "See it on Solscan"}
+                  </a>{" "}
+                  <span className="muted num">{truncate(submitted.txSignatures[i] ?? "")}</span>
+                </p>
+              ))}
+
+              {submitted.error && (
+                <p className="alert-inline" role="alert">
+                  {submitted.error}
+                </p>
+              )}
+
+              {submitted.pending?.map((line) => (
+                <p key={line} className="alert-inline">
+                  {line}
+                </p>
+              ))}
+            </div>
+          ) : (
+            <>
+              <div>
+                <span className="eyebrow">On the phone, right now</span>
+                <div className="phone-rail">
+                  <PhoneStep
+                    index={1}
+                    state={cycled ? "done" : "current"}
+                    title="Open the vault and point the camera here"
+                    detail={
+                      cycle
+                        ? `${cycle.frames} of ${cycle.frames} frames shown`
+                        : "building the frames…"
+                    }
+                  />
+                  <PhoneStep
+                    index={2}
+                    state={cycled ? "current" : "pending"}
+                    title="Read the ticket it prints, then approve"
+                    detail="It checks the price against Pyth with no network of its own"
+                  />
+                  <PhoneStep
+                    index={3}
+                    state="pending"
+                    title="Hold its answer up to your webcam"
+                    detail="Sixty-four bytes come back, nothing else"
+                  />
+                </div>
+              </div>
+
+              <SignatureScanner
+                expectedSid={encodeSessionId(sid)}
+                onSignatures={(signatures) => void submit(signatures)}
+                busy={submitting}
+              />
+            </>
           )}
 
-          {submitted.pending?.map((line) => (
-            <p key={line} className="alert-inline">
-              {line}
+          {problem && (
+            <p className="alert-inline" role="alert">
+              {problem}
             </p>
-          ))}
+          )}
         </div>
-      ) : (
-        <>
-          <AnimatedQr payload={payload} sid={sid} />
+      </div>
+    </AppShell>
+  );
+}
 
-          <div
-            style={{
-              display: "grid",
-              gap: 12,
-              borderTop: "1px solid var(--rule)",
-              paddingTop: 24,
-            }}
-          >
-            <span className="eyebrow">Return channel</span>
-            <p style={{ margin: 0, color: "var(--ink-2)" }}>
-              The vault answers with a single static QR holding sixty-four bytes.
-              Hold it up to the webcam.
-            </p>
-            <SignatureScanner
-              expectedSid={encodeSessionId(sid)}
-              onSignatures={(signatures) => void submit(signatures)}
-              busy={submitting}
-            />
-          </div>
-        </>
-      )}
-
-      {problem && (
-        <p className="alert-inline" role="alert">
-          {problem}
-        </p>
-      )}
+/**
+ * One row of what the holder is doing.
+ *
+ * Step one is the only one this side can infer at all, and only optically —
+ * so it says "shown", not "read". Nothing here can see the phone.
+ */
+function PhoneStep({
+  index,
+  state,
+  title,
+  detail,
+}: {
+  index: number;
+  state: "done" | "current" | "pending";
+  title: string;
+  detail: string;
+}) {
+  return (
+    <div className={`phone-step phone-step--${state}`}>
+      <span className="phone-mark" aria-hidden="true">
+        {state === "done" ? "✓" : index}
+      </span>
+      <span className="t">
+        <b>{title}</b>
+        <span>{detail}</span>
+      </span>
     </div>
   );
 }
 
+/** How long one full pass takes, so "the cycle restarts every" is true. */
+function cycleSeconds(frames: number | undefined): string {
+  if (!frames) return "?";
+  return (frames / DEFAULT_FPS).toFixed(1);
+}
+
+/** "three positions", "one position". */
+function legWord(count: number): string {
+  const names = ["no", "one", "two", "three", "four", "five"];
+  return `${names[count] ?? count} position${count === 1 ? "" : "s"}`;
+}
 /**
  * What each status means to someone watching, rather than to the database.
  *

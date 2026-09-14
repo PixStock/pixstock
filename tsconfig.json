@@ -1,10 +1,26 @@
 {
+  // `npm run typecheck` referenced only the packages, so apps/vault and
+  // apps/web were never type-checked by it. The vault's own `build` runs
+  // `tsc -b` first and would have caught it, but the command a person runs
+  // to check types has to be the one that checks them.
+  //
+  // apps/web needs the route types Next generates into .next/types —
+  // LayoutProps, PageProps — which do not exist on a clean checkout. The root
+  // `typecheck` script runs `next typegen` first so this works from nothing,
+  // in CI, before any build.
+  //
+  // apps/relayer is deliberately absent: its test files carry pre-existing
+  // errors (an `import.meta` under a CommonJS `module` setting, and
+  // VersionedMessage narrowing in tx-size.test.ts) that `nest build` never
+  // sees because it compiles src alone. Sorting that out is its own job.
   "files": [],
   "references": [
     { "path": "packages/shared" },
     { "path": "packages/agqp" },
     { "path": "packages/vault-crypto" },
     { "path": "packages/pyth-verify" },
-    { "path": "packages/tx-policy" }
+    { "path": "packages/tx-policy" },
+    { "path": "apps/vault" },
+    { "path": "apps/web" }
   ]
 }

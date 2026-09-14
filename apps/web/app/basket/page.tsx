@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Header } from "@/components/Header";
+import { AppShell } from "@/components/AppShell";
 import { Footer } from "@/components/Footer";
 import { SiteScript } from "@/components/SiteScript";
 import { content } from "@/content/site";
@@ -22,25 +22,16 @@ export default function BasketPage() {
   return (
     <>
       <SiteScript a11y={dict.common} />
-      <Header dict={dict} current="basket" />
 
-      <main id="main">
-        <div className="head-spacer" id="head-spacer" />
-
-        <section className="band page-head">
-          <div className="shell">
-            <p className="eyebrow">{b.pageHead.eyebrow}</p>
-            <h1>{b.pageHead.title}</h1>
-            <p className="lede">{b.pageHead.lede}</p>
-          </div>
-        </section>
-
-        <section className="band band--tight">
-          <div className="shell">
-            <BasketBuilder />
-          </div>
-        </section>
-      </main>
+      <AppShell
+        current="basket"
+        eyebrow={b.pageHead.eyebrow}
+        title={b.pageHead.title}
+        lede={b.pageHead.lede}
+        step={1}
+      >
+        <BasketBuilder />
+      </AppShell>
 
       <Footer dict={dict} />
     </>

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Header } from "@/components/Header";
+import { AppShell } from "@/components/AppShell";
 import { Footer } from "@/components/Footer";
 import { SiteScript } from "@/components/SiteScript";
 import { content } from "@/content/site";
@@ -23,37 +23,30 @@ export default function VaultPage() {
   return (
     <>
       <SiteScript a11y={dict.common} />
-      <Header dict={dict} current="vault" />
 
-      <main id="main">
-        <div className="head-spacer" id="head-spacer" />
-
-        <section className="band page-head">
-          <div className="shell">
-            <p className="eyebrow">{v.pageHead.eyebrow}</p>
-            <h1>{v.pageHead.title}</h1>
-            <p className="lede">{v.pageHead.lede}</p>
+      <AppShell
+        current="vault"
+        eyebrow={v.pageHead.eyebrow}
+        title={v.pageHead.title}
+        lede={v.pageHead.lede}
+        step={1}
+      >
+        <div className="stack-24">
+          <div>
+            <h2>{v.pairing.title}</h2>
+            <p className="copy">{v.pairing.body}</p>
           </div>
-        </section>
 
-        <section className="band band--tight">
-          <div className="shell stack-24">
-            <div>
-              <h2>{v.pairing.title}</h2>
-              <p className="copy">{v.pairing.body}</p>
-            </div>
+          <PairingScanner />
 
-            <PairingScanner />
-
-            <div>
-              <h2>{v.watchOnly.title}</h2>
-              <p className="copy">{v.watchOnly.body}</p>
-            </div>
-
-            <VaultBalances />
+          <div>
+            <h2>{v.watchOnly.title}</h2>
+            <p className="copy">{v.watchOnly.body}</p>
           </div>
-        </section>
-      </main>
+
+          <VaultBalances />
+        </div>
+      </AppShell>
 
       <Footer dict={dict} />
     </>

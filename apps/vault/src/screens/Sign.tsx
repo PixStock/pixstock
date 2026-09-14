@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { encodeSessionId, encodeSignatureResponse, type SignRequest } from "@pixstock/agqp";
 import type { OrderTicket } from "@pixstock/tx-policy";
 import { signWith, type VaultBlob } from "@pixstock/vault-crypto";
@@ -9,6 +9,8 @@ export interface SignProps {
   blob: VaultBlob;
   request: SignRequest;
   ticket: OrderTicket;
+  /** True once the reply QR is up, so the rail can move to step 3. */
+  onReplying?: (replying: boolean) => void;
   onDone: () => void;
 }
 
@@ -20,7 +22,7 @@ export interface SignProps {
  * message itself — the relayer attaches it to the message it already holds,
  * which is why only sixty-four bytes need to travel back.
  */
-export function Sign({ blob, request, ticket, onDone }: SignProps) {
+export function Sign({ blob, request, ticket, onReplying, onDone }: SignProps) {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,6 +30,12 @@ export function Sign({ blob, request, ticket, onDone }: SignProps) {
   const [biometric, setBiometric] = useState<"passed" | "absent" | null>(null);
 
   const enrolled = storedCredential() !== null;
+
+  // Told to the chrome rather than read from it: App owns the rail, and the
+  // reply only exists once the signature has been produced here.
+  useEffect(() => {
+    onReplying?.(reply !== null);
+  }, [reply, onReplying]);
 
   async function confirm() {
     setBusy(true);
@@ -57,54 +65,65 @@ export function Sign({ blob, request, ticket, onDone }: SignProps) {
     return (
       <section className="stack">
         <header className="stack stack--tight">
-          <p className="eyebrow">Step 3</p>
-          <h2>Show this to the webcam</h2>
-          <p className="lede">
-            Sixty-four bytes of signature, for session{" "}
-            <span className="num">{encodeSessionId(request.sid)}</span>. The
-            transaction never comes back — the laptop already has it.
-          </p>
+          <h2>Hold this up to the webcam</h2>
         </header>
 
-        <QrCode text={reply} px={320} />
+        <QrCode text={reply} px={480} className="qr qr--full" />
 
-        <div className="row">
-          <button type="button" className="btn" onClick={onDone}>
-            Done
-          </button>
-        </div>
+        <dl className="reply-meta">
+          <dt>Session</dt>
+          <dd>{encodeSessionId(request.sid)}</dd>
+        </dl>
+
+        <button type="button" className="btn btn--solid btn--wide" onClick={onDone}>
+          The laptop has it — done
+        </button>
+
+        <p className="closing">Nothing left this phone but a signature.</p>
       </section>
     );
   }
 
+  const pay = ticket.lines.filter((line) => line.direction === "in");
+  const receive = ticket.lines.filter((line) => line.direction === "out");
+
   return (
     <section className="stack">
       <header className="stack stack--tight">
-        <p className="eyebrow">Step 2</p>
-        <h2>Confirm and sign</h2>
+        <h2>Confirm what you approved</h2>
       </header>
 
-      <div className="ticket ticket--compact">
-        <p className="ticket-kind">{ticket.kind}</p>
-        <dl className="ticket-lines">
-          {ticket.lines.map((line, i) => (
-            <div key={i} className={`ticket-line ticket-line--${line.direction}`}>
-              <dt>{line.direction === "in" ? "You pay" : "You receive"}</dt>
-              <dd>
-                <span className="num">{line.amount}</span> {line.symbol}
-              </dd>
-            </div>
-          ))}
-        </dl>
+      <dl className="recap">
+        {pay.map((line, i) => (
+          <div key={`pay-${i}`} className="recap-row">
+            <dt>You pay</dt>
+            <dd>
+              <span className="num">{line.amount}</span> <span className="sym">{line.symbol}</span>
+            </dd>
+          </div>
+        ))}
+        {receive.map((line, i) => (
+          <div key={`get-${i}`} className="recap-row recap-row--out">
+            <dt>You receive</dt>
+            <dd>
+              <span className="num">{line.amount}</span> <span className="sym">{line.symbol}</span>
+            </dd>
+          </div>
+        ))}
+      </dl>
+
+      <div className={`biometric${enrolled ? " biometric--on" : ""}`}>
+        <span className="biometric-ring" aria-hidden="true">
+          {enrolled ? "✓" : "—"}
+        </span>
+        <p>
+          {enrolled
+            ? "Your fingerprint is checked first, and the check covers these exact bytes."
+            : "No fingerprint on this phone, so the master password stands alone."}
+        </p>
       </div>
 
-      <p className="muted">
-        {enrolled
-          ? "This phone will ask for your fingerprint or face before it signs, and the check covers these exact bytes."
-          : "No biometric is enrolled on this phone, so the master password is the only thing in front of your key."}
-      </p>
-
-      <label className="field">
+      <label className="field field--tall">
         <span>Master password</span>
         <input
           type="password"
@@ -126,18 +145,20 @@ export function Sign({ blob, request, ticket, onDone }: SignProps) {
         </p>
       )}
 
-      <div className="row">
+      <div className="stack stack--tight">
         <button
           type="button"
-          className="btn btn--solid"
+          className="btn btn--solid btn--wide"
           disabled={password.length === 0 || busy}
           onClick={() => void confirm()}
         >
-          {busy ? "Signing…" : "Sign"}
+          {busy ? "Signing…" : "Sign this order"}
         </button>
-        <button type="button" className="btn" onClick={onDone}>
-          Cancel
-        </button>
+        <div className="btn-pair">
+          <button type="button" className="btn" onClick={onDone}>
+            Cancel
+          </button>
+        </div>
       </div>
     </section>
   );

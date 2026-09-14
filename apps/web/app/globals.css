@@ -39,8 +39,10 @@
   --rule:     #37332f;
   --rule-2:   #272420;
   --sand:     #453d36;
+  --ok:       #5ec26a;
   --warn:     #f0a23c;
   --crit:     #ff5470;
+  --recess:   color-mix(in srgb, var(--ground) 92%, #000);
 }
 
 /* the light ramp, and the band that flips while the dark theme is active */
@@ -54,8 +56,12 @@
   --rule:     #d8d5d0;
   --rule-2:   #e5e3df;
   --sand:     #d4c9be;
+  --ok:       #2f7a3a;
   --warn:     #8a5a00;
   --crit:     #c8203f;
+  /* Towards the surface, not towards black: on a near-white ground the dark
+     ramp's expression drops --ink-3 to 3.92:1. */
+  --recess:   color-mix(in srgb, var(--ground) 55%, var(--surface));
 }
 
 :root { color-scheme: dark; }
@@ -108,6 +114,7 @@
   --color-line:   var(--rule);
   --color-line-2: var(--rule-2);
   --color-sand:   var(--sand);
+  --color-ok:     var(--ok);
   --color-warn:   var(--warn);
   --color-crit:   var(--crit);
 
@@ -1376,3 +1383,500 @@ html:not(.js-anim) .wordmark .rise { transform: none; opacity: 1; }
 .quote-row dt { color: var(--ink-3); }
 .quote-row dd { margin: 0; }
 .quote-stale { opacity: 0.45; transition: opacity 0.2s var(--ease-io); }
+
+/* ===========================================================================
+   app shell — /trade, /basket, /sign, /vault
+
+   The four app routes used to borrow the marketing chrome: a fixed
+   transparent header and a band whose h1 is clamp(34px, 5.4vw, 64px). At
+   1440px that is 64px of headline and about 180px of band before the first
+   control on a page whose whole job is the control.
+
+   The landing page, /protocol and /legal keep that chrome exactly as it is.
+   =========================================================================== */
+
+.app-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 40px;
+  border-bottom: 1px solid var(--rule-2);
+  background: var(--ground);
+}
+.app-head .brand { margin-right: 8px; }
+.app-head .brand svg { width: 24px; height: 24px; }
+.app-head .brand-name { font-size: 15.5px; font-weight: 600; letter-spacing: -0.01em; }
+
+.app-tabs { display: flex; gap: 4px; margin-right: auto; }
+.app-tab {
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-size: 14px;
+  color: var(--ink-2);
+  transition: background 0.25s var(--ease-io), color 0.25s var(--ease-io);
+}
+.app-tab:hover { color: var(--ink); }
+.app-tab[aria-current="page"] { background: var(--surface); color: var(--ink); font-weight: 500; }
+
+/* The paired vault, in the header, once. No route asks for it again: a
+   public key retyped on three pages is a public key mistyped on one. */
+.vault-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px 7px 12px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  font-size: 13px;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.vault-chip:hover { border-color: color-mix(in srgb, var(--ink) 42%, transparent); }
+.vault-chip .dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.vault-chip .addr { font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--ink); }
+.vault-chip--on { border-color: color-mix(in srgb, var(--ok) 32%, var(--rule)); }
+.vault-chip--on .dot { background: var(--ok); }
+.vault-chip--off { border-color: color-mix(in srgb, var(--warn) 32%, var(--rule)); }
+.vault-chip--off .dot { background: var(--warn); }
+
+/* What is up, said out loud. RelayerStatus rendered nothing at all until
+   something was broken — and what a judge asks about first is exactly the
+   thing it was hiding. */
+.strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 26px;
+  padding: 10px 40px;
+  background: var(--recess);
+  border-bottom: 1px solid var(--rule-2);
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.strip-item { display: inline-flex; align-items: center; gap: 8px; }
+.strip-item .dot { width: 6px; height: 6px; border-radius: 50%; flex: none; background: var(--ink-3); }
+.strip-item--ok .dot { background: var(--ok); }
+.strip-item--warn .dot { background: var(--warn); }
+.strip-item--crit .dot { background: var(--crit); }
+.strip-item .age { font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-3); }
+.strip-end { margin-left: auto; color: var(--ink-3); }
+
+.app-page-head {
+  display: flex;
+  align-items: flex-end;
+  gap: 40px;
+  padding: 34px 40px 26px;
+  border-bottom: 1px solid var(--rule-2);
+}
+.app-page-head .t { display: grid; gap: 10px; }
+.app-page-head h1 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 34px;
+  font-weight: 600;
+  letter-spacing: -0.028em;
+  line-height: 1.1;
+}
+.app-page-head .lede { margin: 0; font-size: 15.5px; color: var(--ink-2); max-width: 60ch; }
+
+/* The same construction as the phone's rail, so the two screens read as one
+   process rather than two products. */
+.app-rail { flex: none; width: 520px; display: flex; gap: 10px; }
+.app-rail-step { flex: 1; display: flex; flex-direction: column; gap: 7px; }
+.app-rail-bar {
+  height: 2px;
+  border-radius: 2px;
+  background: var(--rule);
+  transition: background 0.3s var(--ease-io);
+}
+.app-rail-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  transition: color 0.3s var(--ease-io);
+}
+.app-rail-step--done .app-rail-bar { background: var(--ok); }
+.app-rail-step--done .app-rail-label { color: var(--ink-2); }
+.app-rail-step--current .app-rail-bar { background: var(--ink); }
+.app-rail-step--current .app-rail-label { color: var(--ink); }
+
+.app-body { padding: 36px 40px 48px; }
+.app-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  gap: 36px;
+  align-items: start;
+}
+.app-cols--even { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 44px; }
+
+@media (max-width: 1080px) {
+  .app-head, .strip, .app-page-head, .app-body { padding-inline: 22px; }
+  .app-page-head { flex-direction: column; align-items: stretch; gap: 24px; }
+  .app-rail { width: auto; }
+  /* The preview comes first when the two columns stack: what you receive is
+     the decision, and it should not be below the fold on a laptop. */
+  .app-cols, .app-cols--even { grid-template-columns: minmax(0, 1fr); }
+  .app-cols > .app-col--preview { order: -1; }
+}
+
+@media (max-width: 720px) {
+  .app-tabs { order: 3; width: 100%; overflow-x: auto; }
+  .app-head { flex-wrap: wrap; }
+}
+
+/* ---------------------------------------------------------- app controls */
+
+/* All five assets and their Pyth coverage, visible without opening a menu.
+   A <select> hid the one fact that decides what the phone will say. */
+.asset-cards { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+.asset-card {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 14px;
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  background: none;
+  font: inherit;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.25s var(--ease-io), background 0.25s var(--ease-io);
+}
+.asset-card:hover { border-color: color-mix(in srgb, var(--ink) 42%, transparent); }
+.asset-card[aria-pressed="true"] { border-color: var(--ink); background: var(--surface); }
+.asset-card .sym { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+.asset-card .name { font-size: 12.5px; color: var(--ink-3); }
+.asset-card .px { margin-top: 6px; font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 15px; }
+.asset-card .cover { font-size: 11px; }
+.asset-card .cover--ok { color: var(--ok); }
+.asset-card .cover--warn { color: var(--warn); }
+
+@media (max-width: 900px) {
+  .asset-cards { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+}
+
+/* The amount is the second decision, so it is the second-largest thing. */
+.amount-field { position: relative; display: block; max-width: 340px; }
+.amount-field input {
+  width: 100%;
+  height: 66px;
+  padding: 0 78px 0 18px;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 30px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+}
+.amount-field input:focus-visible { outline: 2px solid var(--ink-3); outline-offset: 1px; }
+.amount-field .affix {
+  position: absolute;
+  right: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+  color: var(--ink-3);
+  pointer-events: none;
+}
+.amount-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.quick {
+  height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: none;
+  font: inherit;
+  font-size: 14px;
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: background 0.25s var(--ease-io), color 0.25s var(--ease-io);
+}
+.quick:hover { color: var(--ink); border-color: color-mix(in srgb, var(--ink) 42%, transparent); }
+.quick[aria-pressed="true"] { background: var(--ink); color: var(--ground); border-color: var(--ink); }
+
+/* Said before the press, not after it. The complaint this answers is that
+   nothing on the page explained what happens next. */
+.after { border-top: 1px solid var(--rule-2); padding-top: 26px; display: grid; gap: 18px; }
+.after-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 26px; }
+.after-step { display: grid; gap: 5px; align-content: start; }
+.after-step .n { font-family: var(--mono); font-size: 12.5px; color: var(--ink-3); }
+.after-step .t { font-size: 14.5px; font-weight: 600; letter-spacing: -0.01em; }
+.after-step .d { font-size: 13.5px; color: var(--ink-3); line-height: 1.5; }
+@media (max-width: 760px) { .after-cols { grid-template-columns: minmax(0, 1fr); } }
+
+/* ------------------------------------------------------------- the panel */
+.panel {
+  display: grid;
+  gap: 20px;
+  padding: 24px;
+  border: 1px solid var(--rule);
+  border-radius: 16px;
+  background: var(--surface);
+  position: sticky;
+  top: 20px;
+}
+.panel-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.fresh { font-size: 12.5px; color: var(--ok); }
+.fresh--stale { color: var(--warn); }
+
+.panel-figure { display: grid; gap: 4px; }
+.panel-figure .v {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 44px;
+  line-height: 1.02;
+  letter-spacing: -0.025em;
+}
+.panel-figure .sym { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
+.panel-figure .per { font-size: 13.5px; color: var(--ink-3); }
+
+.dl-rows { margin: 0; display: grid; }
+.dl-rows > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 11px 0;
+  border-top: 1px solid var(--rule);
+  font-size: 14px;
+}
+.dl-rows > div:last-child { border-bottom: 1px solid var(--rule); }
+.dl-rows dt { color: var(--ink-3); }
+.dl-rows dd { margin: 0; text-align: right; }
+.dl-rows dd.ok { color: var(--ok); }
+
+/* `.app-cta`, not `.cta`: the landing page's closing band is `.cta`, and a
+   54px pill height landing on a whole <section> squashed #try flat. A global
+   stylesheet shared with a page that is out of scope is a namespace, and
+   this button had taken a name that was already spoken for. */
+.app-cta {
+  width: 100%;
+  height: 54px;
+  font-size: 16.5px;
+  font-weight: 600;
+  border-radius: 999px;
+}
+.app-cta-note { margin: 0; text-align: center; font-size: 13px; color: var(--ink-3); }
+
+/* Only the numbers dim while a fresh quote is on its way. Dimming the
+   labels too makes the panel look broken rather than busy — and the bare
+   `.quote-stale` rule above would do exactly that, then dim the numbers a
+   second time through it. */
+.repricing .panel-figure,
+.repricing .dl-rows dd,
+.repricing .alloc-spend,
+.repricing .alloc-get { opacity: 0.45; transition: opacity 0.2s var(--ease-io); }
+
+/* Named for the screen reader, not for the eye. The amount field's own
+   eyebrow sits outside the label, so the input needs its name back. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ------------------------------------------------- the allocation editor */
+
+/* The split, before the numbers. A table made three percentages into three
+   cells to compare by eye; a bar makes them one shape. */
+.alloc-bar { display: flex; gap: 3px; height: 12px; border-radius: 6px; overflow: hidden; }
+.alloc-seg { border-radius: 2px; }
+
+/* Off the neutral ramp, in order. No hues: the accents mean a verdict, and a
+   basket leg is not a verdict. */
+.alloc-seg--0 { background: var(--ink); }
+.alloc-seg--1 { background: #a8a29a; }
+.alloc-seg--2 { background: var(--ink-3); }
+.alloc-seg--3 { background: #57524b; }
+.alloc-seg--4 { background: var(--rule); }
+
+.alloc-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+.alloc-total { font-size: 13.5px; color: var(--ok); }
+.alloc-total--off { color: var(--warn); }
+
+.alloc-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 20px;
+  align-items: center;
+  padding: 16px 0;
+  border-top: 1px solid var(--rule-2);
+}
+.alloc-name { display: flex; align-items: center; gap: 10px; }
+.alloc-swatch { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.alloc-name .t { display: grid; gap: 1px; }
+.alloc-name .sym { font-size: 15.5px; font-weight: 600; letter-spacing: -0.01em; }
+.alloc-name .nm { font-size: 13px; color: var(--ink-3); }
+.alloc-pct { display: flex; align-items: center; gap: 12px; }
+.alloc-pct input[type="range"] { flex: 1; min-width: 90px; accent-color: var(--ink); }
+.alloc-pct .v {
+  width: 46px;
+  text-align: right;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 15px;
+}
+.alloc-spend {
+  text-align: right;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 14.5px;
+  color: var(--ink-2);
+}
+.alloc-get { text-align: right; display: grid; gap: 1px; }
+.alloc-get .v { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 15px; }
+.alloc-get .via { font-size: 12.5px; color: var(--ink-3); }
+
+.alloc-foot { display: flex; align-items: center; gap: 14px; padding-top: 16px; border-top: 1px solid var(--rule-2); }
+.alloc-foot .note { font-size: 13.5px; color: var(--ink-3); }
+
+@media (max-width: 860px) {
+  .alloc-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px 20px; }
+  .alloc-spend, .alloc-get { text-align: left; }
+}
+
+/* Presets, as chips. The active one is solid because it is a state, not a
+   button waiting to be pressed again. */
+.preset {
+  height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: none;
+  font: inherit;
+  font-size: 14px;
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: background 0.25s var(--ease-io), color 0.25s var(--ease-io);
+}
+.preset:hover { color: var(--ink); border-color: color-mix(in srgb, var(--ink) 42%, transparent); }
+.preset[aria-pressed="true"] { background: var(--ink); color: var(--ground); border-color: var(--ink); }
+
+.panel-chip {
+  padding: 5px 11px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+/* What no signing device can fix, said before the order is built rather than
+   discovered on the phone. */
+.warnbox {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 13px 14px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--warn) 32%, var(--rule));
+  background: color-mix(in srgb, var(--warn) 8%, var(--ground));
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--ink);
+}
+.warnbox .mark { flex: none; color: var(--warn); font-weight: 700; }
+
+/* ------------------------------------------------------- /sign, crossing */
+
+.qr-figure { margin: 0; display: grid; gap: 14px; }
+.qr-canvas {
+  width: 100%;
+  max-width: 540px;
+  height: auto;
+  border-radius: 16px;
+  background: #fff;
+}
+
+/* The same segmented bar the phone draws, so the two screens agree about
+   what the channel is doing. No transition: it must read as instantaneous. */
+.frames { display: flex; gap: 3px; max-width: 540px; }
+.frame-seg { flex: 1; height: 4px; border-radius: 2px; background: var(--rule); }
+.frame-seg--got { background: var(--ink); }
+
+.qr-caption {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  max-width: 540px;
+}
+.qr-caption .l { font-size: 14px; color: var(--ink-2); }
+.qr-caption .r {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  color: var(--ink-3);
+}
+
+/* What the holder is doing, right now, in the order they are doing it. */
+.phone-rail { display: grid; }
+.phone-step {
+  display: flex;
+  gap: 14px;
+  padding: 14px 0;
+  border-top: 1px solid var(--rule-2);
+}
+.phone-mark {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-family: var(--mono);
+  font-size: 12px;
+  border: 2px solid var(--rule);
+  color: var(--ink-3);
+}
+.phone-step--done .phone-mark { background: var(--ok); border-color: var(--ok); color: var(--ground); }
+.phone-step--current .phone-mark { border-color: var(--ink); color: var(--ink); }
+.phone-step .t { display: grid; gap: 3px; }
+.phone-step .t b { font-size: 15px; font-weight: 500; }
+.phone-step--pending .t b { color: var(--ink-3); }
+.phone-step .t span { font-size: 13.5px; color: var(--ink-3); line-height: 1.45; }
+
+/* Dashed, because it is the half that has not happened yet. */
+.wayback {
+  display: grid;
+  gap: 14px;
+  padding: 22px;
+  border: 1px dashed var(--rule);
+  border-radius: 16px;
+}
+.wayback-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.wayback-state { font-size: 13px; color: var(--ink-3); }
+.wayback-state--on { color: var(--ok); }
+.webcam-box {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  background: #000;
+  object-fit: cover;
+  display: block;
+}
+.app-cta--wayback { height: 50px; font-size: 15.5px; }
+
+.inside-card {
+  display: grid;
+  gap: 14px;
+  padding: 22px;
+  border-radius: 16px;
+  background: var(--surface);
+}
+.inside-card .v {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 30px;
+  letter-spacing: -0.02em;
+}
+.inside-card .d { font-size: 14px; color: var(--ink-3); }

@@ -9,24 +9,21 @@ import { DEVIATION_CHOICES, loadSettings, saveSettings } from "../vault/settings
 
 /**
  * What this vault is, what it will refuse, how to back it up, and how to
- * erase it.
+ * erase it — in four groups rather than one flat stack.
  *
  * The price tolerance can only be tightened — see vault/settings.ts. Erasing
  * asks twice and says exactly what is lost, because the Paper-Vault is the
  * only thing that brings it back and there is no support desk that can.
  *
- * The Paper-Vault is shown on demand rather than only at setup. It is the
- * encrypted blob: rendering it needs no password and reveals nothing to
- * anyone who does not have one, so there was never a reason to show it once
- * and never again — while the reason to show it again is that a backup you
- * cannot re-take is a backup you have already lost.
+ * The two backups open in place. A way out of your own vault that you have to
+ * go somewhere to find is a way out nobody finds.
  */
 export function Settings({ blob, onDone }: { blob: VaultBlob; onDone: () => void }) {
   const [settings, setSettings] = useState(loadSettings);
   const [confirming, setConfirming] = useState(false);
   const [wiped, setWiped] = useState(false);
+  const [open, setOpen] = useState<"paper" | "key" | null>(null);
   const [paper, setPaper] = useState<string | null>(null);
-  const [asking, setAsking] = useState(false);
   const [keyPassword, setKeyPassword] = useState("");
   const [keyError, setKeyError] = useState<string | null>(null);
   const [secret, setSecret] = useState<string | null>(null);
@@ -68,7 +65,6 @@ export function Settings({ blob, onDone }: { blob: VaultBlob; onDone: () => void
       secretKey.set(blob.publicKey, 32);
       setSecret(base58.encode(secretKey));
       secretKey.fill(0);
-      setAsking(false);
       setKeyPassword("");
     } catch (err) {
       setKeyError((err as Error).message);
@@ -92,21 +88,44 @@ export function Settings({ blob, onDone }: { blob: VaultBlob; onDone: () => void
     setWiped(true);
   }
 
+  /** Closing a row puts away whatever it revealed. */
+  function toggle(row: "paper" | "key") {
+    setOpen((current) => {
+      if (current === row) {
+        if (row === "paper") setPaper(null);
+        if (row === "key") {
+          setSecret(null);
+          setKeyPassword("");
+          setKeyError(null);
+        }
+        return null;
+      }
+      return row;
+    });
+  }
+
   if (wiped) {
     return (
       <section className="stack">
-        <div className="alert" role="alert">
-          <strong>This vault is gone from this phone.</strong>
-          <p style={{ margin: "6px 0 0" }}>
-            Its key exists only on your Paper-Vault now. Reload the app to start again, or
-            restore the sheet.
-          </p>
+        <div className="verdict verdict--crit" role="alert">
+          <span className="verdict-badge" aria-hidden="true">
+            ✕
+          </span>
+          <div className="verdict-body">
+            <p className="verdict-head">This vault is gone from this phone.</p>
+            <p className="verdict-detail">
+              Its key exists only on your Paper-Vault now. Reload the app to start again, or
+              restore the sheet.
+            </p>
+          </div>
         </div>
-        <div className="row">
-          <button type="button" className="btn btn--solid" onClick={() => location.reload()}>
-            Reload
-          </button>
-        </div>
+        <button
+          type="button"
+          className="btn btn--solid btn--wide"
+          onClick={() => location.reload()}
+        >
+          Reload
+        </button>
       </section>
     );
   }
@@ -114,33 +133,23 @@ export function Settings({ blob, onDone }: { blob: VaultBlob; onDone: () => void
   return (
     <section className="stack">
       <header className="stack stack--tight">
-        <p className="eyebrow">Settings</p>
-        <h2>This vault</h2>
+        <h2>Settings</h2>
       </header>
 
-      <dl className="ticket-meta">
-        <div>
-          <dt>Address</dt>
-          <dd className="num" style={{ wordBreak: "break-all" }}>
-            {vault}
-          </dd>
+      <div className="idcard">
+        <p className="eyebrow">This vault</p>
+        <p className="addr">{vault}</p>
+        <div className="chip-row">
+          <span className={`chip${biometric ? " chip--ok" : ""}`}>
+            {biometric && <span className="dot" aria-hidden="true" />}
+            {biometric ? "Fingerprint on" : "No fingerprint"}
+          </span>
+          <span className="chip">Created {created(blob.createdAt)}</span>
+          <span className="chip">
+            <span className="num">{TRUSTED_SIGNERS.length}</span>&nbsp;Pyth keys
+          </span>
         </div>
-        <div>
-          <dt>Created</dt>
-          <dd className="num">{new Date(blob.createdAt * 1000).toISOString().slice(0, 10)}</dd>
-        </div>
-        <div>
-          <dt>Biometric</dt>
-          <dd>{biometric ? "enrolled on this phone" : "none — the password stands alone"}</dd>
-        </div>
-        <div>
-          <dt>Pyth signing keys</dt>
-          <dd>
-            <span className="num">{TRUSTED_SIGNERS.length}</span>, read{" "}
-            {SIGNERS_READ_AT.slice(0, 10)}
-          </dd>
-        </div>
-      </dl>
+      </div>
 
       <div className="stack stack--tight">
         <h3>Refuse a price that drifts more than</h3>
@@ -148,7 +157,7 @@ export function Settings({ blob, onDone }: { blob: VaultBlob; onDone: () => void
           This can be tightened, never loosened. The number that protects you should not be
           adjustable by whoever is trying to get past it.
         </p>
-        <div className="row">
+        <div className="choice-row">
           {DEVIATION_CHOICES.map((choice) => (
             <button
               key={choice}
@@ -160,156 +169,195 @@ export function Settings({ blob, onDone }: { blob: VaultBlob; onDone: () => void
             </button>
           ))}
         </div>
+        <p className="muted">Pyth keys read {SIGNERS_READ_AT.slice(0, 10)}.</p>
       </div>
 
-      <div className="stack stack--tight">
-        <h3>Back this vault up</h3>
-        <p className="muted">
-          The same Paper-Vault you were shown when this vault was made. It is encrypted
-          with your master password, so a photograph of it spends nothing on its own.
-          Print it, or read it into a wallet that takes a private key.
-        </p>
-        {paper ? (
-          <>
-            <QrCode text={paper} px={280} />
-            <p
-              className="num"
-              style={{ wordBreak: "break-all", fontSize: 12, lineHeight: 1.5 }}
-            >
-              {paper}
+      <div className="disclose">
+        <button
+          type="button"
+          className="disclose-row"
+          aria-expanded={open === "paper"}
+          onClick={() => toggle("paper")}
+        >
+          <span className="t">
+            <b>Show my Paper-Vault</b>
+            <span>The encrypted sheet. Useless without your master password.</span>
+          </span>
+          <Chevron />
+        </button>
+
+        {open === "paper" && (
+          <div className="disclose-body">
+            <p className="muted">
+              The same Paper-Vault you were shown when this vault was made. A photograph of
+              it spends nothing on its own. Print it, or read it into a wallet that takes a
+              private key.
             </p>
-            <div className="row">
-              <button type="button" className="btn" onClick={() => setPaper(null)}>
-                Hide it
-              </button>
-            </div>
-          </>
+            {paper ? (
+              <>
+                <QrCode text={paper} px={480} className="qr qr--full" />
+                <p className="num" style={{ wordBreak: "break-all", fontSize: 12, lineHeight: 1.5 }}>
+                  {paper}
+                </p>
+              </>
+            ) : (
+              <div className="btn-pair">
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => setPaper(encodePaperVault(blob))}
+                >
+                  Show it
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        <button
+          type="button"
+          className="disclose-row"
+          aria-expanded={open === "key"}
+          onClick={() => toggle("key")}
+        >
+          <span className="t">
+            <b>Export to another wallet</b>
+            <span>The private key itself. Anyone who reads it can move everything.</span>
+          </span>
+          <Chevron />
+        </button>
+
+        {open === "key" && (
+          <div className="disclose-body">
+            <p className="muted">
+              The account itself, in the form Phantom, Solflare and solana-keygen import.
+              Anyone who reads it can move everything here — no password, no second step, no
+              way to take it back. The Paper-Vault above is the safer backup.
+            </p>
+
+            {secret ? (
+              <>
+                <div className="warnbox">
+                  <span className="mark" aria-hidden="true">
+                    !
+                  </span>
+                  <ul className="warnbox-list">
+                    <li>This is your account. It hides itself in a minute.</li>
+                  </ul>
+                </div>
+                <p className="num" style={{ wordBreak: "break-all", fontSize: 13, lineHeight: 1.6 }}>
+                  {secret}
+                </p>
+                <div className="btn-pair">
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={() => void navigator.clipboard?.writeText(secret)}
+                  >
+                    Copy
+                  </button>
+                  <button type="button" className="btn btn--solid" onClick={() => setSecret(null)}>
+                    Hide it
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <label className="field field--tall">
+                  <span>Master password</span>
+                  <input
+                    type="password"
+                    value={keyPassword}
+                    onChange={(event) => setKeyPassword(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" && keyPassword.length > 0) void reveal();
+                    }}
+                    autoComplete="current-password"
+                    autoFocus
+                  />
+                </label>
+                {keyError && (
+                  <p className="alert" role="alert">
+                    {keyError}
+                  </p>
+                )}
+                <div className="btn-pair">
+                  <button
+                    type="button"
+                    className="btn btn--solid"
+                    disabled={keyPassword.length === 0}
+                    onClick={() => void reveal()}
+                  >
+                    Show my private key
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="danger">
+        <p className="eyebrow">Danger</p>
+        <p>
+          Erasing deletes the encrypted key from this phone. Without your printed
+          Paper-Vault it cannot be recovered — not by us, not by anyone.
+        </p>
+        {confirming ? (
+          <div className="btn-pair">
+            <button type="button" className="btn btn--danger" onClick={wipe}>
+              Erase it. I have the paper.
+            </button>
+            <button type="button" className="btn" onClick={() => setConfirming(false)}>
+              Cancel
+            </button>
+          </div>
         ) : (
-          <div className="row">
+          <div className="btn-pair">
             <button
               type="button"
-              className="btn"
-              onClick={() => setPaper(encodePaperVault(blob))}
+              className="btn btn--danger"
+              onClick={() => setConfirming(true)}
             >
-              Show my Paper-Vault
-            </button>
-          </div>
-        )}
-      </div>
-
-      <div className="stack stack--tight">
-        <h3>Show my private key</h3>
-        <p className="muted">
-          The account itself, in the form Phantom, Solflare and solana-keygen import.
-          Anyone who reads it can move everything here — no password, no second step, no
-          way to take it back. The Paper-Vault above is the safer backup: it is useless
-          without your master password.
-        </p>
-
-        {secret ? (
-          <>
-            <div className="alert" role="alert">
-              <strong>This is your account. It hides itself in a minute.</strong>
-            </div>
-            <p
-              className="num"
-              style={{ wordBreak: "break-all", fontSize: 13, lineHeight: 1.6 }}
-            >
-              {secret}
-            </p>
-            <div className="row">
-              <button
-                type="button"
-                className="btn"
-                onClick={() => void navigator.clipboard?.writeText(secret)}
-              >
-                Copy
-              </button>
-              <button type="button" className="btn btn--solid" onClick={() => setSecret(null)}>
-                Hide it
-              </button>
-            </div>
-          </>
-        ) : asking ? (
-          <div className="stack stack--tight">
-            <label className="stack stack--tight">
-              <span>Master password</span>
-              <input
-                type="password"
-                value={keyPassword}
-                onChange={(event) => setKeyPassword(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" && keyPassword.length > 0) void reveal();
-                }}
-                autoComplete="current-password"
-                autoFocus
-              />
-            </label>
-            {keyError && (
-              <p className="alert-inline" role="alert">
-                {keyError}
-              </p>
-            )}
-            <div className="row">
-              <button
-                type="button"
-                className="btn btn--solid"
-                disabled={keyPassword.length === 0}
-                onClick={() => void reveal()}
-              >
-                Show it
-              </button>
-              <button
-                type="button"
-                className="btn"
-                onClick={() => {
-                  setAsking(false);
-                  setKeyPassword("");
-                  setKeyError(null);
-                }}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="row">
-            <button type="button" className="btn" onClick={() => setAsking(true)}>
-              Show my private key
-            </button>
-          </div>
-        )}
-      </div>
-
-      <div className="stack stack--tight">
-        <h3>Erase this vault</h3>
-        <p className="muted">
-          The encrypted key is deleted from this phone. Without your printed Paper-Vault it
-          cannot be recovered — not by us, not by anyone.
-        </p>
-        <div className="row">
-          {confirming ? (
-            <>
-              <button type="button" className="btn btn--solid" onClick={wipe}>
-                Erase it. I have the paper.
-              </button>
-              <button type="button" className="btn" onClick={() => setConfirming(false)}>
-                Cancel
-              </button>
-            </>
-          ) : (
-            <button type="button" className="btn" onClick={() => setConfirming(true)}>
               Erase this vault
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
-      <div className="row">
+      <div className="btn-pair">
         <button type="button" className="btn" onClick={onDone}>
           Back
         </button>
       </div>
     </section>
   );
+}
+
+function Chevron() {
+  return (
+    <svg
+      className="chev"
+      width="7"
+      height="12"
+      viewBox="0 0 7 12"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M1 1l5 5-5 5" />
+    </svg>
+  );
+}
+
+/** The date a person would write, not the one a database would. */
+function created(seconds: number): string {
+  return new Date(seconds * 1000).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }

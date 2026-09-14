@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Header } from "@/components/Header";
+import { AppShell } from "@/components/AppShell";
 import { Footer } from "@/components/Footer";
 import { SiteScript } from "@/components/SiteScript";
 import { content } from "@/content/site";
@@ -22,25 +22,16 @@ export default function TradePage() {
   return (
     <>
       <SiteScript a11y={dict.common} />
-      <Header dict={dict} current="trade" />
 
-      <main id="main">
-        <div className="head-spacer" id="head-spacer" />
-
-        <section className="band page-head">
-          <div className="shell">
-            <p className="eyebrow">{t.pageHead.eyebrow}</p>
-            <h1>{t.pageHead.title}</h1>
-            <p className="lede">{t.pageHead.lede}</p>
-          </div>
-        </section>
-
-        <section className="band band--tight">
-          <div className="shell">
-            <TradeForm />
-          </div>
-        </section>
-      </main>
+      <AppShell
+        current="trade"
+        eyebrow={t.pageHead.eyebrow}
+        title={t.pageHead.title}
+        lede={t.pageHead.lede}
+        step={1}
+      >
+        <TradeForm />
+      </AppShell>
 
       <Footer dict={dict} />
     </>
