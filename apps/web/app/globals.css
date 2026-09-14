@@ -1773,3 +1773,98 @@ html:not(.js-anim) .wordmark .rise { transform: none; opacity: 1; }
   color: var(--ink);
 }
 .warnbox .mark { flex: none; color: var(--warn); font-weight: 700; }
+
+/* ------------------------------------------------------- /sign, crossing */
+
+.qr-figure { margin: 0; display: grid; gap: 14px; }
+.qr-canvas {
+  width: 100%;
+  max-width: 540px;
+  height: auto;
+  border-radius: 16px;
+  background: #fff;
+}
+
+/* The same segmented bar the phone draws, so the two screens agree about
+   what the channel is doing. No transition: it must read as instantaneous. */
+.frames { display: flex; gap: 3px; max-width: 540px; }
+.frame-seg { flex: 1; height: 4px; border-radius: 2px; background: var(--rule); }
+.frame-seg--got { background: var(--ink); }
+
+.qr-caption {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  max-width: 540px;
+}
+.qr-caption .l { font-size: 14px; color: var(--ink-2); }
+.qr-caption .r {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  color: var(--ink-3);
+}
+
+/* What the holder is doing, right now, in the order they are doing it. */
+.phone-rail { display: grid; }
+.phone-step {
+  display: flex;
+  gap: 14px;
+  padding: 14px 0;
+  border-top: 1px solid var(--rule-2);
+}
+.phone-mark {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-family: var(--mono);
+  font-size: 12px;
+  border: 2px solid var(--rule);
+  color: var(--ink-3);
+}
+.phone-step--done .phone-mark { background: var(--ok); border-color: var(--ok); color: var(--ground); }
+.phone-step--current .phone-mark { border-color: var(--ink); color: var(--ink); }
+.phone-step .t { display: grid; gap: 3px; }
+.phone-step .t b { font-size: 15px; font-weight: 500; }
+.phone-step--pending .t b { color: var(--ink-3); }
+.phone-step .t span { font-size: 13.5px; color: var(--ink-3); line-height: 1.45; }
+
+/* Dashed, because it is the half that has not happened yet. */
+.wayback {
+  display: grid;
+  gap: 14px;
+  padding: 22px;
+  border: 1px dashed var(--rule);
+  border-radius: 16px;
+}
+.wayback-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.wayback-state { font-size: 13px; color: var(--ink-3); }
+.wayback-state--on { color: var(--ok); }
+.webcam-box {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  background: #000;
+  object-fit: cover;
+  display: block;
+}
+.cta--wayback { height: 50px; font-size: 15.5px; }
+
+.inside-card {
+  display: grid;
+  gap: 14px;
+  padding: 22px;
+  border-radius: 16px;
+  background: var(--surface);
+}
+.inside-card .v {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 30px;
+  letter-spacing: -0.02em;
+}
+.inside-card .d { font-size: 14px; color: var(--ink-3); }

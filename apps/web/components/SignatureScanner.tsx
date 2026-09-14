@@ -132,27 +132,30 @@ export function SignatureScanner({
     void tick();
   }, [accept, stop]);
 
+  const scanning = state.status === "scanning" || state.status === "starting";
+
   return (
-    <div style={{ display: "grid", gap: 14 }}>
+    <div className="wayback">
+      <div className="wayback-head">
+        <span className="eyebrow">The way back</span>
+        <span className={`wayback-state${scanning ? " wayback-state--on" : ""}`}>
+          {scanning ? "webcam open" : "webcam off"}
+        </span>
+      </div>
+
       {/*
         Always mounted, never conditional. The ref has to exist before
         `start()` reads it, and rendering this only while scanning is the bug
         that made the button appear dead.
       */}
-      <video
-        ref={videoRef}
-        playsInline
-        muted
-        hidden={state.status !== "scanning" && state.status !== "starting"}
-        style={{ width: "100%", maxWidth: 420, borderRadius: 10, background: "#000" }}
-      />
+      <video ref={videoRef} playsInline muted className="webcam-box" />
 
       {state.status === "starting" && (
-        <p style={{ color: "var(--ink-3)", margin: 0 }}>Opening the webcam…</p>
+        <p style={{ color: "var(--ink-3)", margin: 0, fontSize: 13 }}>Opening the webcam…</p>
       )}
 
       {state.status === "error" && (
-        <p role="alert" style={{ color: "var(--crit)", margin: 0 }}>
+        <p role="alert" style={{ color: "var(--crit)", margin: 0, fontSize: 13.5 }}>
           {state.message}
         </p>
       )}
@@ -165,40 +168,34 @@ export function SignatureScanner({
             {state.response.signatures.length === 1 ? "" : "s"}, session{" "}
             <span className="num">{state.response.sid}</span>.
           </p>
-          <pre
-            style={{
-              margin: 0,
-              padding: 12,
-              borderRadius: 10,
-              border: "1px solid var(--rule)",
-              fontFamily: "var(--mono)",
-              fontSize: 12.5,
-              whiteSpace: "pre-wrap",
-              wordBreak: "break-all",
-            }}
-          >
-            {Array.from(state.response.signatures[0]!.slice(0, 24), (b) =>
-              b.toString(16).padStart(2, "0")
-            ).join(" ")}{" "}
-            …
-          </pre>
           <p style={{ color: "var(--ink-3)", fontSize: 13, margin: 0 }}>
             {busy ? "Sending it to the relayer…" : "Next: co-sign as fee payer, then broadcast."}
           </p>
         </div>
       )}
 
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        {state.status === "scanning" || state.status === "starting" ? (
-          <button type="button" className="btn" onClick={() => { stop(); setState({ status: "idle" }); }}>
-            Stop
-          </button>
-        ) : (
-          <button type="button" className="btn" onClick={() => void start()}>
-            Scan with webcam
-          </button>
-        )}
-      </div>
+      {scanning ? (
+        <button
+          type="button"
+          className="btn cta cta--wayback"
+          onClick={() => {
+            stop();
+            setState({ status: "idle" });
+          }}
+        >
+          Stop watching
+        </button>
+      ) : (
+        <button
+          type="button"
+          className="btn btn--solid cta cta--wayback"
+          onClick={() => void start()}
+        >
+          Open the webcam and watch for the signature
+        </button>
+      )}
+
+      <p className="cta-note">Or paste the reply text if this machine has no camera.</p>
 
       <details>
         <summary style={{ cursor: "pointer", color: "var(--ink-2)", fontSize: 14 }}>

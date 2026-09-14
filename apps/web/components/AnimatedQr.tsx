@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import QRCode from "qrcode";
 import {
   AnimatedQrScheduler,
-  CHUNK_SIZES,
   DEFAULT_FPS,
   encodeFrames,
   type FrameSize,
@@ -20,6 +19,8 @@ export interface AnimatedQrProps {
   /** Rendered edge length in CSS pixels. 520 keeps a module at ~7px. */
   px?: number;
   onCycle?: (info: { frames: number; index: number }) => void;
+  /** Class on the canvas. /sign wants the 16px radius and 540px cap. */
+  className?: string;
 }
 
 /**
@@ -29,7 +30,15 @@ export interface AnimatedQrProps {
  * missed comes back on the next pass. Error correction is fixed at M, which
  * is what the capacity budget in docs/AGQP-SPEC.md §1 assumes.
  */
-export function AnimatedQr({ payload, sid, size = "M", fps = DEFAULT_FPS, px = 520, onCycle }: AnimatedQrProps) {
+export function AnimatedQr({
+  payload,
+  sid,
+  size = "M",
+  fps = DEFAULT_FPS,
+  px = 520,
+  onCycle,
+  className,
+}: AnimatedQrProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   // Held in a ref so a new callback identity does not restart the cycle.
   const onCycleRef = useRef(onCycle);
@@ -92,27 +101,28 @@ export function AnimatedQr({ payload, sid, size = "M", fps = DEFAULT_FPS, px = 5
     );
   }
 
-  const cycleMs = frames.length ? Math.round((frames.length / fps) * 1000) : 0;
-
+  // The frame index is the page's to caption. /sign draws a segmented bar
+  // from the same onCycle, and a figcaption under it would be the same fact
+  // twice in two shapes.
   return (
-    <figure style={{ margin: 0, display: "grid", gap: 12, justifyItems: "center" }}>
-      <canvas
-        ref={canvasRef}
-        width={px}
-        height={px}
-        style={{ width: "100%", maxWidth: px, height: "auto", borderRadius: 8, background: "#fff" }}
-        role="img"
-        aria-label={`Order frame ${index + 1} of ${frames.length}. Point the vault camera at this screen.`}
-      />
-      <figcaption style={{ color: "var(--ink-3)", fontSize: 13 }}>
-        Frame <span className="num">{index + 1}</span> of <span className="num">{frames.length}</span>
-        {" · "}
-        <span className="num">{CHUNK_SIZES[size]}</span> B per frame
-        {" · "}
-        <span className="num">{fps}</span> FPS
-        {" · "}
-        cycle <span className="num">{cycleMs}</span> ms
-      </figcaption>
-    </figure>
+    <canvas
+      ref={canvasRef}
+      width={px}
+      height={px}
+      className={className}
+      {...(className
+        ? {}
+        : {
+            style: {
+              width: "100%",
+              maxWidth: px,
+              height: "auto",
+              borderRadius: 8,
+              background: "#fff",
+            },
+          })}
+      role="img"
+      aria-label={`Order frame ${index + 1} of ${frames.length}. Point the vault camera at this screen.`}
+    />
   );
 }

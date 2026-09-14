@@ -75,14 +75,7 @@ export function SignHarness() {
 
       <AnimatedQr payload={order.payload} sid={order.sid} size={size} fps={fps} />
 
-      <div style={{ display: "grid", gap: 12, borderTop: "1px solid var(--rule)", paddingTop: 24 }}>
-        <span className="eyebrow">Return channel</span>
-        <p style={{ margin: 0, color: "var(--ink-2)" }}>
-          The vault answers with a single static QR holding sixty-four bytes.
-          Hold it up to the webcam.
-        </p>
-        <SignatureScanner expectedSid={encodeSessionId(order.sid)} />
-      </div>
+      <SignatureScanner expectedSid={encodeSessionId(order.sid)} />
     </div>
   );
 }
