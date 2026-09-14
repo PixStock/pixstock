@@ -12,8 +12,12 @@ import { RelayerService } from '../modules/relayer/relayer.service';
  * to film, and the fix costs rent per account. Something that spends money is
  * something a person runs on purpose.
  *
- *   npm run nonces:create -w @pixstock/relayer -- 3
- *   npm run nonces:status -w @pixstock/relayer
+ *   npm run nonces:status  -w @pixstock/relayer
+ *   npm run nonces:create  -w @pixstock/relayer -- 3
+ *   npm run nonces:release -w @pixstock/relayer -- 30
+ *
+ * Inside a deployed container there is no workspace root, so the same three
+ * are `node apps/relayer/dist/cli/nonce-pool.js <command> <n>`.
  *
  * It refuses unless RELAYER_ALLOW_BROADCAST is true, for the same reason
  * broadcasting does.
@@ -43,6 +47,27 @@ async function main() {
         `  ${nonce.pubkey} ${nonce.inUse ? 'in use' : 'free'}` +
           `${nonce.onChain ? '' : ' — NOT FOUND ON CHAIN'}`,
       );
+    }
+
+    if (command === 'release') {
+      // Minutes, because the unit someone types at a terminal at midnight is
+      // minutes. Thirty is long enough that a scan in progress is never
+      // touched, short enough to rescue a filming session.
+      const minutes = Number(countArg ?? 30);
+      if (!Number.isFinite(minutes) || minutes < 0) {
+        logger.error('Pass an age in minutes: nonces:release -- 30');
+        process.exitCode = 1;
+        return;
+      }
+
+      const freed = await nonces.releaseAbandoned(minutes * 60_000);
+      if (freed.length === 0) {
+        logger.log(`Nothing to free: no nonce is held by an order older than ${minutes} min.`);
+        return;
+      }
+      logger.log(`Freed ${freed.length}:`);
+      for (const one of freed) logger.log(`  ${one.pubkey} — ${one.reason}`);
+      return;
     }
 
     if (command !== 'create') {

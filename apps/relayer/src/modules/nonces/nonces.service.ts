@@ -8,6 +8,7 @@ import {
   SystemProgram,
   Transaction,
 } from '@solana/web3.js';
+import { OrderStatus } from '@prisma/client';
 import { parseSecretKey } from '../../config';
 import { DatabaseService } from '../../database/database.service';
 import { SolanaService } from '../solana/solana.service';
@@ -88,6 +89,64 @@ export class NoncesService {
     });
 
     return { account: free.pubkey, authority, value };
+  }
+
+  /**
+   * Frees nonces held by orders that can never use them.
+   *
+   * A durable nonce does not expire — that is the whole point of it, and why
+   * `expireIfStale` leaves nonce-bound orders alone. The cost is that an
+   * order built and then abandoned holds its account for good, and nothing
+   * notices: the pool drains one walk-away at a time, and orders start
+   * falling back to a blockhash without anyone asking for that.
+   *
+   * An order that was broadcast keeps its nonce. The transaction may still
+   * land, and handing the account to a second order would let it build on a
+   * value the cluster has not consumed yet.
+   */
+  async releaseAbandoned(
+    olderThanMs: number,
+  ): Promise<Array<{ pubkey: string; orderId: string | null; reason: string }>> {
+    const held = await this.db.nonceAccount.findMany({ where: { inUse: true } });
+    const freeing: Array<{ pubkey: string; orderId: string | null; reason: string }> = [];
+
+    for (const nonce of held) {
+      if (!nonce.orderId) {
+        freeing.push({ pubkey: nonce.pubkey, orderId: null, reason: 'held by no order' });
+        continue;
+      }
+
+      const order = await this.db.order.findUnique({ where: { id: nonce.orderId } });
+      if (!order) {
+        freeing.push({
+          pubkey: nonce.pubkey,
+          orderId: nonce.orderId,
+          reason: 'its order no longer exists',
+        });
+        continue;
+      }
+
+      // Anything already on the wire is left alone, whatever its age.
+      if (order.txSignatures.length > 0 || order.status === OrderStatus.BROADCAST) continue;
+
+      const ageMs = Date.now() - order.createdAt.getTime();
+      if (ageMs < olderThanMs) continue;
+
+      freeing.push({
+        pubkey: nonce.pubkey,
+        orderId: nonce.orderId,
+        reason: `${order.status.toLowerCase()}, never broadcast, ${Math.round(ageMs / 60_000)} min old`,
+      });
+    }
+
+    if (freeing.length > 0) {
+      await this.db.nonceAccount.updateMany({
+        where: { pubkey: { in: freeing.map((f) => f.pubkey) } },
+        data: { inUse: false, orderId: null },
+      });
+    }
+
+    return freeing;
   }
 
   /** Puts a nonce back, whether the order succeeded or not. */

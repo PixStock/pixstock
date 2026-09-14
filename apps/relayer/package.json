@@ -16,7 +16,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
-    "dev": "nest start --watch"
+    "dev": "nest start --watch",
+    "nonces:release": "node dist/cli/nonce-pool.js release"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",

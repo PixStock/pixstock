@@ -67,3 +67,103 @@ describe("reserving", () => {
     });
   });
 });
+
+/**
+ * Reclaiming nonces nobody is going to use.
+ *
+ * A durable nonce does not expire, so nothing else in the system ever frees
+ * one: an order built and walked away from holds its account for good. Three
+ * abandoned rehearsals empty a three-account pool, after which every order
+ * quietly falls back to a blockhash — which is the failure this exists to
+ * stop, and the reason "in flight" has to be judged carefully rather than by
+ * age alone.
+ */
+const HOUR = 3_600_000;
+
+const withOrders = (
+  nonces: Array<{ pubkey: string; orderId: string | null }>,
+  orders: Record<string, { status: string; txSignatures: string[]; ageMs: number }>,
+) => {
+  const freed: string[] = [];
+  const db = {
+    nonceAccount: {
+      findMany: async () => nonces.map((n) => ({ ...n, inUse: true })),
+      updateMany: async ({ where }: { where: { pubkey: { in: string[] } } }) => {
+        freed.push(...where.pubkey.in);
+        return { count: where.pubkey.in.length };
+      },
+    },
+    order: {
+      findUnique: async ({ where }: { where: { id: string } }) => {
+        const order = orders[where.id];
+        return order
+          ? { ...order, id: where.id, createdAt: new Date(Date.now() - order.ageMs) }
+          : null;
+      },
+    },
+  } as unknown as DatabaseService;
+  return { service: build({ secretKey, allowBroadcast: true }, db), freed };
+};
+
+describe("reclaiming abandoned nonces", () => {
+  it("frees one held by an order that was never broadcast", async () => {
+    const { service, freed } = withOrders(
+      [{ pubkey: "N1", orderId: "o1" }],
+      { o1: { status: "AWAITING_SIGNATURE", txSignatures: [], ageMs: 2 * HOUR } },
+    );
+    const result = await service.releaseAbandoned(HOUR);
+    expect(result).toHaveLength(1);
+    expect(result[0]!.reason).toMatch(/never broadcast/);
+    expect(freed).toEqual(["N1"]);
+  });
+
+  it("leaves a broadcast order alone, however old", async () => {
+    // The transaction may still land. Handing the account to a second order
+    // would let it build on a value the cluster has not consumed yet.
+    const { service, freed } = withOrders(
+      [{ pubkey: "N1", orderId: "o1" }],
+      { o1: { status: "BROADCAST", txSignatures: ["sig"], ageMs: 400 * HOUR } },
+    );
+    await expect(service.releaseAbandoned(HOUR)).resolves.toEqual([]);
+    expect(freed).toEqual([]);
+  });
+
+  it("leaves a signed order that already has a signature on the wire", async () => {
+    const { service } = withOrders(
+      [{ pubkey: "N1", orderId: "o1" }],
+      { o1: { status: "SIGNED", txSignatures: ["sig"], ageMs: 9 * HOUR } },
+    );
+    await expect(service.releaseAbandoned(HOUR)).resolves.toEqual([]);
+  });
+
+  it("leaves a young order alone: someone may be mid-scan", async () => {
+    const { service } = withOrders(
+      [{ pubkey: "N1", orderId: "o1" }],
+      { o1: { status: "AWAITING_SIGNATURE", txSignatures: [], ageMs: 60_000 } },
+    );
+    await expect(service.releaseAbandoned(HOUR)).resolves.toEqual([]);
+  });
+
+  it("frees one whose order no longer exists", async () => {
+    const { service, freed } = withOrders([{ pubkey: "N1", orderId: "gone" }], {});
+    const result = await service.releaseAbandoned(HOUR);
+    expect(result[0]!.reason).toMatch(/no longer exists/);
+    expect(freed).toEqual(["N1"]);
+  });
+
+  it("frees one marked in use by no order at all", async () => {
+    const { service, freed } = withOrders([{ pubkey: "N1", orderId: null }], {});
+    const result = await service.releaseAbandoned(HOUR);
+    expect(result[0]!.reason).toMatch(/no order/);
+    expect(freed).toEqual(["N1"]);
+  });
+
+  it("writes nothing when there is nothing to free", async () => {
+    const { service, freed } = withOrders(
+      [{ pubkey: "N1", orderId: "o1" }],
+      { o1: { status: "BROADCAST", txSignatures: ["sig"], ageMs: 9 * HOUR } },
+    );
+    await service.releaseAbandoned(HOUR);
+    expect(freed).toEqual([]);
+  });
+});

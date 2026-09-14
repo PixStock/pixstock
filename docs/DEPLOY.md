@@ -194,6 +194,24 @@ It prints the hot key, its balance, and the nonce pool. Two things to check:
 npm run nonces:create -w @pixstock/relayer -- 3
 ```
 
+A deployed container has no workspace root — the image carries the relayer's
+`package.json` and not the monorepo's — so inside it the same commands are:
+
+```bash
+node apps/relayer/dist/cli/nonce-pool.js status
+node apps/relayer/dist/cli/nonce-pool.js create 3
+```
+
+A durable nonce does not expire, which is the point of it and also means
+nothing frees one on its own: an order built and then abandoned holds its
+account for good, and a pool drains one walk-away at a time until orders
+start falling back to a blockhash again. Rehearsing a demo is exactly the
+shape that does this. To reclaim them:
+
+```bash
+npm run nonces:release -w @pixstock/relayer -- 30
+```
+
 That spends real SOL, so it refuses unless `RELAYER_ALLOW_BROADCAST=true`,
 and it prints the cost before it acts.
 
