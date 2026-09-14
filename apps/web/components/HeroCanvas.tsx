@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { BOX, FINDERS, FINDER_EYE, FINDER_RING, INK, MODULE, MODULES, MODULE_RADIUS, ORIGIN, moduleAt } from "@/lib/qr-mark";
 
 /**
- * Ports hero.js verbatim: the emblem assembled out of particles in HDR,
- * accumulated additively into a half-float target, bloomed, then tone-mapped.
- * See the original file in ../landing-page/hero.js for the full rationale —
- * this is a line-for-line port into a ref-scoped effect, nothing rearchitected.
+ * Ports hero.js: the mark assembled out of particles in HDR, accumulated
+ * additively into a half-float target, bloomed, then tone-mapped. The pipeline
+ * is the original line for line; only `markPoints` differs, because it now
+ * rasterises the QR mark from lib/qr-mark.ts instead of the emblem hero.js
+ * had hard-coded.
  */
 export function HeroCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -36,36 +38,38 @@ export function HeroCanvas() {
       const c = document.createElement("canvas");
       c.width = c.height = S;
       const g = c.getContext("2d")!;
-      const k = S / 64;
-      g.strokeStyle = "#fff";
-      g.lineWidth = 4.5 * k;
-      g.lineCap = "round";
+      const k = S / BOX;
 
-      const x = 13 * k,
-        y = 13 * k,
-        w = 38 * k,
-        h = 38 * k,
-        r = 11 * k;
-      g.beginPath();
-      g.moveTo(x + r, y);
-      g.lineTo(x + w, y);
-      g.lineTo(x + w, y + h - r);
-      g.arcTo(x + w, y + h, x + w - r, y + h, r);
-      g.lineTo(x + r, y + h);
-      g.arcTo(x, y + h, x, y + h - r, r);
-      g.lineTo(x, y + r);
-      g.arcTo(x, y, x + r, y, r);
-      g.closePath();
-      g.stroke();
-
-      [
-        [22, 23, 20],
-        [22, 32, 13],
-        [22, 41, 6],
-      ].forEach((b) => {
+      // the primitive an <rect rx> gives us for free in SVG; arcTo keeps this
+      // working on the browsers that still lack roundRect
+      const rr = (x: number, y: number, size: number, r: number) => {
+        const e = size * k;
+        const px = x * k;
+        const py = y * k;
+        const pr = r * k;
         g.beginPath();
-        g.moveTo(b[0] * k, b[1] * k);
-        g.lineTo((b[0] + b[2]) * k, b[1] * k);
+        g.moveTo(px + pr, py);
+        g.arcTo(px + e, py, px + e, py + e, pr);
+        g.arcTo(px + e, py + e, px, py + e, pr);
+        g.arcTo(px, py + e, px, py, pr);
+        g.arcTo(px, py, px + e, py, pr);
+        g.closePath();
+      };
+
+      g.fillStyle = "#fff";
+      MODULES.forEach(([col, row]) => {
+        rr(moduleAt(col), moduleAt(row), MODULE, MODULE_RADIUS);
+        g.fill();
+      });
+      FINDERS.forEach(([x, y]) => {
+        rr(x + FINDER_EYE.inset, y + FINDER_EYE.inset, FINDER_EYE.size, FINDER_EYE.radius);
+        g.fill();
+      });
+
+      g.strokeStyle = "#fff";
+      g.lineWidth = FINDER_RING.stroke * k;
+      FINDERS.forEach(([x, y]) => {
+        rr(x + FINDER_RING.inset, y + FINDER_RING.inset, FINDER_RING.size, FINDER_RING.radius);
         g.stroke();
       });
 
@@ -76,19 +80,26 @@ export function HeroCanvas() {
       }
       if (!pool.length) return null;
 
+      // normalised over the ink, not the whole box, so u_scale stays the mark's
+      // half-size in pixels however wide a quiet zone the geometry carries
+      const quiet = ORIGIN * k;
+      const span = INK * k;
+
       const out = new Float32Array(n * 2);
       for (let j = 0; j < n; j++) {
         const idx = pool[(Math.random() * pool.length) | 0];
         const jx = (idx % S) + (Math.random() - 0.5) * 1.6;
         const jy = ((idx / S) | 0) + (Math.random() - 0.5) * 1.6;
-        out[j * 2] = (jx / S) * 2 - 1;
-        out[j * 2 + 1] = 1 - (jy / S) * 2;
+        out[j * 2] = ((jx - quiet) / span) * 2 - 1;
+        out[j * 2 + 1] = 1 - ((jy - quiet) / span) * 2;
       }
       return out;
     }
 
     const small = Math.min(window.innerWidth, window.innerHeight) < 700;
-    const COUNT = small ? 11000 : 30000;
+    // the QR covers ~2.7x the ink the old outline emblem did, so the counts go
+    // up with it — at the old numbers the modules read as haze, not as squares
+    const COUNT = small ? 24000 : 64000;
     const targets = markPoints(COUNT);
     if (!targets) return;
 
@@ -344,7 +355,7 @@ void main(){
       my += (tmy - my) * 0.09;
       force += (tforce - force) * 0.06;
 
-      const scale = Math.min(Math.max(Math.min(W, H) * 0.23, 84 * DPR), 210 * DPR);
+      const scale = Math.min(Math.max(Math.min(W, H) * 0.15, 52 * DPR), 136 * DPR);
       const centerY = H * 0.5 - H * 0.3;
 
       gl!.bindFramebuffer(gl!.FRAMEBUFFER, acc!.f);
