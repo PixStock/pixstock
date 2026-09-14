@@ -361,11 +361,14 @@ h3.sub {
   font-weight: 600;
   letter-spacing: -0.035em;
   line-height: 1.0;
-  max-width: 17ch;
+  /* three lines. The band that gives three runs 18ch-23ch, so this sits in the
+     middle of it: the stack is a system font and its metrics differ per OS, and
+     a measure on the edge of the band would break somewhere else. */
+  max-width: 20ch;
   margin-inline: auto;
 }
 .hero h1 .accent { letter-spacing: -0.02em; }
-.hero .lede { margin-inline: auto; max-width: 56ch; font-size: 17.5px; }
+.hero .lede { margin-inline: auto; max-width: 96ch; font-size: 17.5px; }
 .hero-cta {
   display: flex;
   flex-wrap: wrap;
