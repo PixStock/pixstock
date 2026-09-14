@@ -16,7 +16,11 @@ const GITHUB = "https://github.com/PixStock/pixstock";
 // Read from the environment so moving it is a variable, not a commit. Next
 // inlines NEXT_PUBLIC_* at build time, so changing it needs a rebuild — a
 // restart leaves the old address in the shipped bundle.
-const VAULT = process.env.NEXT_PUBLIC_VAULT_URL ?? "https://pixstock-production.up.railway.app";
+//
+// `||`, not `??`: a Dockerfile that declares `ARG NEXT_PUBLIC_VAULT_URL`
+// without a value still sets the variable, to the empty string. `??` would
+// accept that and ship `href=""`, which is a button that reloads the page.
+const VAULT = process.env.NEXT_PUBLIC_VAULT_URL || "https://pixstock-production.up.railway.app";
 
 export function generateMetadata(): Metadata {
   const dict = content;
