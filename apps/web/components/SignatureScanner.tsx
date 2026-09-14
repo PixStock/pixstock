@@ -2,12 +2,17 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { parseSignatureResponse, type SignatureResponse } from "@pixstock/agqp";
+import { makeDecoder } from "@/lib/qr-decoder";
 
 type State =
   | { status: "idle" }
+  | { status: "starting" }
   | { status: "scanning" }
   | { status: "done"; response: SignatureResponse }
   | { status: "error"; message: string };
+
+/** Nothing decoded for this long and the scan gives up, saying so. */
+const SCAN_TIMEOUT_MS = 20_000;
 
 /**
  * Reads the vault's reply off the webcam. Sixty-four bytes come back, not the
@@ -69,13 +74,7 @@ export function SignatureScanner({
   );
 
   const start = useCallback(async () => {
-    if (typeof BarcodeDetector === "undefined") {
-      setState({
-        status: "error",
-        message: "This browser has no built-in QR decoder. Paste the reply instead.",
-      });
-      return;
-    }
+    setState({ status: "starting" });
 
     try {
       stream.current = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -84,26 +83,47 @@ export function SignatureScanner({
       return;
     }
 
+    // The element is rendered unconditionally, so this ref is populated
+    // whatever the state. It was once mounted only while `scanning`, which
+    // made it null at exactly this line — and the early return below fired
+    // silently, after the camera had already been granted and switched on.
+    // The symptom was a button that did nothing, with the webcam light lit.
     const video = videoRef.current;
-    if (!video) return;
+    if (!video) {
+      stop();
+      setState({ status: "error", message: "The video element is missing; reload the page." });
+      return;
+    }
     video.srcObject = stream.current;
     await video.play();
 
-    const detector = new BarcodeDetector({ formats: ["qr_code"] });
+    const decode = makeDecoder();
+    const startedAt = performance.now();
     running.current = true;
     setState({ status: "scanning" });
 
     const tick = async () => {
       if (!running.current) return;
+
+      if (performance.now() - startedAt > SCAN_TIMEOUT_MS) {
+        stop();
+        setState({
+          status: "error",
+          message: "Nothing decoded for 20 seconds. Hold the phone steady, and fill the frame.",
+        });
+        return;
+      }
+
       try {
-        for (const barcode of await detector.detect(video)) {
-          if (accept(barcode.rawValue)) {
+        for (const text of await decode(video)) {
+          if (accept(text)) {
             stop();
             return;
           }
         }
       } catch {
-        // Dropped frame; the vault holds the code up until we read it.
+        // A dropped frame is not worth surfacing: the vault holds the code up
+        // on screen until we read it.
       }
       requestAnimationFrame(() => void tick());
     };
@@ -113,13 +133,21 @@ export function SignatureScanner({
 
   return (
     <div style={{ display: "grid", gap: 14 }}>
-      {state.status === "scanning" && (
-        <video
-          ref={videoRef}
-          playsInline
-          muted
-          style={{ width: "100%", maxWidth: 420, borderRadius: 10, background: "#000" }}
-        />
+      {/*
+        Always mounted, never conditional. The ref has to exist before
+        `start()` reads it, and rendering this only while scanning is the bug
+        that made the button appear dead.
+      */}
+      <video
+        ref={videoRef}
+        playsInline
+        muted
+        hidden={state.status !== "scanning" && state.status !== "starting"}
+        style={{ width: "100%", maxWidth: 420, borderRadius: 10, background: "#000" }}
+      />
+
+      {state.status === "starting" && (
+        <p style={{ color: "var(--ink-3)", margin: 0 }}>Opening the webcam…</p>
       )}
 
       {state.status === "error" && (
@@ -160,8 +188,8 @@ export function SignatureScanner({
       )}
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        {state.status === "scanning" ? (
-          <button type="button" className="btn" onClick={stop}>
+        {state.status === "scanning" || state.status === "starting" ? (
+          <button type="button" className="btn" onClick={() => { stop(); setState({ status: "idle" }); }}>
             Stop
           </button>
         ) : (

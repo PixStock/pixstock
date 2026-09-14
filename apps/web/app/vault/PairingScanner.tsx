@@ -7,6 +7,7 @@ import {
   parseFrame,
   parseSignatureResponse,
 } from "@pixstock/agqp";
+import { makeDecoder } from "@/lib/qr-decoder";
 import { content } from "@/content/site";
 import { usePairedVault } from "@/lib/vault";
 
@@ -105,13 +106,7 @@ export function PairingScanner() {
   );
 
   const start = useCallback(async () => {
-    if (typeof BarcodeDetector === "undefined") {
-      setState({
-        status: "error",
-        message: "This browser has no built-in QR decoder. Open the vault in Chrome on Android.",
-      });
-      return;
-    }
+    setState({ status: "scanning" });
 
     try {
       stream.current = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -120,20 +115,29 @@ export function PairingScanner() {
       return;
     }
 
+    // The element is rendered unconditionally, so this ref is populated
+    // whatever the state. Mounting it only while `scanning` made it null at
+    // exactly this line, and the early return fired silently — with the
+    // camera already granted and lit, and nothing on screen to say why.
     const video = videoRef.current;
-    if (!video) return;
+    if (!video) {
+      running.current = false;
+      stream.current?.getTracks().forEach((t) => t.stop());
+      stream.current = null;
+      setState({ status: "error", message: "The video element is missing; reload the page." });
+      return;
+    }
     video.srcObject = stream.current;
     await video.play();
 
-    const detector = new BarcodeDetector({ formats: ["qr_code"] });
+    const decode = makeDecoder();
     running.current = true;
-    setState({ status: "scanning" });
 
     const tick = async () => {
       if (!running.current) return;
       try {
-        for (const barcode of await detector.detect(video)) {
-          if (consume(barcode.rawValue)) {
+        for (const text of await decode(video)) {
+          if (consume(text)) {
             running.current = false;
             stream.current?.getTracks().forEach((t) => t.stop());
             stream.current = null;
@@ -156,9 +160,14 @@ export function PairingScanner() {
         <p className="copy">{v.pending.body}</p>
       </div>
 
-      {state.status === "scanning" && (
-        <video ref={videoRef} playsInline muted className="webcam" />
-      )}
+      {/* Always mounted: the ref must exist before `start()` reads it. */}
+      <video
+        ref={videoRef}
+        playsInline
+        muted
+        hidden={state.status !== "scanning"}
+        className="webcam"
+      />
 
       {state.status === "error" && <p className="alert-inline">{state.message}</p>}
 
