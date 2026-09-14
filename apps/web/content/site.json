@@ -27,7 +27,7 @@
         {
           "href": "/protocol#policy",
           "title": "Signing policy",
-          "desc": "The ten rules the phone applies before it signs."
+          "desc": "Every rule the phone applies before it signs."
         },
         {
           "href": "/protocol#pyth",
@@ -151,7 +151,7 @@
       "titlePrefix": "Own tokenized stocks on a phone that ",
       "titleAccent": "never goes online",
       "titleSuffix": ".",
-      "lede": "A spare phone in airplane mode signs your xStocks. It holds no SOL, it never touches a network again, and it prints the order in words instead of a hash.",
+      "lede": "A spare phone in airplane mode signs your stocks. It holds no SOL, it never touches a network again, and it prints the order in words instead of a hash.",
       "ctaSeeMechanic": "See how it works",
       "ctaRequestAccess": "Try it with your phone",
       "stats": [
@@ -261,7 +261,7 @@
       "basket": {
         "side": "One scan",
         "title": "Three stocks, one signature",
-        "claim": "An equal-weight basket of AAPLx, NVDAx and MSFTx routes through Jupiter inside a single transaction of 943 bytes — measured, not estimated — and crosses the air gap in five frames.",
+        "claim": "An equal-weight basket of AAPLx, NVDAx and MSFTx routes through Jupiter inside a single transaction of 943 bytes, measured rather than estimated, and crosses the air gap in five frames.",
         "kv": [
           {
             "k": "Legs in one message",
@@ -325,7 +325,7 @@
         {
           "t": "03",
           "n": "Verify",
-          "d": "The phone reassembles the order, checks the attested price and the ten rules, and prints the ticket for you to read."
+          "d": "The phone reassembles the order, checks the attested price and every signing rule, and prints the ticket for you to read."
         },
         {
           "t": "04",
@@ -358,7 +358,7 @@
         },
         {
           "q": "Is the key ever online?",
-          "a": "No. The vault app makes no network calls at all — its headers ship connect-src 'none', so you can verify that yourself in the inspector — and the only channel in or out is the camera and the screen."
+          "a": "No. The vault app makes no network calls at all. Its headers ship connect-src 'none', so you can verify that yourself in the inspector, and the only channel in or out is the camera and the screen."
         }
       ],
       "more": "The full threat model"
@@ -379,6 +379,7 @@
       "description": "How an order crosses an air gap as animated QR codes, what the phone checks before it signs, and why a corrupted browser cannot lie to it about the price."
     },
     "breadcrumbName": "Protocol",
+  "mapLabel": "On this page",
     "pageHead": {
       "eyebrow": "AGQP v1",
       "title": "How an order crosses the gap",
@@ -389,7 +390,7 @@
       "body": [
         "A Solana transaction, the price attestation that guards it and a readable description of the order add up to more than one QR code can hold. AGQP splits them into indexed frames that cycle on screen forever, so the phone can join the sequence at any point and a frame it missed comes back on the next pass. Nothing is timed and nothing is clicked.",
         "Each frame carries a CRC of its own chunk. QR codes already carry Reed-Solomon correction, so a frame either decodes or it does not; the CRC covers what happens after, when the bytes are reassembled. A corrupted frame is dropped in silence and the cycle reissues it.",
-        "Frames are Base45, the encoding behind EU digital certificates. The browser API that reads a QR hands back a string, not bytes, so raw binary would be mangled in transit. Base45 costs about three percent over raw bytes, against thirty-three for Base64, and keeps every frame inside the QR alphanumeric character set — which is what keeps the codes small enough to read across a desk."
+        "Frames are Base45, the encoding behind EU digital certificates. The browser API that reads a QR hands back a string, not bytes, so raw binary would be mangled in transit. Base45 costs about three percent over raw bytes, against thirty-three for Base64, and keeps every frame inside the QR alphanumeric character set, which is what keeps the codes small enough to read across a desk."
       ],
       "headers": {
         "field": "Field",
@@ -403,7 +404,7 @@
         "crc": "Integrity of this chunk, uppercase hex.",
         "chunk": "A slice of the payload, Base45."
       },
-      "sizes": "The header is {header} characters. The frame size is adjustable — {s}, {m} or {l} bytes per frame — because screen contrast, camera quality and distance all move the optimum, and the right setting is the one measured on the phone in the room. At {fps} frames per second, a five-frame order cycles in well under a second."
+      "sizes": "The header is {header} characters. The frame size is adjustable: {s}, {m} or {l} bytes per frame. Screen contrast, camera quality and distance all move the optimum, and the right setting is the one measured on the phone in the room. At {fps} frames per second, a five-frame order cycles in well under a second."
     },
     "policy": {
       "title": "What the phone checks before it signs",
@@ -419,22 +420,22 @@
       "enforced": "Enforced",
       "notEnforced": "Not yet",
       "honesty": "A rule that is not implemented is not a rule that passes. While {unevaluated} is unenforced the policy refuses to return a clean verdict at all, and says which rule is missing. A green tick that skipped a check is worse than no tick.",
-      "allEnforced": "Every rule in this table is evaluated on the phone, and the policy returns a clean verdict only when all of them pass. The result carries the list it checked, so a rule that were ever removed would show as missing rather than silently stop applying. A green tick that skipped a check is worse than no tick.",
+      "allEnforced": "Every rule in this table is evaluated on the phone, and the policy returns a clean verdict only when all of them pass. The result carries the list it checked, so a rule that was ever removed would show as missing rather than silently stop applying. A green tick that skipped a check is worse than no tick.",
       "cap": "Slippage is capped at {cap} basis points in the phone itself, whatever an order asks for."
     },
     "pyth": {
       "title": "The offline price guard",
       "body": [
-        "This is the part no hardware wallet does today. A signed price message from Pyth travels with the order, and the phone verifies its Ed25519 signature against trusted keys it already holds — with no network, in a few milliseconds.",
+        "This is the part no hardware wallet does today. A signed price message from Pyth travels with the order, and the phone verifies its Ed25519 signature against trusted keys it already holds, with no network, in a few milliseconds.",
         "If the order's implied price drifts more than one percent from the signed one, the phone refuses to sign and says why. A browser that has been tampered with can show you any number it likes; it cannot forge a signature from an oracle whose keys are already on your phone.",
         "The guard degrades honestly. If no attested price is available, the order ticket says the price is unattested rather than quietly signing anyway."
       ],
-      "status": "Built and enforced. The vault parses Pyth's signed message, checks its Ed25519 signature against the keys Pyth publishes on chain, and refuses to sign past one percent — all offline. One limit, stated plainly: our Pyth grant currently covers the Tesla feed, so a basket of the other four travels with a price for the legs it covers and the ticket names the ones it does not."
+      "status": "Built and enforced. The vault parses Pyth's signed message, checks its Ed25519 signature against the keys Pyth publishes on chain, and refuses to sign past one percent, all offline. One limit, stated plainly: our Pyth grant currently covers the Tesla feed, so a basket of the other four travels with a price for the legs it covers and the ticket names the ones it does not."
     },
     "paperVault": {
       "title": "Paper-Vault",
       "body": [
-        "Your key is encrypted with AES-GCM-256 under a key derived from your master password with Argon2id, and the whole record — parameters, salt, nonce, ciphertext, public key — fits in a single QR code you print on one sheet.",
+        "Your key is encrypted with AES-GCM-256 under a key derived from your master password with Argon2id, and the whole record fits in a single QR code you print on one sheet: parameters, salt, nonce, ciphertext and public key.",
         "The cost parameters are stored inside the record, so raising them later never orphans a backup printed today. Paper alone cannot spend: without the password it is an encrypted blob, and nothing about it ever touches a cloud."
       ]
     },
@@ -467,7 +468,7 @@
       {
         "title": "The issuer can seize or freeze these tokens",
         "body": [
-          "Every xStock referenced here is a Token-2022 mint with a permanent delegate and a freeze authority, both held by the issuer. Verified on mainnet: all five share the delegate 5aMNNLQJwAEeoemTEMkv5NVjqKwvvefRYCQ5Z67HFvEq. That address can move tokens out of any account holding them, including yours, without your signature — and the freeze authority can make an account unusable.",
+          "Every xStock referenced here is a Token-2022 mint with a permanent delegate and a freeze authority, both held by the issuer. Verified on mainnet: all five share the delegate 5aMNNLQJwAEeoemTEMkv5NVjqKwvvefRYCQ5Z67HFvEq. That address can move tokens out of any account holding them, including yours, without your signature. The freeze authority can make an account unusable.",
           "This is how a regulated issuer meets its obligations, and it is not something PixStock can change. It is also the honest limit of what an air-gapped signer protects: it stops anyone who is not the issuer from moving your assets, and it cannot stop the issuer.",
           "Solana surfaces it too. Creating an account for one of these mints logs \"Mint has a permanent delegate, so tokens in this account may be seized at any time\"."
         ]
@@ -489,7 +490,7 @@
       {
         "title": "Keys and custody",
         "body": [
-          "PixStock never transmits, stores or has access to your private key. It is generated on your device, encrypted with your master password, and stays there. Nobody — including us — can recover it if you lose that password.",
+          "PixStock never transmits, stores or has access to your private key. It is generated on your device, encrypted with your master password, and stays there. Nobody, including us, can recover it if you lose that password.",
           "No PixStock contributor or process will ever ask for your seed phrase, your master password or your private key. Any message that does is fraudulent."
         ]
       },
@@ -501,7 +502,7 @@
       }
     ],
     "security": {
-      "text": "Found a vulnerability? Do not open a public issue —",
+      "text": "Found a vulnerability? Do not open a public issue,",
       "label": "report it privately",
       "href": "https://github.com/PixStock/pixstock/blob/main/SECURITY.md"
     }
@@ -541,7 +542,7 @@
     },
     "pending": {
       "title": "No live quote yet",
-      "body": "Routing and pricing come from the relayer, which is not deployed. The asset table below is real — mints, decimals, token program and Pyth feed ids are the mainnet values the vault will verify against. What is missing is the quote, and this page will not invent one."
+      "body": "Routing and pricing come from the relayer, which is not deployed. The asset table below is real: mints, decimals, token program and Pyth feed ids are the mainnet values the vault will verify against. What is missing is the quote, and this page will not invent one."
     },
     "channel": {
       "title": "What crosses the gap",
@@ -603,7 +604,7 @@
     },
     "pending": {
       "title": "Hold the vault's code up to the webcam",
-      "body": "On the phone, tap \"Show my address\" and point it at this camera. The scanner reads the pairing record and remembers where to send orders. Anything else you hold up is named rather than accepted — a Paper-Vault backup belongs on paper, never in a browser."
+      "body": "On the phone, tap \"Show my address\" and point it at this camera. The scanner reads the pairing record and remembers where to send orders. Anything else you hold up is named rather than accepted. A Paper-Vault backup belongs on paper, never in a browser."
     },
     "watchOnly": {
       "title": "Watch-only, by construction",

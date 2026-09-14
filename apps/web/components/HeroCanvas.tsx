@@ -304,6 +304,26 @@ void main(){
         bh = Math.max(1, H >> 2);
       b1 = target(bw, bh);
       b2 = target(bw, bh);
+      needsMeasure = true;
+    }
+
+    /**
+     * The mark gets whatever band the copy leaves above it, and is centred in
+     * it. Pinning it to a fraction of the canvas instead is what put it behind
+     * the headline on a short phone: the copy is bottom-anchored and climbs as
+     * the viewport shortens or a line wraps, and a fraction knows nothing about
+     * that. Both values are device pixels measured down from the canvas top.
+     */
+    let bandTop = 0;
+    let bandBottom = 0;
+    let needsMeasure = true;
+
+    function measureBand() {
+      const box = cv!.getBoundingClientRect();
+      const spacer = document.getElementById("head-spacer");
+      const copy = cv!.parentElement?.querySelector<HTMLElement>(".hero-body h1");
+      bandTop = spacer ? Math.max(0, spacer.getBoundingClientRect().bottom - box.top) * DPR : 0;
+      bandBottom = copy ? (copy.getBoundingClientRect().top - box.top) * DPR : H;
     }
 
     let mx = 0,
@@ -326,6 +346,19 @@ void main(){
     parent.addEventListener("pointermove", onPointerMove, { passive: true });
     parent.addEventListener("pointerleave", onPointerLeave, { passive: true });
 
+    // the copy reflows on font load and on any wrap change, and neither fires
+    // a resize on the canvas
+    let copyRo: ResizeObserver | null = null;
+    if ("ResizeObserver" in window) {
+      copyRo = new ResizeObserver(() => {
+        needsMeasure = true;
+      });
+      const body = cv.parentElement?.querySelector(".hero-body");
+      if (body) copyRo.observe(body);
+      const head = cv.parentElement?.querySelector(".hero-body h1");
+      if (head) copyRo.observe(head);
+    }
+
     let visible = true;
     let visIo: IntersectionObserver | null = null;
     if ("IntersectionObserver" in window) {
@@ -333,7 +366,7 @@ void main(){
       visIo.observe(cv);
     }
 
-    const t0 = performance.now();
+    let t0 = performance.now();
     let conv = 0;
     let lit = false;
     let raf = 0;
@@ -355,8 +388,17 @@ void main(){
       my += (tmy - my) * 0.09;
       force += (tforce - force) * 0.06;
 
-      const scale = Math.min(Math.max(Math.min(W, H) * 0.15, 52 * DPR), 136 * DPR);
-      const centerY = H * 0.5 - H * 0.3;
+      if (needsMeasure) {
+        measureBand();
+        needsMeasure = false;
+      }
+      const room = Math.max(0, bandBottom - bandTop);
+      // half the mark: the size the viewport asks for, but never more than the
+      // band holds. The air is for the bloom, which carries well past the
+      // geometry — clearing the modules is not the same as clearing the glow.
+      const wanted = Math.min(Math.max(Math.min(W, H) * 0.15, 52 * DPR), 136 * DPR);
+      const scale = Math.max(34 * DPR, Math.min(wanted, room * 0.5 - 30 * DPR));
+      const centerY = H * 0.5 - (bandTop + room * 0.5);
 
       gl!.bindFramebuffer(gl!.FRAMEBUFFER, acc!.f);
       gl!.viewport(0, 0, W, H);
@@ -421,14 +463,13 @@ void main(){
     }
 
     if (reduce) {
-      resize();
-      const t0still = performance.now() - 4000;
-      conv = 1;
-      raf = requestAnimationFrame((n) => frame(n));
-      void t0still;
-    } else {
-      raf = requestAnimationFrame(frame);
+      // One still frame, with the clock wound past the assembly so the mark is
+      // already formed. It has to be t0 that moves: frame() recomputes `conv`
+      // from it every time, so setting `conv` here was overwritten before the
+      // first draw and the mark stayed the dust cloud it starts as.
+      t0 = performance.now() - 4000;
     }
+    raf = requestAnimationFrame(frame);
 
     return () => {
       stopped = true;
@@ -436,6 +477,7 @@ void main(){
       parent.removeEventListener("pointermove", onPointerMove);
       parent.removeEventListener("pointerleave", onPointerLeave);
       visIo?.disconnect();
+      copyRo?.disconnect();
     };
   }, []);
 

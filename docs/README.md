@@ -50,6 +50,42 @@ npm run dev -w @pixstock/vault     # :5183
 Then [DEMO.md](DEMO.md). You do not need a second phone: the vault has a
 paste channel that takes the same code path as the camera.
 
+## Why a PWA, and what native would buy
+
+The vault installs from a URL as a progressive web app. That is a decision,
+not a shortcut.
+
+An offline signer's whole claim is that you do not have to take our word for
+it. Open the devtools on the deployed vault and read the response header —
+`connect-src 'none'`, served from `apps/vault/Dockerfile`. Grep the built
+bundle under `apps/vault/dist`: no `fetch`, no `XMLHttpRequest`, no
+WebSocket. A signed binary from an app store asks you to trust us instead,
+which is the one thing this product is built not to ask.
+
+Two more things follow from the form:
+
+- **No store account.** Installing from Google Play or the App Store means a
+  Google or Apple account on the phone that signs. A spare phone doing this
+  job should ideally carry none. A PWA installs from a link.
+- **No update channel.** A store app has to come back online periodically to
+  update itself. This one is installed once and can stay in airplane mode
+  forever.
+
+Native is on the roadmap for one reason that actually matters, and it is not
+the interface:
+
+- **Hardware-backed keys.** Today the seed is encrypted with Argon2id and
+  AES-GCM, unlocked by the master password, with a WebAuthn platform
+  authenticator (`userVerification: "required"`) in front of every signature.
+  That is strong, and it is still a key the device can be made to hand over.
+  Secure Enclave on iOS and StrongBox on Android hold a key that **cannot be
+  exported**, even from a phone that has been compromised.
+- **iOS parity.** Safari has no `BarcodeDetector`, and installing a PWA on
+  iOS is a manual "Add to Home Screen". Android and ChromeOS get the camera
+  path today; iOS gets the paste channel. A native app closes that gap.
+- **Camera control.** Frame rate, focus and exposure, for decoding in worse
+  light than a demo table.
+
 ## What this is not
 
 A hackathon build, unaudited, and honest about it. xStocks are issued by

@@ -23,7 +23,7 @@ export default function SignPage() {
           <h1>Send to vault</h1>
           <p className="lede" style={{ margin: 0 }}>
             Point the vault camera at this screen. The frames cycle forever, so
-            it can join anywhere — there is nothing to time and nothing to
+            it can join anywhere. There is nothing to time and nothing to
             click.
           </p>
         </header>
