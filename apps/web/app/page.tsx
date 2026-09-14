@@ -20,7 +20,17 @@ const GITHUB = "https://github.com/PixStock/pixstock";
 // `||`, not `??`: a Dockerfile that declares `ARG NEXT_PUBLIC_VAULT_URL`
 // without a value still sets the variable, to the empty string. `??` would
 // accept that and ship `href=""`, which is a button that reloads the page.
-const VAULT = process.env.NEXT_PUBLIC_VAULT_URL || "https://pixstock-production.up.railway.app";
+//
+// The scheme is added when it is missing, because a bare domain is the shape
+// a hosting platform hands you — RAILWAY_PUBLIC_DOMAIN and its equivalents
+// carry no protocol — and an href without one is not an address at all but a
+// relative path. Set to `vault.example.com`, the button went to
+// `https://this-app/vault.example.com`, which is a 404 that looks like a
+// typo in someone else's code.
+const configuredVault = process.env.NEXT_PUBLIC_VAULT_URL || "pixstock-production.up.railway.app";
+const VAULT = /^https?:\/\//i.test(configuredVault)
+  ? configuredVault
+  : `https://${configuredVault}`;
 
 export function generateMetadata(): Metadata {
   const dict = content;
