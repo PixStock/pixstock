@@ -8,7 +8,7 @@ import {
   type PolicyResult,
   type TicketLine,
 } from "@pixstock/tx-policy";
-import { decimalsOfMint, formatScaled, type OrderManifest } from "@pixstock/shared";
+import { assetByMint, formatScaled, type OrderManifest } from "@pixstock/shared";
 import {
   checkAttestation,
   formatDeviation,
@@ -538,7 +538,15 @@ function totalPaid(pay: TicketLine[]): { amount: string; symbol: string } | null
 
   const raw = pay.reduce((sum, l) => sum + BigInt(l.rawAmount), 0n);
   return {
-    amount: formatScaled(raw, decimalsOfMint(first.mint), first.multiplier),
+    // The same fallback buildTicket uses, and for the same two reasons: a
+    // ticket may legitimately carry a mint the offline table does not know,
+    // and `decimalsOfMint` throws on one. A throw here would unmount the
+    // review screen mid-render — a blank page, with no Reject button, at the
+    // exact moment someone is deciding whether to sign.
+    //
+    // Sharing the expression also keeps the total formatted like the lines
+    // it totals.
+    amount: formatScaled(raw, assetByMint(first.mint)?.decimals ?? 6, first.multiplier),
     symbol: first.symbol,
   };
 }
