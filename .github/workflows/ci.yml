@@ -43,14 +43,21 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
 
       - run: npm ci
+
+      # Before anything that imports the relayer. The client is generated
+      # code, not a package: without this step `@prisma/client` resolves to a
+      # stub that throws on construction, and every suite touching the
+      # database fails with a message about a command nobody ran.
+      - name: Generate the Prisma client
+        run: npx prisma generate --schema apps/relayer/prisma/schema.prisma
 
       - name: Create the schema the integration suites expect
         run: npx prisma migrate deploy --schema apps/relayer/prisma/schema.prisma
@@ -69,9 +76,9 @@ jobs:
     needs: checks
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
