@@ -78,7 +78,7 @@ h2 { font-size: 19px; margin: 0; letter-spacing: -0.01em; }
   position: relative;
   aspect-ratio: 1;
   width: 100%;
-  border-radius: 14px;
+  border-radius: 16px;
   overflow: hidden;
   background: #000;
   border: 1px solid var(--rule);
@@ -559,7 +559,6 @@ h2 { font-size: 19px; margin: 0; letter-spacing: -0.01em; }
 
 /* Brackets rather than a full overlay: they say where to aim without
    covering the thing being aimed at. */
-.viewport { border-radius: 16px; }
 .bracket {
   position: absolute;
   width: 38px;

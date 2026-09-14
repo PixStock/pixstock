@@ -1648,19 +1648,27 @@ html:not(.js-anim) .wordmark .rise { transform: none; opacity: 1; }
 .dl-rows dd { margin: 0; text-align: right; }
 .dl-rows dd.ok { color: var(--ok); }
 
-.cta {
+/* `.app-cta`, not `.cta`: the landing page's closing band is `.cta`, and a
+   54px pill height landing on a whole <section> squashed #try flat. A global
+   stylesheet shared with a page that is out of scope is a namespace, and
+   this button had taken a name that was already spoken for. */
+.app-cta {
   width: 100%;
   height: 54px;
   font-size: 16.5px;
   font-weight: 600;
   border-radius: 999px;
 }
-.cta-note { margin: 0; text-align: center; font-size: 13px; color: var(--ink-3); }
+.app-cta-note { margin: 0; text-align: center; font-size: 13px; color: var(--ink-3); }
 
 /* Only the numbers dim while a fresh quote is on its way. Dimming the
-   labels too makes the panel look broken rather than busy. */
-.quote-stale .panel-figure,
-.quote-stale .dl-rows dd { opacity: 0.45; transition: opacity 0.2s var(--ease-io); }
+   labels too makes the panel look broken rather than busy — and the bare
+   `.quote-stale` rule above would do exactly that, then dim the numbers a
+   second time through it. */
+.repricing .panel-figure,
+.repricing .dl-rows dd,
+.repricing .alloc-spend,
+.repricing .alloc-get { opacity: 0.45; transition: opacity 0.2s var(--ease-io); }
 
 /* Named for the screen reader, not for the eye. The amount field's own
    eyebrow sits outside the label, so the input needs its name back. */
@@ -1856,7 +1864,7 @@ html:not(.js-anim) .wordmark .rise { transform: none; opacity: 1; }
   object-fit: cover;
   display: block;
 }
-.cta--wayback { height: 50px; font-size: 15.5px; }
+.app-cta--wayback { height: 50px; font-size: 15.5px; }
 
 .inside-card {
   display: grid;

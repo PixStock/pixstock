@@ -48,6 +48,27 @@ test.describe("the public site", () => {
   });
 });
 
+test.describe("the landing page the app routes share a stylesheet with", () => {
+  test("the closing band is still a band", async ({ page }) => {
+    // The app routes' CTA button was called `.cta`, which is also the
+    // landing page's closing section. A 54px pill height landed on a whole
+    // <section> and squashed #try flat. The two apps share one stylesheet;
+    // that makes every bare class name a shared namespace.
+    await page.goto(`${WEB}/`);
+    const band = page.locator("#try");
+    await expect(band).toBeVisible();
+
+    const box = await band.boundingBox();
+    expect(box, "#try must have a box").not.toBeNull();
+    expect(box!.height, "#try is a band, not a button").toBeGreaterThan(300);
+    expect(box!.width, "#try spans the viewport").toBeGreaterThan(1000);
+
+    // And it still carries its own heading and both calls to action.
+    await expect(band.getByRole("heading")).toBeVisible();
+    await expect(band.getByRole("link", { name: "Open the vault" })).toBeVisible();
+  });
+});
+
 test.describe("the optical channel on screen", () => {
   test("cycles QR frames and reports the real frame count", async ({ page }) => {
     await page.goto(`${WEB}/sign`);

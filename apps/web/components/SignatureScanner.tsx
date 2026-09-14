@@ -177,7 +177,7 @@ export function SignatureScanner({
       {scanning ? (
         <button
           type="button"
-          className="btn cta cta--wayback"
+          className="btn app-cta app-cta--wayback"
           onClick={() => {
             stop();
             setState({ status: "idle" });
@@ -188,14 +188,14 @@ export function SignatureScanner({
       ) : (
         <button
           type="button"
-          className="btn btn--solid cta cta--wayback"
+          className="btn btn--solid app-cta app-cta--wayback"
           onClick={() => void start()}
         >
           Open the webcam and watch for the signature
         </button>
       )}
 
-      <p className="cta-note">Or paste the reply text if this machine has no camera.</p>
+      <p className="app-cta-note">Or paste the reply text if this machine has no camera.</p>
 
       <details>
         <summary style={{ cursor: "pointer", color: "var(--ink-2)", fontSize: 14 }}>

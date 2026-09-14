@@ -199,7 +199,7 @@ export function BasketBuilder() {
           </div>
         </div>
 
-        <div className={quoting ? "quote-stale" : undefined} style={{ display: "grid", gap: 14 }}>
+        <div className={quoting ? "repricing" : undefined} style={{ display: "grid", gap: 14 }}>
           <div className="alloc-head">
             <span className="eyebrow">{b.builder.allocationLabel}</span>
             <span className={`alloc-total${balanced ? "" : " alloc-total--off"}`}>
@@ -280,7 +280,7 @@ export function BasketBuilder() {
       </div>
 
       <div className="app-col--preview">
-        <div className={`panel${quoting ? " quote-stale" : ""}`}>
+        <div className={`panel${quoting ? " repricing" : ""}`}>
           <div className="panel-head">
             <span className="eyebrow">The basket</span>
             <span className="panel-chip">
@@ -341,13 +341,13 @@ export function BasketBuilder() {
           <div style={{ display: "grid", gap: 10 }}>
             <button
               type="button"
-              className="btn btn--solid cta"
+              className="btn btn--solid app-cta"
               disabled={!balanced || !isValid || sending || Object.keys(quotes).length === 0}
               onClick={() => void send()}
             >
               {sending ? "Building the order…" : b.builder.submit}
             </button>
-            <p className="cta-note">Your phone decides. This browser cannot sign anything.</p>
+            <p className="app-cta-note">Your phone decides. This browser cannot sign anything.</p>
           </div>
         </div>
       </div>

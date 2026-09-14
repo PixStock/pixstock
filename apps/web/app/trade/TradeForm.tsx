@@ -259,7 +259,7 @@ export function TradeForm() {
       </div>
 
       <div className="app-col--preview">
-        <div className={`panel${quoting ? " quote-stale" : ""}`}>
+        <div className={`panel${quoting ? " repricing" : ""}`}>
           <div className="panel-head">
             <span className="eyebrow">You receive</span>
             {quoting ? (
@@ -334,7 +334,7 @@ export function TradeForm() {
           <div style={{ display: "grid", gap: 10 }}>
             <button
               type="button"
-              className="btn btn--solid cta"
+              className="btn btn--solid app-cta"
               disabled={!quote || !isValid || sending}
               onClick={() => void send()}
             >
@@ -342,7 +342,7 @@ export function TradeForm() {
             </button>
             {/* Why a send is blocked now reads in the status strip and on the
                 header chip, where the thing that is missing actually is. */}
-            <p className="cta-note">Your phone decides. This browser cannot sign anything.</p>
+            <p className="app-cta-note">Your phone decides. This browser cannot sign anything.</p>
           </div>
         </div>
       </div>
