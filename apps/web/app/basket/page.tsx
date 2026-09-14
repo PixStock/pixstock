@@ -33,7 +33,7 @@ export default function BasketPage() {
         <BasketBuilder />
       </AppShell>
 
-      <Footer dict={dict} />
+      <Footer dict={dict} slim />
     </>
   );
 }

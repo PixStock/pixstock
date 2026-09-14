@@ -139,7 +139,7 @@ export function OrderSigner({ orderId }: { orderId: string }) {
     title: "Show this screen to your phone",
     lede:
       "Hold the phone up to the code. The frames repeat, so it can join anywhere " +
-      "— nothing to time, nothing to click.",
+      "Nothing to time, nothing to click.",
     session: encodeSessionId(sid),
     // The order is already built by the time anyone reads this, so the first
     // two steps name states rather than things to go and do.
@@ -363,7 +363,7 @@ const STATUS_LABELS: Record<Order["status"], string> = {
   BUILT: "Built",
   AWAITING_SIGNATURE: "Waiting for your vault",
   SIGNED: "Signed, not sent",
-  BROADCAST: "Sent — waiting for the cluster",
+  BROADCAST: "Sent, waiting for the cluster",
   CONFIRMED: "Confirmed on chain",
   FAILED: "Failed",
   EXPIRED: "Expired",
@@ -380,7 +380,7 @@ const BODY: Record<string, string> = {
   SIGNED: "The relayer checked it against the message it built and stored it.",
   BROADCAST: "The relayer co-signed and sent it. Waiting for the cluster to confirm.",
   CONFIRMED: "The relayer paid the fees. Your vault's SOL balance is untouched.",
-  FAILED: "Nothing was signed away — the details are below.",
+  FAILED: "Nothing was signed away. The details are below.",
 };
 
 /** Enough of a signature to recognise it, never enough to retype it wrongly. */

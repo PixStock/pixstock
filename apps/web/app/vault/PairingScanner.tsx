@@ -61,7 +61,7 @@ export function PairingScanner() {
         setState({
           status: "read",
           text: "",
-          recognised: "a Paper-Vault backup — that belongs on paper, never in this browser",
+          recognised: "a Paper-Vault backup, which belongs on paper, never in this browser",
         });
         return true;
       }
@@ -180,7 +180,7 @@ export function PairingScanner() {
           <p className="copy">
             Orders on this browser will be built for{" "}
             <span className="mono-input">{state.vault}</span> on {state.network}. It is a public
-            key — nothing that can sign has touched this page.
+            key. Nothing that can sign has touched this page.
           </p>
         </div>
       )}

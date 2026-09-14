@@ -48,7 +48,7 @@ export default function VaultPage() {
         </div>
       </AppShell>
 
-      <Footer dict={dict} />
+      <Footer dict={dict} slim />
     </>
   );
 }

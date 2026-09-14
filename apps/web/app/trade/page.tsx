@@ -33,7 +33,7 @@ export default function TradePage() {
         <TradeForm />
       </AppShell>
 
-      <Footer dict={dict} />
+      <Footer dict={dict} slim />
     </>
   );
 }

@@ -64,13 +64,19 @@ export default function ProtocolPage() {
             <p className="eyebrow">{p.pageHead.eyebrow}</p>
             <h1>{p.pageHead.title}</h1>
             <p className="lede">{p.pageHead.lede}</p>
+            <nav className="doc-map" aria-label={p.mapLabel}>
+              <a href="#channel">{p.channel.title}</a>
+              <a href="#policy">{p.policy.title}</a>
+              <a href="#pyth">{p.pyth.title}</a>
+              <a href="#paper-vault">{p.paperVault.title}</a>
+            </nav>
           </div>
         </section>
 
         {/* ── the optical channel ─────────────────────────────────────── */}
         <section className="band band--tight" id="channel">
-          <div className="shell">
-            <h2>{p.channel.title}</h2>
+          <div className="shell doc">
+            <h2 className="doc-title">{p.channel.title}</h2>
             {p.channel.body.map((line, i) => (
               <p key={i} className="copy">{line}</p>
             ))}
@@ -129,8 +135,8 @@ export default function ProtocolPage() {
 
         {/* ── the signing policy ──────────────────────────────────────── */}
         <section className="band band--tight" id="policy">
-          <div className="shell">
-            <h2>{p.policy.title}</h2>
+          <div className="shell doc">
+            <h2 className="doc-title">{p.policy.title}</h2>
             {p.policy.body.map((line, i) => (
               <p key={i} className="copy">{line}</p>
             ))}
@@ -170,8 +176,8 @@ export default function ProtocolPage() {
 
         {/* ── the offline price guard ─────────────────────────────────── */}
         <section className="band band--tight" id="pyth">
-          <div className="shell">
-            <h2>{p.pyth.title}</h2>
+          <div className="shell doc">
+            <h2 className="doc-title">{p.pyth.title}</h2>
             <p className="status-note" role="note">
               {p.pyth.status}
             </p>
@@ -183,8 +189,8 @@ export default function ProtocolPage() {
 
         {/* ── paper vault ─────────────────────────────────────────────── */}
         <section className="band band--tight" id="paper-vault">
-          <div className="shell">
-            <h2>{p.paperVault.title}</h2>
+          <div className="shell doc">
+            <h2 className="doc-title">{p.paperVault.title}</h2>
             {p.paperVault.body.map((line, i) => (
               <p key={i} className="copy">{line}</p>
             ))}
@@ -192,7 +198,7 @@ export default function ProtocolPage() {
         </section>
 
         <section className="band band--tight">
-          <div className="shell">
+          <div className="shell doc">
             <p className="copy">
               {p.source.text}{" "}
               <a href={p.source.href}>{p.source.label}</a>.

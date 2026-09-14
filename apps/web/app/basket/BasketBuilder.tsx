@@ -204,7 +204,7 @@ export function BasketBuilder() {
             <span className="eyebrow">{b.builder.allocationLabel}</span>
             <span className={`alloc-total${balanced ? "" : " alloc-total--off"}`}>
               <span className="num">{total}%</span> allocated
-              {balanced ? "" : " — must add up to 100%"}
+              {balanced ? "" : ", must add up to 100%"}
             </span>
           </div>
 

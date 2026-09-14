@@ -215,7 +215,7 @@ function StatusStrip({ session }: { session?: string }) {
       <div className="strip" role="status">
         <span className="strip-item strip-item--ok">
           <span className="dot" aria-hidden="true" />
-          Order held open by a durable nonce — it will not expire while you check it
+          Order held open by a durable nonce. It will not expire while you check it
         </span>
         <span className="strip-end">
           Session <span className="num">{session}</span>

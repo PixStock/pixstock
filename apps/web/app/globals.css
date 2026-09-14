@@ -841,6 +841,8 @@ tbody tr:hover { background: var(--rule-2); }
 }
 
 .foot { background: var(--ground); border-top: 1px solid var(--rule-2); padding-top: 60px; overflow: hidden; }
+.foot--slim { padding-top: 0; }
+.foot--slim .legal { border-top: none; }
 .foot-cols {
   display: grid;
   gap: 34px;
@@ -1284,6 +1286,7 @@ html:not(.js-anim) .wordmark .rise { transform: none; opacity: 1; }
   color: var(--ink);
 }
 .spec-table td:last-child { padding-right: 0; }
+.spec-table td:first-child { white-space: nowrap; }
 
 .frame-envelope {
   margin-block: 22px;
@@ -1295,6 +1298,45 @@ html:not(.js-anim) .wordmark .rise { transform: none; opacity: 1; }
   font-size: 13px;
   overflow-x: auto;
 }
+
+/* A document page is one column of reading, not a marketing band. Before
+   this the copy sat at 62ch while the tables ran the full 1180px shell, so
+   the last column drifted off on its own with a void in front of it, and the
+   paragraphs had no margin at all: `.copy p` styles children, and every one
+   of these IS the p. One rhythm rule owns the spacing now, which is why the
+   blocks below give up their own margins. */
+.doc > * + * { margin-top: 22px; }
+.doc > .spec-table,
+.doc > .status-note,
+.doc > .frame-envelope {
+  max-width: 74ch;
+  margin-block: 0;
+}
+
+/* Between h2.title and h3.sub: a section marker for a page that has five of
+   them, where the marketing h2 would shout and the h3 would disappear. */
+h2.doc-title {
+  font-size: clamp(23px, 2.3vw, 31px);
+  font-weight: 600;
+  letter-spacing: -0.022em;
+  line-height: 1.16;
+  max-width: 40ch;
+}
+
+.doc-map {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 22px;
+  margin-top: 26px;
+}
+.doc-map a {
+  font-size: 14px;
+  color: var(--ink-2);
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 3px;
+  transition: color 0.2s, border-color 0.2s;
+}
+.doc-map a:hover { color: var(--ink); border-bottom-color: var(--ink-3); }
 
 .prose > section { margin-bottom: 34px; }
 .prose h2 { margin-bottom: 10px; }

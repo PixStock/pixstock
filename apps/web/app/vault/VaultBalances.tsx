@@ -59,7 +59,7 @@ export function VaultBalances() {
         <span className="eyebrow">Holdings</span>
         {held.length === 0 ? (
           <p className="copy">
-            No token accounts yet. The first order creates them, and the relayer pays their rent —
+            No token accounts yet. The first order creates them, and the relayer pays their rent,
             which is why this vault can hold 0.00 SOL.
           </p>
         ) : (
