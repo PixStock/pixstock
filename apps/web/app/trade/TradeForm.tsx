@@ -2,8 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { ASSETS, USDC_MINT, formatAmount } from "@pixstock/shared";
-import { api, RelayerError, type DisplayPrice, type Quote } from "@/lib/api";
+import { ASSETS, USDC_MINT, formatAmount, formatScaled } from "@pixstock/shared";
+import { api, RelayerError, type DisplayPrice, type Quote, type VaultBalance } from "@/lib/api";
 import { usePairedVault } from "@/lib/vault";
 import { content } from "@/content/site";
 
@@ -14,6 +14,9 @@ function toRawUsdc(amount: string): string | null {
   return BigInt(Math.round(parsed * 1e6)).toString();
 }
 
+/** The amounts people actually type, plus the one they mean but never type. */
+const QUICK = ["50", "100", "500"] as const;
+
 export function TradeForm() {
   const t = content.trade;
   const router = useRouter();
@@ -23,25 +26,30 @@ export function TradeForm() {
   const [amount, setAmount] = useState("50");
   const [quote, setQuote] = useState<Quote | null>(null);
   const [quoting, setQuoting] = useState(false);
+  const [quotedAt, setQuotedAt] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
 
   const asset = ASSETS.find((a) => a.symbol === symbol)!;
   const rawAmount = useMemo(() => toRawUsdc(amount), [amount]);
-  const [price, setPrice] = useState<DisplayPrice | null>(null);
+  const [prices, setPrices] = useState<DisplayPrice[]>([]);
+  // Held with the address it was read for, so unpairing cannot leave a
+  // stale balance on screen without clearing state inside an effect.
+  const [usdc, setUsdc] = useState<{ vault: string; balance: VaultBalance | null } | null>(null);
 
-  // Pyth's own price, beside the route's. Shown so the two can be compared by
-  // eye; neither is proof of anything here, and the phone is what checks the
-  // signature that makes one of them evidence.
+  // Every asset's price, not just the selected one: the five cards each show
+  // theirs, and whether our Pyth grant covers the feed at all. That second
+  // fact is what decides whether the phone will call the price verified, and
+  // a <select> hid it behind a click.
   useEffect(() => {
     let cancelled = false;
 
     const read = () =>
       api
-        .prices([symbol])
-        .then((result) => !cancelled && setPrice(result.prices[0] ?? null))
+        .prices()
+        .then((result) => !cancelled && setPrices(result.prices))
         .catch(() => {
-          // The relayer already has a status banner of its own on this page.
+          // The status strip above already says the relayer is not answering.
         });
 
     void read();
@@ -50,7 +58,25 @@ export function TradeForm() {
       cancelled = true;
       clearInterval(timer);
     };
-  }, [symbol]);
+  }, []);
+
+  // What is actually spendable, so "All of it" means something.
+  useEffect(() => {
+    if (!isValid) return;
+    let cancelled = false;
+    api
+      .vault(vault)
+      .then((result) => {
+        if (cancelled) return;
+        setUsdc({ vault, balance: result.balances.find((b) => b.mint === USDC_MINT) ?? null });
+      })
+      .catch(() => {
+        // A balance we cannot read is a line we do not draw.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [vault, isValid]);
 
   // Re-quote as the order changes. Debounced, because a keystroke is not an
   // intention to price.
@@ -70,6 +96,7 @@ export function TradeForm() {
         .then((next) => {
           if (!cancelled) {
             setQuote(next);
+            setQuotedAt(Date.now());
             setError(null);
           }
         })
@@ -106,103 +133,236 @@ export function TradeForm() {
     }
   }
 
-  return (
-    <div className="stack-24">
-      <div className="field-row">
-        <label className="field-block">
-          <span className="eyebrow">{t.form.assetLabel}</span>
-          <select value={symbol} onChange={(e) => setSymbol(e.target.value)} className="select">
-            {ASSETS.map((a) => (
-              <option key={a.symbol} value={a.symbol}>
-                {a.symbol} — {a.name}
-              </option>
-            ))}
-          </select>
-        </label>
+  const priceOf = (s: string) => prices.find((p) => p.symbol === s) ?? null;
+  const selected = priceOf(symbol);
+  const balance =
+    isValid && usdc?.vault === vault && usdc.balance ? usdc.balance.amount.toFixed(2) : null;
 
-        <label className="field-block">
+  return (
+    <div className="app-cols">
+      <div className="stack-24">
+        <div style={{ display: "grid", gap: 12 }}>
+          <span className="eyebrow">{t.form.assetLabel}</span>
+          <div className="asset-cards">
+            {ASSETS.map((a) => {
+              const p = priceOf(a.symbol);
+              return (
+                <button
+                  key={a.symbol}
+                  type="button"
+                  className="asset-card"
+                  aria-pressed={a.symbol === symbol}
+                  onClick={() => setSymbol(a.symbol)}
+                >
+                  <span className="sym">{a.symbol}</span>
+                  <span className="name">{a.name}</span>
+                  <span className="px">
+                    {p && !p.unavailable
+                      ? p.price.toLocaleString(undefined, { maximumFractionDigits: 2 })
+                      : "—"}
+                  </span>
+                  {/*
+                    Read from the relayer's own answer. A list of covered
+                    symbols written here would be a list that goes stale the
+                    first time the Pyth grant changes.
+                  */}
+                  <span className={`cover cover--${p?.unavailable ? "warn" : "ok"}`}>
+                    {p?.unavailable ? "unsigned today" : "signed price"}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <p className="muted" style={{ fontSize: 13.5, margin: 0 }}>
+            Our Pyth grant covers Tesla. For the others the order travels without a signed
+            price, the phone says so on the ticket, and it asks you to accept that before it
+            signs.
+          </p>
+        </div>
+
+        <div style={{ display: "grid", gap: 12 }}>
           <span className="eyebrow">{t.form.amountLabel}</span>
-          <span className="input-affix">
-            <input
-              type="number"
-              inputMode="decimal"
-              min="0"
-              step="10"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className="input num"
-            />
-            <span className="affix">{t.form.amountUnit}</span>
-          </span>
-        </label>
+          <div className="amount-row">
+            <label className="amount-field">
+              <span className="sr-only">{t.form.amountLabel}</span>
+              <input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                step="10"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+              />
+              <span className="affix">{t.form.amountUnit}</span>
+            </label>
+
+            {QUICK.map((value) => (
+              <button
+                key={value}
+                type="button"
+                className="quick"
+                aria-pressed={amount === value}
+                onClick={() => setAmount(value)}
+              >
+                {value}
+              </button>
+            ))}
+            <button
+              type="button"
+              className="quick"
+              disabled={balance === null}
+              aria-pressed={balance !== null && amount === balance}
+              onClick={() => balance !== null && setAmount(balance)}
+            >
+              All of it
+            </button>
+          </div>
+          {balance !== null && (
+            <p className="muted" style={{ fontSize: 13.5, margin: 0 }}>
+              You hold <span className="num">{balance}</span> USDC in{" "}
+              <span className="num">
+                {vault.slice(0, 4)}…{vault.slice(-4)}
+              </span>
+            </p>
+          )}
+        </div>
+
+        <div className="after">
+          <span className="eyebrow">What happens after you press send</span>
+          <div className="after-cols">
+            <div className="after-step">
+              <span className="n">01</span>
+              <span className="t">It becomes a QR on this screen</span>
+              <span className="d">
+                The relayer builds the transaction and holds it open with a durable nonce.
+                Nothing is signed yet.
+              </span>
+            </div>
+            <div className="after-step">
+              <span className="n">02</span>
+              <span className="t">Your phone reads it and checks it</span>
+              <span className="d">
+                In airplane mode, against Pyth&apos;s own signature. It prints a ticket and
+                refuses anything that does not match.
+              </span>
+            </div>
+            <div className="after-step">
+              <span className="n">03</span>
+              <span className="t">Sixty-four bytes come back</span>
+              <span className="d">
+                A signature, held up to your webcam. We pay the fee and broadcast it. Your
+                key never left the phone.
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {quote && (
-        <div className={`quote-card${quoting ? " quote-stale" : ""}`}>
-          <span className="eyebrow">You receive</span>
-          <p className="quote-out num" style={{ margin: 0 }}>
-            {formatAmount(quote.out.amount, asset.decimals, 6)}{" "}
-            <span style={{ fontSize: 18 }}>{quote.out.symbol}</span>
-          </p>
-          <dl style={{ margin: 0, display: "grid", gap: 6 }}>
-            <div className="quote-row">
-              <dt>At worst</dt>
+      <div className="app-col--preview">
+        <div className={`panel${quoting ? " quote-stale" : ""}`}>
+          <div className="panel-head">
+            <span className="eyebrow">You receive</span>
+            {quoting ? (
+              <span className="fresh fresh--stale">re-pricing…</span>
+            ) : (
+              quotedAt !== null && <Freshness since={quotedAt} />
+            )}
+          </div>
+
+          <div className="panel-figure">
+            <span className="v">
+              {quote ? formatScaled(quote.out.amount, asset.decimals, 1, 6) : "—"}
+            </span>
+            <span className="sym">
+              {asset.symbol} · {asset.name}
+            </span>
+            <span className="per">
+              {selected && !selected.unavailable
+                ? `at ${selected.price.toLocaleString(undefined, { maximumFractionDigits: 2 })} each`
+                : "no signed price for this asset today"}
+            </span>
+          </div>
+
+          <dl className="dl-rows">
+            <div>
+              <dt>{t.form.worstCase}</dt>
               <dd className="num">
-                {formatAmount(quote.minOutAmount, asset.decimals, 6)} {quote.out.symbol}
+                {quote
+                  ? `${formatAmount(quote.minOutAmount, asset.decimals, 6)} ${asset.symbol}`
+                  : "—"}
               </dd>
             </div>
-            <div className="quote-row">
-              <dt>Route</dt>
-              <dd>{quote.route.join(" → ")}</dd>
+            <div>
+              <dt>{t.form.routedThrough}</dt>
+              <dd>{quote ? quote.route.join(", then ") : "—"}</dd>
             </div>
-            <div className="quote-row">
-              <dt>Price impact</dt>
-              <dd className="num">{(Number(quote.priceImpactPct) * 100).toFixed(3)}%</dd>
-            </div>
-            <div className="quote-row">
-              <dt>Network fee</dt>
-              <dd>paid by the relayer</dd>
-            </div>
-            <div className="quote-row">
-              <dt>Pyth price</dt>
+            <div>
+              <dt>{t.form.priceImpact}</dt>
               <dd className="num">
-                {price?.symbol !== symbol ? (
-                  <span className="muted">…</span>
-                ) : price.unavailable ? (
-                  <span className="muted">{price.unavailable}</span>
+                {quote ? `${(Number(quote.priceImpactPct) * 100).toFixed(3)}%` : "—"}
+              </dd>
+            </div>
+            <div>
+              <dt>{t.form.networkFee}</dt>
+              <dd className="ok">{t.form.feePaid}</dd>
+            </div>
+            <div>
+              <dt>{t.form.pythReference}</dt>
+              <dd className="num">
+                {!selected ? (
+                  "—"
+                ) : selected.unavailable ? (
+                  <span className="muted">{selected.unavailable}</span>
                 ) : (
                   <>
-                    {price.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}{" "}
+                    {selected.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}{" "}
                     <span className="muted">
-                      {price.session === "ext" ? "extended hours" : "live"}
+                      {selected.session === "ext" ? "extended hours" : "live"}
                     </span>
                   </>
                 )}
               </dd>
             </div>
           </dl>
+
+          {error && (
+            <p className="alert-inline" role="alert">
+              {error}
+            </p>
+          )}
+
+          <div style={{ display: "grid", gap: 10 }}>
+            <button
+              type="button"
+              className="btn btn--solid cta"
+              disabled={!quote || !isValid || sending}
+              onClick={() => void send()}
+            >
+              {sending ? "Building the order…" : t.form.submit}
+            </button>
+            {/* Why a send is blocked now reads in the status strip and on the
+                header chip, where the thing that is missing actually is. */}
+            <p className="cta-note">Your phone decides. This browser cannot sign anything.</p>
+          </div>
         </div>
-      )}
-
-      {error && (
-        <p className="alert-inline" role="alert">
-          {error}
-        </p>
-      )}
-
-      <div className="row-wrap">
-        <button
-          type="button"
-          className="btn btn--solid"
-          disabled={!quote || !isValid || sending}
-          onClick={() => void send()}
-        >
-          {sending ? "Building the order…" : t.form.submit}
-        </button>
-        {!isValid && (
-          <span className="muted">Paste your vault&apos;s public key first.</span>
-        )}
       </div>
     </div>
+  );
+}
+
+/** How old the quote on screen is, counted so it can be checked. */
+function Freshness({ since }: { since: number }) {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1_000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const seconds = Math.max(0, Math.round((now - since) / 1000));
+  return (
+    <span className={`fresh${seconds > 30 ? " fresh--stale" : ""}`}>
+      quote <span className="num">{seconds}</span>s old
+    </span>
   );
 }
