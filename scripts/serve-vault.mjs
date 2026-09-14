@@ -14,10 +14,12 @@
  * precache and the manifest only exist in a build, and those are exactly what
  * a phone needs in order to keep working once it goes into airplane mode.
  *
- * Point a tunnel at it to reach the vault from a phone over HTTPS — the
- * camera and WebAuthn both require a secure context:
+ * This is also what runs inside the vault's container image, so the headers a
+ * deployment serves and the ones checked locally are the same ones.
  *
- *   cloudflared tunnel --url http://localhost:5183
+ * Reaching it from a phone needs HTTPS — the camera and WebAuthn both require
+ * a secure context — which means a deployment, or any tunnel pointed at this
+ * port for a quick test.
  */
 import { createServer } from "node:http";
 import { readFileSync, existsSync, statSync } from "node:fs";
@@ -72,6 +74,7 @@ createServer((req, res) => {
   });
   res.end(readFileSync(file));
 }).listen(PORT, "0.0.0.0", () => {
-  console.log(`vault  → http://localhost:${PORT}  (built, with production headers)`);
-  console.log(`tunnel → cloudflared tunnel --url http://localhost:${PORT}`);
+  // One line, and it says what a deployment log needs: which build, on which
+  // port, behind which headers.
+  console.log(`vault listening on ${PORT} — static build, production headers`);
 });
