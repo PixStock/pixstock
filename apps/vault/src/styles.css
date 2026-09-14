@@ -152,7 +152,8 @@ h2 { font-size: 19px; margin: 0; letter-spacing: -0.01em; }
 }
 
 .field { display: grid; gap: 6px; }
-.field > span { font-size: 14px; color: var(--ink-2); }
+.field > span,
+.field > label { font-size: 14px; color: var(--ink-2); }
 .field input {
   font: inherit;
   font-size: 16px;
@@ -620,3 +621,116 @@ h2 { font-size: 19px; margin: 0; letter-spacing: -0.01em; }
 .reply-meta dt { color: var(--ink-3); }
 .reply-meta dd { margin: 0; font-family: var(--mono); font-variant-numeric: tabular-nums; }
 .closing { margin: 0; text-align: center; font-size: 13px; color: var(--ink-3); }
+
+/* =========================================================== onboarding */
+
+/* Onboarding has no step rail — there is no crossing yet — so it carries its
+   own header, with three bars that say how much of this is left. */
+.onboard-head {
+  display: grid;
+  gap: 12px;
+  padding: 18px 16px 16px;
+  border-bottom: 1px solid var(--rule-2);
+  margin: -20px -16px 4px;
+}
+.onboard-title { margin: 0; font-size: 14.5px; font-weight: 600; letter-spacing: -0.01em; }
+.dots { display: flex; gap: 6px; }
+.dot-bar {
+  width: 18px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--rule);
+  transition: background 0.3s var(--ease-io);
+}
+.dot-bar--done { background: var(--ok); }
+.dot-bar--current { background: var(--ink); }
+
+h2.onboard { font-size: 26px; font-weight: 600; letter-spacing: -0.025em; line-height: 1.15; }
+
+/* Four segments, because a password is not a percentage and a meter that
+   creeps invites gaming it. */
+.strength { display: flex; gap: 4px; }
+.strength span { flex: 1; height: 3px; border-radius: 2px; background: var(--rule); }
+.strength span.on { background: var(--ok); }
+
+/* The gate. Continue stays shut until this is ticked, because there is no
+   support desk behind it. */
+.gate {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px;
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.gate input { width: 18px; height: 18px; flex: none; margin: 1px 0 0; accent-color: var(--ok); }
+
+.btn-split { display: flex; gap: 10px; }
+.btn-split .btn { height: 52px; font-size: 16px; font-weight: 600; }
+.btn-split .btn--minor { flex: 1; }
+.btn-split .btn--major { flex: 2; }
+
+/* ============================================================= settings */
+
+.idcard {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  background: var(--surface);
+}
+.idcard .addr {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 14px;
+  word-break: break-all;
+  line-height: 1.5;
+}
+.chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip-row .chip { padding: 5px 10px; }
+
+.choice-row { display: flex; gap: 10px; }
+.choice-row .btn { flex: 1; height: 44px; }
+
+/* Two rows that open in place. A setting you have to go somewhere to find is
+   a setting nobody finds. */
+.disclose { display: grid; }
+.disclose-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 14px 0;
+  border: 0;
+  border-top: 1px solid var(--rule-2);
+  background: none;
+  font: inherit;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  min-height: 44px;
+}
+.disclose-row:last-of-type { border-bottom: 1px solid var(--rule-2); }
+.disclose-row .t { display: grid; gap: 2px; margin-right: auto; }
+.disclose-row .t b { font-size: 15.5px; font-weight: 600; letter-spacing: -0.01em; }
+.disclose-row .t span { font-size: 13px; color: var(--ink-3); }
+.disclose-row .chev { flex: none; color: var(--ink-3); transition: transform 0.25s var(--ease-io); }
+.disclose-row[aria-expanded="true"] .chev { transform: rotate(90deg); }
+.disclose-body { display: grid; gap: 12px; padding: 4px 0 16px; }
+
+.danger {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--crit) 32%, var(--rule));
+  border-radius: 14px;
+}
+.danger .eyebrow { color: var(--crit); }
+.danger p { margin: 0; font-size: 13.5px; line-height: 1.45; color: var(--ink-2); }
+.btn--danger { height: 44px; color: var(--crit); border-color: color-mix(in srgb, var(--crit) 45%, var(--rule)); }
+.btn--danger:hover { border-color: var(--crit); }

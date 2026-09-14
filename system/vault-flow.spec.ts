@@ -16,11 +16,11 @@ async function createVault(page: Page): Promise<string> {
   await page.goto("/");
   await page.getByLabel("Master password", { exact: true }).fill(PASSWORD);
   await page.getByLabel("Confirm").fill(PASSWORD);
-  await page.getByRole("button", { name: "Create vault" }).click();
+  await page.getByRole("button", { name: "Create my vault" }).click();
 
-  await expect(page.getByRole("heading", { name: "Print this, now" })).toBeVisible({
-    timeout: 15_000,
-  });
+  await expect(
+    page.getByRole("heading", { name: "Print this. It is the way back." }),
+  ).toBeVisible({ timeout: 15_000 });
   // The Paper-Vault must be shown before anything else can happen.
   await expect(page.locator("canvas.qr")).toBeVisible();
 
@@ -32,7 +32,11 @@ async function createVault(page: Page): Promise<string> {
     return Array.from(bytes.slice(87, 119));
   });
 
-  await page.getByRole("button", { name: "I have printed it" }).click();
+  // Continue is shut until the holder says the sheet exists: there is no
+  // support desk behind this screen.
+  await expect(page.getByRole("button", { name: "Continue" })).toBeDisabled();
+  await page.getByRole("checkbox").check();
+  await page.getByRole("button", { name: "Continue" }).click();
   return toBase58(publicKey);
 }
 
@@ -153,12 +157,12 @@ test.describe("the vault, end to end in a browser", () => {
     await installFixtureVault(page);
     await page.getByRole("button", { name: "Settings" }).click();
 
-    await expect(page.getByRole("heading", { name: "This vault", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Settings", exact: true })).toBeVisible();
     await expect(page.getByText(FIXTURE_VAULT)).toBeVisible();
 
     // Two choices, and the looser of them is the built-in maximum: there is
     // no control here that widens what the vault will accept.
-    const choices = await page.locator(".row button", { hasText: /%$/ }).allTextContents();
+    const choices = await page.locator(".choice-row button").allTextContents();
     expect(choices).toEqual(["0.5%", "1.0%"]);
 
     await page.getByRole("button", { name: "0.5%" }).click();
@@ -208,7 +212,7 @@ test.describe("the vault, end to end in a browser", () => {
     // key back on a phone that has never seen it. Nothing is fetched to do
     // it — the sheet holds everything.
     await page.goto("/");
-    await page.getByRole("button", { name: "Restore from Paper-Vault" }).click();
+    await page.getByRole("button", { name: "I already have a printed sheet" }).click();
 
     await page.getByLabel("Paper-Vault code").fill(PAPER_VAULT.code);
     await page.getByLabel("Master password", { exact: true }).fill(PAPER_VAULT.password);
@@ -232,7 +236,7 @@ test.describe("the vault, end to end in a browser", () => {
 
   test("refuses a Paper-Vault opened with the wrong password", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: "Restore from Paper-Vault" }).click();
+    await page.getByRole("button", { name: "I already have a printed sheet" }).click();
 
     await page.getByLabel("Paper-Vault code").fill(PAPER_VAULT.code);
     await page.getByLabel("Master password", { exact: true }).fill("not the password at all");
