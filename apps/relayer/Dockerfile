@@ -45,7 +45,23 @@ COPY --from=build /app/apps/relayer/prisma ./apps/relayer/prisma
 USER node
 EXPOSE 4000
 
-# The schema is applied before the process serves anything: a relayer answering
-# requests against a database it has not migrated fails one order at a time,
-# which is the slowest possible way to find out.
-CMD ["sh", "-c", "npx prisma migrate deploy --schema apps/relayer/prisma/schema.prisma && node apps/relayer/dist/main.js"]
+# Two things happen before the process serves anything.
+#
+# The configuration is checked first, because the failure it produces
+# otherwise is forty lines of Prisma schema validation repeated on every
+# restart — which says the schema is invalid when the truth is that one
+# environment variable is missing.
+#
+# Then the schema is applied: a relayer answering requests against a database
+# it has not migrated fails one order at a time, which is the slowest possible
+# way to find out.
+CMD ["sh", "-c", "\
+if [ -z \"$DATABASE_URL\" ]; then \
+  echo 'FATAL: DATABASE_URL is not set.'; \
+  echo 'On Railway: add a variable on this service referencing the database,'; \
+  echo 'for example  DATABASE_URL = ${{Postgres.DATABASE_URL}}'; \
+  echo '(the name before the dot is your Postgres service name, exactly).'; \
+  exit 1; \
+fi; \
+npx prisma migrate deploy --schema apps/relayer/prisma/schema.prisma && \
+exec node apps/relayer/dist/main.js"]
