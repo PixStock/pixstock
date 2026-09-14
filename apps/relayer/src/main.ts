@@ -18,7 +18,10 @@ async function bootstrap(): Promise<void> {
     new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
   );
 
-  await app.listen(process.env.PORT ?? 4000);
+  // 0.0.0.0 explicitly: a container platform routes to the published port
+  // from outside the container, and a server bound to loopback answers
+  // nothing while looking perfectly healthy in its own logs.
+  await app.listen(process.env.PORT ?? 4000, '0.0.0.0');
 }
 
 void bootstrap();
