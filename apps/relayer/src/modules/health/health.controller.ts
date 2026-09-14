@@ -67,6 +67,10 @@ export class HealthController {
       relayerPublicKey,
       pythToken,
       pythSigners: { count: TRUSTED_SIGNERS.length, readAt: SIGNERS_READ_AT },
+      // Which build is answering. Railway publishes the commit it deployed;
+      // without this, "is my fix live?" is a question nobody can answer from
+      // the outside, and the honest answer turned out to be no.
+      build: process.env.RAILWAY_GIT_COMMIT_SHA?.slice(0, 7) ?? process.env.GIT_SHA ?? 'unknown',
       pythStream: pyth,
       noncePool,
       broadcast: this.config.get<boolean>('relayer.allowBroadcast') ? 'enabled' : 'disabled',
