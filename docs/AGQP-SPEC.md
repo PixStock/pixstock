@@ -1,235 +1,238 @@
 # AGQP v1 — Air-Gap QR Protocol
 
-Version **1**, figée le 12 sept. 2026. Implémentation : `packages/agqp`.
+Version **1**, frozen 12 Sept 2026. Implementation: `packages/agqp`.
 
-Le canal optique est le seul lien entre la dApp en ligne et le vault hors
-ligne. Les deux côtés doivent lire ce document à l'identique : **toute
-modification du format est un changement cassant** et doit toucher
-l'encodeur, l'assembleur et les vecteurs de test dans le même commit.
+The optical channel is the only link between the online dApp and the offline
+vault. Both sides must read this document identically: **any change to the
+format is a breaking change**, and must touch the encoder, the assembler and
+the test vectors in the same commit.
 
 ---
 
-## 1. Enveloppe d'une trame
+## 1. Frame envelope
 
-Une trame est une **chaîne de caractères** rendue en QR *mode alphanumérique*,
-correction d'erreur **M**.
+A frame is a **string**, rendered as a QR code in *alphanumeric mode*, error
+correction **M**.
 
 ```
 PS1:<SID>:<INDEX>:<TOTAL>:<CRC32>:<CHUNK>
 ```
 
-| Décalage | Longueur | Champ | Contenu |
+| Offset | Length | Field | Contents |
 |---|---|---|---|
-| 0 | 3 | `PS1` | Magic. Une trame qui ne commence pas par là est ignorée sans bruit. |
-| 3 | 1 | `:` | Séparateur |
-| 4 | 5 | `SID` | Identifiant de session, 3 octets aléatoires en Base45 |
+| 0 | 3 | `PS1` | Magic. A frame that does not start with it is ignored silently. |
+| 3 | 1 | `:` | Separator |
+| 4 | 5 | `SID` | Session id: 3 random bytes in Base45 |
 | 9 | 1 | `:` | |
-| 10 | 2 | `INDEX` | Position, décimal **1-based**, `01`–`99` |
+| 10 | 2 | `INDEX` | Position, decimal, **1-based**, `01`–`99` |
 | 12 | 1 | `:` | |
-| 13 | 2 | `TOTAL` | Nombre de trames, décimal, `01`–`99` |
+| 13 | 2 | `TOTAL` | Frame count, decimal, `01`–`99` |
 | 15 | 1 | `:` | |
-| 16 | 8 | `CRC32` | CRC-32 du chunk **binaire**, hexadécimal majuscule |
+| 16 | 8 | `CRC32` | CRC-32 of the **binary** chunk, uppercase hex |
 | 24 | 1 | `:` | |
-| 25 | ≤ 600 | `CHUNK` | Fragment du payload, en Base45 |
+| 25 | ≤ 600 | `CHUNK` | A slice of the payload, in Base45 |
 
-En-tête : **25 caractères**. Chunk de 300 octets → 450 caractères. Trame
-complète ≈ 475 caractères → QR version 14-M (528 caractères alphanumériques,
-73 × 73 modules). Affiché à 520 px, un module fait ~7 px : lisible à 20-30 cm
-par n'importe quel téléphone.
+Header: **25 characters**. A 300-byte chunk becomes 450 characters, so a full
+frame is about 475 → QR version 14-M (528 alphanumeric characters, 73 × 73
+modules). Rendered at 520 px, one module is about 7 px: readable at 20–30 cm
+by any phone.
 
-> ⚠️ **Ne jamais parser en découpant sur `:`.** Le caractère `:` appartient à
-> l'alphabet Base45 (RFC 9285), donc un chunk peut en contenir. L'en-tête est
-> à largeur fixe et se lit par décalage. C'est la raison pour laquelle
-> `INDEX` et `TOTAL` sont sur deux chiffres zéro-préfixés, et non
-> variables.
+> **Never parse by splitting on `:`.** The colon is part of the Base45
+> alphabet (RFC 9285), so a chunk can contain one. The header is fixed-width
+> and read by offset. That is why `INDEX` and `TOTAL` are two zero-padded
+> digits rather than variable-length.
 
 ### Alphabet
 
-L'alphabet Base45 est exactement le jeu du mode alphanumérique QR :
+The Base45 alphabet is exactly the QR alphanumeric set:
 
 ```
-0-9 A-Z espace $ % * + - . / :
+0-9 A-Z space $ % * + - . / :
 ```
 
-Les 45 caractères coïncident, plus le `:` de séparation et les chiffres
-hexadécimaux majuscules du CRC qui sont déjà dans le jeu. Une trame émise ne
-contient donc **jamais** de caractère hors mode alphanumérique — sans quoi le
-QR basculerait en mode octet et le calcul de capacité ci-dessus serait faux.
-`packages/agqp` le vérifie par test.
+The 45 characters coincide, and both the `:` separator and the uppercase hex
+of the CRC are already in the set. An emitted frame therefore **never**
+contains a character outside alphanumeric mode — otherwise the QR would fall
+back to byte mode and the capacity budget above would be wrong.
+`packages/agqp` asserts this in a test.
 
-### Tailles de chunk
+### Chunk sizes
 
-| Préréglage | Octets par chunk | Usage |
+| Preset | Bytes per chunk | Use |
 |---|---|---|
-| `S` | 200 | Écrans peu contrastés, téléphones lents |
-| `M` | 300 | **Défaut** |
-| `L` | 400 | Bonnes conditions, moins de trames |
+| `S` | 200 | Low-contrast screens, slow phones |
+| `M` | 300 | **Default** |
+| `L` | 400 | Good conditions, fewer frames |
 
-Le réglage est exposé dans l'interface web pour la journée de mesure
-(matrice téléphone × taille × FPS).
+The setting is exposed in the web UI at `/sign` for the measurement matrix
+(phone × size × fps).
 
-### Limites
+### Limits
 
-- 99 trames au maximum, soit 29 700 octets en taille `M`. Le plus gros
-  message réel prévu (panier 3 lignes, payload Pyth de repli) tient en
-  9 trames.
-- Un payload vide est refusé.
+- 99 frames maximum — 29,700 bytes at size `M`. The largest real message
+  (a three-leg basket with a Pyth payload) fits in 6.
+- An empty payload is refused.
 
 ---
 
 ## 2. Payload (CBOR)
 
-Une seule structure pour tous les messages. Le champ `sid` y est répété :
-l'assembleur vérifie qu'il correspond au `SID` des trames, ce qui empêche de
-ré-encapsuler un payload capturé dans une autre session.
+One structure for every message. The `sid` is repeated inside it: the
+assembler checks that it matches the frames' `SID`, which stops a captured
+payload from being re-wrapped into another session.
 
 ```
 SignRequest { v: 1, kind: "SIGN", sid: bytes(3), vault: bytes(32),
-              txs: [bytes],            // messages v0 non signés
+              txs: [bytes],            // unsigned v0 messages
               manifest: { kind, legs: [{ i: inMint, o: outMint, a: inAmount,
                                          q: quotedOut, m: minOut, f: feedId }],
                           slip: u16, payer: bytes(32), nonce: bytes(32),
                           dapp: tstr, at: u64,
-                          mints: [{ m: bytes(32), x: float,    // multiplicateur
-                                    nx: float, na: u64,        // le suivant, et sa date
-                                    pd: bytes(32), p: bool,    // délégué, gel
+                          mints: [{ m: bytes(32), x: float,    // multiplier
+                                    nx: float, na: u64,        // the next one, and its date
+                                    pd: bytes(32), p: bool,    // delegate, frozen
                                     at: u64 }] },
-              price: bytes }           // message Pyth Pro format `solana`
+              price: bytes }           // Pyth Pro message, `solana` format
 
 SignResponse { v: 1, kind: "SIGR", sid, sigs: [bytes(64)] }
 Pair         { v: 1, kind: "PAIR", vault: bytes(32), label: tstr, net: "mainnet" | "devnet" }
-PaperVault   — voir ci-dessous, encodage propre
+PaperVault   — its own encoding, below
 ```
 
 ### Paper-Vault
 
-Le Paper-Vault ne traverse jamais le canal à trames : c'est **un seul QR
-imprimé**, scanné d'un coup. Il a donc son propre encodage, autonome et
-versionné, dans `packages/vault-crypto` :
+The Paper-Vault never crosses the framed channel: it is **one printed QR**,
+scanned in a single shot. So it has its own self-contained, versioned
+encoding, in `packages/vault-crypto`:
 
 ```
 PVLT:<BASE45(blob)>
 ```
 
-Le blob fait 127 octets à plat — version, algorithme et coût de la KDF, sel,
-nonce, chiffré (graine + tag GCM), clé publique, date de création — soit
-**196 caractères** une fois encodé, largement dans les capacités d'un QR
-imprimable. Tout ce qui est nécessaire au déchiffrement est dedans, coût de
-la KDF compris : relever le coût plus tard n'orpheline aucune sauvegarde.
+The blob is 127 bytes flat — version, KDF algorithm and cost, salt, nonce,
+ciphertext (seed + GCM tag), public key, creation date — which is **196
+characters** once encoded, comfortably within a printable QR. Everything
+needed to decrypt is inside it, KDF cost included: raising the cost later
+orphans no existing backup.
 
-### `mints` — ce que le vault ne peut pas lire
+### `mints` — what the vault cannot read for itself
 
-Les xStocks portent l'extension Token-2022 **ScaledUiAmount** : un montant
-réel vaut `brut / 10^décimales × multiplicateur`, et le multiplicateur vit
-sur le mint. Un vault en mode avion ne peut pas l'y lire, donc il voyage.
+The xStocks carry the Token-2022 **ScaledUiAmount** extension: a real amount
+is `raw / 10^decimals × multiplier`, and the multiplier lives on the mint. A
+vault in airplane mode cannot read it there, so it travels.
 
-C'est le seul chiffre de la fiche d'ordre que l'expéditeur choisit — tous
-les autres sont extraits de la transaction elle-même. Deux propriétés sont
-vérifiables hors ligne et le sont, sous la règle **P11** :
+It is the only figure on the order ticket the sender chooses — every other one
+is extracted from the transaction itself. Two properties are decidable offline
+and are decided, under rule **P11**:
 
-1. un mint que le vault *sait* scalé (table de `@pixstock/shared`) doit
-   déclarer un multiplicateur — l'omettre fausserait chaque montant ;
-2. un mint qu'il sait non scalé ne doit pas en déclarer — sans quoi on
-   pourrait multiplier l'USDC par cinq et le faire afficher.
+1. a mint the vault *knows* is scaled (the table in `@pixstock/shared`) must
+   declare a multiplier — omitting it would falsify every amount;
+2. a mint it knows is unscaled must not declare one — otherwise you could
+   multiply USDC by five and have it displayed that way.
 
-Aucune des deux ne prouve la valeur. Rien hors ligne ne le peut. La fiche
-l'imprime donc, dit d'où elle vient, et affiche à côté le montant non scalé.
+Neither proves the value. Nothing offline can. So the ticket prints it, says
+where it came from, and shows the unscaled amount beside it.
 
-Le champ `nx` (multiplicateur programmé) ne voyage **qu'avec `na`**, sa date :
-« un nouveau multiplicateur arrive » n'est pas actionnable sans « le 3 ».
+The `nx` field (a scheduled multiplier) travels **only with `na`**, its date:
+"a new multiplier is coming" is not actionable without "on the 3rd".
 
-Attention : le mint stocke *deux* multiplicateurs et une date de bascule, et
-celui en vigueur dépend de l'horloge. Lire le premier champ seul renvoie la
-valeur périmée — voir `MintState` côté relayer.
+Careful: the mint stores *two* multipliers and a switch-over date, and which
+one is in force depends on the clock. Reading the first field alone returns
+the stale value — see `MintState` on the relayer side.
 
 ---
 
-## 3. Budget d'octets
+## 3. Byte budget
 
-Mesures du 12 sept. 2026 (Jupiter `lite-api`, payer ≠ signataire, création
-d'ATA Token-2022 incluse).
+Measured 12 Sept 2026 by `scripts/measure-tx-size.mjs`, against real mainnet
+Jupiter routes, with `payer ≠ signer` and Token-2022 ATA creation included.
 
-| Contenu | Octets |
+| Contents | Bytes |
 |---|---|
-| Transaction 1 swap USDC → TSLAx | **581** (mesuré) |
-| Panier 2 lignes | **763** |
-| Panier 3 lignes AAPLx + NVDAx + MSFTx | **910** — sous la limite Solana de 1 232 |
-| Panier 4 lignes | **1 052** |
-| Message Pyth Pro `solana`, 1 feed | ≈ 145 |
-| Message Pyth Pro `solana`, 3 feeds | ≈ 205 |
-| **SIGN 1 swap**, payload CBOR complet | **903 → 4 trames en `M`** |
-| **SIGN panier 3 titres**, payload CBOR complet | **1 519 → 6 trames en `M`** |
-| **SIGR** (1 signature) | 107 caractères → 1 QR statique |
+| One swap, USDC → TSLAx | **581** |
+| Two-leg basket | **763** |
+| Three-leg basket, AAPLx + NVDAx + MSFTx | **910** — under Solana's 1,232 limit |
+| Four-leg basket | **1,052** |
+| Pyth Pro `solana` message, 1 feed | ≈ 145 |
+| Pyth Pro `solana` message, 3 feeds | ≈ 205 |
+| **SIGN, one swap**, full CBOR payload | **903 → 4 frames at `M`** |
+| **SIGN, three-leg basket**, full CBOR payload | **1,519 → 6 frames at `M`** |
+| **SIGR** (one signature) | 107 characters → 1 static QR |
 
-Mesures du 12 sept. 2026 par `scripts/measure-tx-size.mjs`, routes Jupiter
-mainnet réelles, `payer ≠ signataire`.
+> **These sizes depend on the route.** Jupiter picks a different one from one
+> minute to the next: a simple swap measures 581 bytes over one hop
+> (`Whirlpool`) and 789 over two (`Flux+PancakeSwap`). Everything fits, but no
+> absolute number is stable. That is why the builder forces `onlyDirectRoutes`
+> as soon as there is more than one leg — without it a basket can overflow at
+> the router's whim — and why the live tests assert that lookup tables are
+> applied rather than asserting a byte count.
 
-> **Ces tailles dépendent de la route.** Jupiter en choisit une différente
-> d'une minute à l'autre : un swap simple mesure 581 octets sur un saut
-> (`Whirlpool`) et 789 sur deux (`Flux+PancakeSwap`). Tout tient sous la
-> limite, mais aucun chiffre absolu n'est stable. C'est pourquoi le
-> constructeur force `onlyDirectRoutes` dès qu'il y a plusieurs lignes — sans
-> ça un panier peut déborder selon l'humeur du routeur — et pourquoi les tests
-> live vérifient que les tables de lookup sont appliquées plutôt qu'un nombre
-> d'octets. Les chiffres ci-dessus supposent un
-vault **froid** : chaque ligne crée son compte de tokens. Une fois ces comptes
-créés — l'état dès le deuxième ordre — le panier 3 lignes tombe à **816 o et
-5 trames**, et le swap simple à **507 o et 3 trames**.
+The figures above assume a **cold** vault: every leg creates its token
+account. Once those exist — the state from the second order onwards — the
+three-leg basket drops to **816 bytes and 5 frames**, and the single swap to
+**507 bytes and 3 frames**.
 
-> ⚠️ **Les tables de lookup d'adresses ne sont pas optionnelles.** Jupiter
-> nomme les tables que sa route utilise mais renvoie leur contenu vide : il
-> faut les lire sur la chaîne. Sans elles, onze comptes restent en ligne à
-> 32 octets pièce et un swap simple passe de 581 à 955 octets — assez pour
-> faire déborder un panier 2 lignes hors de la limite de transaction. Ce bug a
-> existé et a fait croire que la feature C était irréalisable.
+> **Address lookup tables are not optional.** Jupiter names the tables its
+> route uses but returns their contents empty: they have to be read from the
+> chain. Without them, eleven accounts stay inline at 32 bytes each and a
+> simple swap goes from 581 to 955 bytes — enough to push a two-leg basket
+> over the transaction limit. This bug existed, and made a three-leg basket
+> look impossible.
 
-À 8 FPS, un cycle de 5 trames dure 0,625 s. Un téléphone qui décode à 15-30
-fps capte tout en 1 à 2 cycles : **objectif < 1,5 s tenu**.
+At 8 fps a 5-frame cycle takes 0.625 s. A phone decoding at 15–30 fps catches
+everything in one or two cycles: **the sub-1.5 s target holds.**
 
-Si le repli Pyth Hermes est retenu (risque R1), le payload de prix passe de
-~145 à ~1 200 octets : le panier 3 lignes passe alors de 6 à environ
-10 trames — le format ne change pas,
-seul le nombre de trames augmente. C'est pourquoi `INDEX`/`TOTAL` vont
-jusqu'à 99.
+If the Pyth Hermes fallback is ever adopted, the price payload grows from
+~145 to ~1,200 bytes and the three-leg basket goes from 6 frames to about 10.
+The format does not change — only the frame count. That is why `INDEX` and
+`TOTAL` go to 99.
 
 ---
 
-## 4. Diffusion et assemblage
+## 4. Broadcast and assembly
 
-**Émission (web).** Les trames tournent en boucle continue à 8 FPS par
-défaut. Le cycle ne s'arrête jamais de lui-même : le téléphone peut entrer
-dans la séquence à n'importe quel indice.
+**Sending (web).** The frames cycle continuously at 8 fps by default. The
+cycle never stops on its own: the phone can join the sequence at any index.
 
-**Réception (vault).**
+**Receiving (vault).**
 
-1. Boucle `requestVideoFrameCallback` → `BarcodeDetector` natif si disponible
-   (Chrome Android), sinon `zxing-wasm` (iOS Safari), `jsQR` en dernier
-   recours.
-2. Chaque texte décodé passe à `FrameAssembler.push()`.
-3. L'assembleur **se verrouille sur le SID de la première trame valide** et
-   ignore ensuite toute trame d'une autre session.
-4. Table `index → chunk`, doublons tolérés, progression « 4 / 5 trames ».
-5. Déclenchement dès que `TOTAL` chunks distincts sont réunis.
-6. Timeout 20 s, puis « rapprochez ou éloignez le téléphone ».
+1. A `requestAnimationFrame` loop feeds the video element to the native
+   `BarcodeDetector`.
+2. Each decoded string goes to `FrameAssembler.push()`.
+3. The assembler **locks onto the SID of the first valid frame** and ignores
+   every frame from another session afterwards.
+4. An `index → chunk` table; duplicates tolerated; progress shown as
+   "4 of 5 frames".
+5. It fires as soon as `TOTAL` distinct chunks are in hand.
+6. A 20-second timeout, then "hold the phone steady, and fill the frame".
 
-**Rejets silencieux** (la trame est ignorée, le scan continue) : magic absent,
-en-tête trop court, `INDEX`/`TOTAL` non numériques, `INDEX` hors bornes,
-Base45 invalide, CRC non conforme, `TOTAL` incohérent avec celui déjà
-verrouillé, SID différent.
+> **`BarcodeDetector` is the only decoder in the vault.** It ships on Chrome
+> for Android and ChromeOS, which is where the vault is meant to run — and it
+> is undefined on desktop Linux, Windows, Firefox and Safari. On those the
+> vault says so and points at the paste channel rather than failing quietly.
+> No WASM decoder is bundled: every dependency in an offline signer is
+> something that has to be audited, and the paste channel already covers the
+> single-device case. `apps/web` does ship `jsQR`, because the laptop reading
+> the reply has no such guarantee and is not air-gapped.
 
-Une trame corrompue ne doit jamais faire échouer la session : elle est
-écartée, et le cycle suivant la réémet.
+**Silent rejections** (the frame is dropped, the scan continues): missing
+magic, short header, non-numeric `INDEX`/`TOTAL`, `INDEX` out of range,
+invalid Base45, CRC mismatch, `TOTAL` inconsistent with the locked one, a
+different SID.
+
+A corrupt frame must never fail the session: it is discarded, and the next
+cycle sends it again.
 
 ---
 
-## 5. Vecteurs de test
+## 5. Test vectors
 
-`packages/agqp/test` couvre :
+`packages/agqp/test` covers:
 
-- aller-retour sur 1 000 payloads aléatoires, aux trois tailles ;
-- vecteurs Base45 de la RFC 9285 et valeur canonique CRC-32 `0xCBF43926` ;
-- trame corrompue (un bit retourné) rejetée par le CRC ;
-- trames d'une autre session ignorées ;
-- trames reçues dans le désordre et en double ;
-- toute trame émise est dans le jeu alphanumérique QR ;
-- borne de longueur de trame respectée.
+- a round trip over 1,000 random payloads, at all three sizes;
+- the RFC 9285 Base45 vectors and the canonical CRC-32 value `0xCBF43926`;
+- a corrupt frame (one flipped bit) rejected by the CRC;
+- frames from another session ignored;
+- frames received out of order and duplicated;
+- every emitted frame being inside the QR alphanumeric set;
+- the frame length bound being respected.

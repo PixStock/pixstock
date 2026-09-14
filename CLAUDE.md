@@ -1,70 +1,88 @@
 # PixStock — CLAUDE.md
 
-Monorepo du hackathon **Stocklana** (11 → 18 sept. 2026). Signature hors
-ligne par canal optique pour actions tokenisées sur Solana.
+Monorepo for the **Stocklana** hackathon (11–18 Sept 2026). Offline signing
+over an optical channel, for tokenized stocks on Solana.
 
-Sources de vérité : `../cahier_des_charges_pixstock.md` (CDC) et
-`../PLAN_INTEGRATION.md` (plan détaillé, décisions D1..D11) — tous deux hors
-dépôt. Résumés versionnés dans `docs/`.
+Start with [`docs/README.md`](docs/README.md) — it indexes everything and
+leads with the argument.
 
 ## Structure
 
 ```
-apps/web       Next.js 16 · App Router · dApp en ligne
-apps/vault     Vite + React · PWA hors ligne · le signataire
+apps/web       Next.js 16 · App Router · the online dApp
+apps/vault     Vite + React · offline PWA · the signer
 apps/relayer   NestJS 10 · Prisma · fee payer, nonces, quotes, broadcast
 packages/      agqp · tx-policy · pyth-verify · vault-crypto · shared
-docs/          ARCHITECTURE · AGQP-SPEC · THREAT-MODEL · DEMO
+docs/          README · ARCHITECTURE · AGQP-SPEC · THREAT-MODEL · TESTING · DEMO · DEPLOY
 ```
 
-npm workspaces. Les paquets se compilent vers `dist/` : après avoir modifié
-un paquet, `npm run build:packages` (ou `npm run dev:packages` en watch),
-sinon les apps consomment l'ancienne version.
+npm workspaces. Packages compile to `dist/`: after changing one, run
+`npm run build:packages` (or `npm run dev:packages` to watch), or the apps
+keep consuming the previous version.
 
-## Règles non négociables
+## Non-negotiable
 
-- **`apps/vault` ne touche jamais le réseau.** Aucun `fetch`, aucun
-  `XMLHttpRequest`, aucun WebSocket, aucun script tiers. C'est la promesse
-  du produit — si elle tombe, il ne reste rien.
-- **La graine déchiffrée ne vit qu'en mémoire**, et est remise à zéro
-  (`fill(0)`) dès la signature produite.
-- **Le relayer ne signe que fee payer et nonce authority.** Jamais un
-  transfert de token, jamais une clé utilisateur en base.
-- **Le manifest n'est jamais la source de vérité.** La fiche d'ordre se
-  dérive des instructions décompilées ; le manifest ne sert qu'au contrôle
-  croisé.
-- **Aucun hash brut présenté à l'utilisateur** au moment de signer.
+- **`apps/vault` never touches the network.** No `fetch`, no
+  `XMLHttpRequest`, no WebSocket, no third-party script. It is the product's
+  promise — if it falls, nothing else matters. A lint rule fails the build.
+- **The decrypted seed lives in memory only**, and is zeroed (`fill(0)`) as
+  soon as the signature is produced.
+- **The relayer signs as fee payer and nonce authority, and nothing else.**
+  Never a token transfer, never a user key in a database.
+- **The manifest is never the source of truth.** The order ticket is derived
+  from the decompiled instructions; the manifest exists only to be
+  cross-checked against them.
+- **No raw hash is ever presented to a person at the moment of signing.**
 
-## Conventions de code
+## Code conventions
 
-- Composants serveur par défaut dans `apps/web` ; `"use client"` réservé à
-  la caméra, aux QR et à l'état d'ordre.
-- Les composants ne nomment jamais une couleur en dur : variables et rôles
-  CSS de `apps/web/app/globals.css` (`--ink`, `--ground`, `.sev--1/2/3`).
-- Tout montant affiché utilise la classe `.num` (chiffres tabulaires) et
-  passe par `formatAmount` de `@pixstock/shared`.
-- **Le produit est en anglais uniquement** (décision D11) : interface web,
-  PWA vault, messages d'erreur de l'API, README. Pas de routes `[locale]`,
-  pas de middleware de langue, pas de sélecteur. Le contenu du site vit dans
-  `apps/web/content/site.json`.
-- Les adresses de `@pixstock/shared` (mints, program ids, feed ids) ont été
-  vérifiées sur mainnet le 12 sept. 2026 — ne pas les modifier sans
-  revérifier.
-- Une fonction publique non encore écrite `throw` avec un renvoi vers la
-  section de spec qui la définit. Pas de `return null` silencieux.
+- Server components by default in `apps/web`; `"use client"` is for the
+  camera, the QR codes and order state.
+- Components never name a colour: they ask for a role from the CSS custom
+  properties in `apps/web/app/globals.css` (`--ink`, `--ground`, `--ok`,
+  `--warn`, `--crit`). The vault has the same ramp in
+  `apps/vault/src/styles.css`. Both stylesheets are shared across pages, so
+  a bare class name is a namespace — check before taking one.
+- Every displayed amount uses the `.num` class (tabular figures) and goes
+  through `formatAmount` or `formatScaled` from `@pixstock/shared`.
+- **The product is English only.** The web UI, the vault PWA, API error
+  messages, the documentation, the commit messages, the pull requests.
+- The addresses in `@pixstock/shared` — mints, program ids, feed ids — were
+  verified on mainnet on 12 Sept 2026. Do not change one without verifying it
+  again.
+- A public function that is not written yet `throw`s with a pointer to the
+  spec section that defines it. No silent `return null`.
+- Comments explain why, not what. The ones worth writing are the ones that
+  stop the next person from re-introducing a bug that has already happened
+  once.
 
-## Commandes
+## Commands
 
 ```bash
 npm install
-npm run build:packages            # après toute modification d'un paquet
+npm run build:packages            # after changing any package
 npm run dev -w @pixstock/relayer  # :4000
 npm run dev -w @pixstock/web      # :3000
 npm run dev -w @pixstock/vault    # :5183
-npm test                          # vitest sur packages/*
-npm run typecheck
+
+npm test                          # 304 unit and integration tests
+npm run test:live                 # real Jupiter and RPC
+npm run test:system               # Playwright, both apps
+npm run typecheck                 # runs next typegen first, then tsc -b
+npm run lint
 ```
 
-⚠️ `apps/web/AGENTS.md` est régénéré par `next dev` : Next 16 n'est pas
-Next 15, lire `node_modules/next/dist/docs/` avant de supposer des
-conventions de Next 13-14.
+`npm run typecheck` covers `packages/*`, `apps/vault` and `apps/web`.
+`apps/relayer` is deliberately absent from the root references — its test
+files carry pre-existing type errors that `nest build` never sees because it
+compiles `src` alone.
+
+## Money
+
+`apps/relayer/.env` holds a **mainnet key with real SOL in it**. Broadcasting
+and creating nonce accounts spend it. Neither is ever done without the
+owner's explicit go-ahead, per action.
+
+> `apps/web/AGENTS.md` is regenerated by `next dev`. Next 16 is not Next 15:
+> read `node_modules/next/dist/docs/` before assuming a Next 13–14
+> convention.
