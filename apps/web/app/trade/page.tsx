@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { AppShell } from "@/components/AppShell";
-import { Footer } from "@/components/Footer";
 import { SiteScript } from "@/components/SiteScript";
 import { content } from "@/content/site";
 import { TradeForm } from "./TradeForm";
@@ -32,8 +31,6 @@ export default function TradePage() {
       >
         <TradeForm />
       </AppShell>
-
-      <Footer dict={dict} slim />
     </>
   );
 }

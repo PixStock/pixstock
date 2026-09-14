@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { AppShell } from "@/components/AppShell";
-import { Footer } from "@/components/Footer";
 import { SiteScript } from "@/components/SiteScript";
 import { content } from "@/content/site";
 import { PairingScanner } from "./PairingScanner";
@@ -47,8 +46,6 @@ export default function VaultPage() {
           <VaultBalances />
         </div>
       </AppShell>
-
-      <Footer dict={dict} slim />
     </>
   );
 }
