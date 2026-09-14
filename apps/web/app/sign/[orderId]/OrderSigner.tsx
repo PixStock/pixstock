@@ -135,12 +135,15 @@ export function OrderSigner({ orderId }: { orderId: string }) {
 
   const shell = {
     current: "sign" as const,
-    eyebrow: "AGQP v1",
-    title: "Show this to your phone",
+    eyebrow: "Crossing the gap",
+    title: "Show this screen to your phone",
     lede:
-      "Point the vault camera at this screen. The frames cycle, so it can join " +
-      "anywhere — there is nothing to time and nothing to click.",
+      "Hold the phone up to the code. The frames repeat, so it can join anywhere " +
+      "— nothing to time, nothing to click.",
     session: encodeSessionId(sid),
+    // The order is already built by the time anyone reads this, so the first
+    // two steps name states rather than things to go and do.
+    railLabels: ["Built", "Showing", "Phone signs", "We broadcast"] as const,
   };
 
   if (problem && !order) {

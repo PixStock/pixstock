@@ -31,6 +31,13 @@ export interface AppShellProps {
   step: RailStep;
   /** On /sign the strip carries the nonce fact and this id instead. */
   session?: string;
+  /**
+   * Four labels for the rail, where the default ones would be wrong.
+   *
+   * /sign arrives with the order already built, so its first two steps are
+   * states — "Built", "Showing" — not things to go and do.
+   */
+  railLabels?: readonly string[];
   children: React.ReactNode;
 }
 
@@ -49,8 +56,10 @@ export function AppShell({
   lede,
   step,
   session,
+  railLabels,
   children,
 }: AppShellProps) {
+  const rail = railLabels ?? RAIL;
   return (
     <>
       <header className="app-head">
@@ -97,7 +106,7 @@ export function AppShell({
         </div>
 
         <div className="app-rail" role="list" aria-label="Progress">
-          {RAIL.map((label, i) => (
+          {rail.map((label, i) => (
             <div
               key={label}
               role="listitem"
@@ -107,7 +116,7 @@ export function AppShell({
             >
               <span className="app-rail-bar" aria-hidden="true" />
               <span className="app-rail-label">
-                {i + 1} {i + 1 < step ? DONE_LABELS[i] : label}
+                {i + 1} {railLabels ? label : i + 1 < step ? DONE_LABELS[i] : label}
               </span>
             </div>
           ))}

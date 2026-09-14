@@ -467,6 +467,11 @@ h2 { font-size: 19px; margin: 0; letter-spacing: -0.01em; }
 .amount-pay .v .sym { font-family: var(--ui); font-size: 16px; }
 .amount-rule { height: 1px; background: var(--rule-2); }
 .amount-get { display: grid; gap: 4px; }
+.amount-line { display: grid; gap: 4px; }
+/* Several positions: none of them is "the" number, so none of them is 40px. */
+.amount-get--many { gap: 16px; }
+.amount-get--many .amount-line .v { font-size: 26px; }
+.amount-get--many .amount-line .sym { font-size: 16px; }
 .amount-get .v {
   font-family: var(--mono);
   font-variant-numeric: tabular-nums;

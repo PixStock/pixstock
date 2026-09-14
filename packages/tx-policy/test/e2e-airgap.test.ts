@@ -183,10 +183,18 @@ describe("a real basket crossing the air gap", () => {
       expect(line.multiplier).toBe(1);
     }
 
-    // And the issuer's reach is on the ticket, not buried in a legal page.
-    expect(
-      result.ticket!.disclosures.filter((d) => d.text.includes("without your signature")),
-    ).toHaveLength(3);
+    // And the issuer's reach is on the ticket, not buried in a legal page —
+    // once, naming all three, rather than the same paragraph three times with
+    // a different symbol in it.
+    const delegate = result.ticket!.disclosures.filter((d) =>
+      d.text.includes("without your signature"),
+    );
+    expect(delegate).toHaveLength(1);
+    expect(delegate[0]!.severity).toBe("warn");
+    for (const symbol of ["AAPLx", "NVDAx", "MSFTx"]) {
+      expect(delegate[0]!.text, `${symbol} must still be named`).toContain(symbol);
+    }
+    expect(delegate[0]!.text).toContain("these tokens are issued");
 
     // ── vault: sign, and never keep the seed ────────────────────────────
     const blob = await lock(seed, PASSWORD, FAST_KDF);

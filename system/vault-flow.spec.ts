@@ -117,7 +117,11 @@ test.describe("the vault, end to end in a browser", () => {
     // screen must show which one it applied and what the figure would read
     // without it — the difference reaches half a percent.
     for (const { multiplier } of order.expectedOut) {
-      await expect(page.getByText(`×${multiplier} scale applied`).first()).toBeVisible();
+      // Six decimals, not the eighteen the mint's float carries: the screen
+      // shows a number a person can read, and the unscaled figure beside it
+      // is what they check it against.
+      const shown = Number(multiplier.toFixed(6));
+      await expect(page.getByText(`×${shown} scale applied`).first()).toBeVisible();
     }
     await expect(page.getByText(/unscaled/).first()).toBeVisible();
 

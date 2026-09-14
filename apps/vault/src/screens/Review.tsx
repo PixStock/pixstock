@@ -8,7 +8,7 @@ import {
   type PolicyResult,
   type TicketLine,
 } from "@pixstock/tx-policy";
-import type { OrderManifest } from "@pixstock/shared";
+import { decimalsOfMint, formatScaled, type OrderManifest } from "@pixstock/shared";
 import {
   checkAttestation,
   formatDeviation,
@@ -201,6 +201,7 @@ function CheckedOrder({
 
   const pay = ticket?.lines.filter((line) => line.direction === "in") ?? [];
   const receive = ticket?.lines.filter((line) => line.direction === "out") ?? [];
+  const paid = totalPaid(pay);
   const warnings = ticket?.disclosures.filter((d) => d.severity === "warn") ?? [];
   const notes = ticket?.disclosures.filter((d) => d.severity === "note") ?? [];
 
@@ -227,28 +228,52 @@ function CheckedOrder({
 
       {ticket && (
         <div className={`amounts${refused ? " amounts--refused" : ""}`}>
-          {pay.map((line, i) => (
-            <div key={`pay-${i}`} className="amount-pay">
+          {/*
+            A basket pays for every leg out of the same USDC, so the three
+            rows that used to say "You pay" one after another were one fact
+            written three times. Totalled only where the mint and the scale
+            agree — otherwise each line stands on its own, because adding
+            amounts of different things is how a ticket starts lying.
+          */}
+          {paid ? (
+            <div className="amount-pay">
               <p className="amount-label">You pay</p>
               <span className="v">
-                <span className="num">{line.amount}</span>{" "}
-                <span className="sym">{line.symbol}</span>
+                <span className="num">{paid.amount}</span>{" "}
+                <span className="sym">{paid.symbol}</span>
               </span>
             </div>
-          ))}
+          ) : (
+            pay.map((line, i) => (
+              <div key={`pay-${i}`} className="amount-pay">
+                <p className="amount-label">{i === 0 ? "You pay" : ""}</p>
+                <span className="v">
+                  <span className="num">{line.amount}</span>{" "}
+                  <span className="sym">{line.symbol}</span>
+                </span>
+              </div>
+            ))
+          )}
 
           <div className="amount-rule" aria-hidden="true" />
 
-          {receive.map((line, i) => (
-            <div key={`get-${i}`} className="amount-get">
-              <p className="amount-label">You receive</p>
-              <span className="v num">{line.amount}</span>
-              <span className="sym">
-                {line.symbol} · {nameOf(line.symbol)}
-              </span>
-              <span className="per">{perUnit(line, price)}</span>
-            </div>
-          ))}
+          {/*
+            One dominant number where there is one. Three positions are three
+            decisions, and printing all three at 40px makes none of them the
+            answer — so a basket steps them down and keeps the label once.
+          */}
+          <div className={`amount-get${receive.length > 1 ? " amount-get--many" : ""}`}>
+            <p className="amount-label">You receive</p>
+            {receive.map((line, i) => (
+              <div key={`get-${i}`} className="amount-line">
+                <span className="v num">{line.amount}</span>
+                <span className="sym">
+                  {line.symbol} · {nameOf(line.symbol)}
+                </span>
+                <span className="per">{perUnit(line, price)}</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -499,6 +524,26 @@ function severityOfWorst(price: AttestationStatus): "ok" | "warn" | "refuse" {
 }
 
 /**
+ * The legs' pay lines as one figure, when that is exactly true.
+ *
+ * Every leg of a basket spends the same USDC, so three rows saying "You pay"
+ * are one fact written three times. Returns null the moment the mints or the
+ * multipliers differ: a total across different things is not a total.
+ */
+function totalPaid(pay: TicketLine[]): { amount: string; symbol: string } | null {
+  if (pay.length === 0) return null;
+
+  const first = pay[0]!;
+  if (pay.some((l) => l.mint !== first.mint || l.multiplier !== first.multiplier)) return null;
+
+  const raw = pay.reduce((sum, l) => sum + BigInt(l.rawAmount), 0n);
+  return {
+    amount: formatScaled(raw, decimalsOfMint(first.mint), first.multiplier),
+    symbol: first.symbol,
+  };
+}
+
+/**
  * What one unit costs, and what the scale did to the figure above.
  *
  * The per-unit price is the one the vault derived from the transaction's own
@@ -514,7 +559,9 @@ function perUnit(line: TicketLine, price: AttestationStatus): string {
   }
 
   if (line.multiplier !== 1) {
-    parts.push(`×${line.multiplier} scale applied, ${line.unscaledAmount} unscaled`);
+    parts.push(
+      `×${Number(line.multiplier.toFixed(6))} scale applied, ${line.unscaledAmount} unscaled`,
+    );
   }
 
   return parts.join(" · ");

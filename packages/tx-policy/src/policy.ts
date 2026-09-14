@@ -457,31 +457,61 @@ function ticketLine(
  */
 function disclose(manifest: OrderManifest, lines: TicketLine[]): TicketDisclosure[] {
   const disclosures: TicketDisclosure[] = [];
+  const mints = [...new Set(lines.map((line) => line.mint))];
 
-  for (const mint of [...new Set(lines.map((line) => line.mint))]) {
+  // One sentence per fact, not one per mint.
+  //
+  // A three-leg basket used to print the same paragraph three times with a
+  // different symbol in it — nine lines, the same delegate address repeated
+  // three times, to say one thing — on the screen where a person decides
+  // whether to sign. Every asset is still named; they are named together.
+  //
+  // Grouped by issuer AND delegate: two mints that answer to different
+  // addresses are two different facts, and one sentence carrying one address
+  // would be wrong about the other.
+  const delegated = new Map<string, { issuer: string; which: string; symbols: string[] }>();
+
+  for (const mint of mints) {
     const facts = factsForMint(manifest.mints, mint);
-    const symbol = symbolOfMint(mint);
 
     // Driven by the vault's own table, not by what arrived: the address
     // travels with the order, so a sender who left it out would otherwise
     // silence this. Omitting it now only costs them the name.
-    if (assetByMint(mint)?.hasPermanentDelegate || facts?.permanentDelegate) {
-      // Said in the words a holder would use. The address is kept out of the
-      // sentence — it is on the ticket below — because a base58 string in the
-      // middle of a warning is where people stop reading.
-      // Named where the vault knows the name. Every asset in the shared
-      // table is a Backed Finance xStock; a delegate the relayer reported
-      // on some other mint is an issuer this device cannot name.
-      const issuer = assetByMint(mint) ? "Backed Finance" : "The issuer";
-      const which = facts?.permanentDelegate
-        ? ` The delegate is ${short(facts.permanentDelegate)}.`
-        : " This order does not say which address holds that power.";
-      disclosures.push({
-        severity: "warn",
-        symbol,
-        text: `${issuer} can move ${symbol} out of your account without your signature. That is how this token is issued — no signer can change it.${which}`,
-      });
-    }
+    if (!(assetByMint(mint)?.hasPermanentDelegate || facts?.permanentDelegate)) continue;
+
+    // Named where the vault knows the name. Every asset in the shared table
+    // is a Backed Finance xStock; a delegate the relayer reported on some
+    // other mint is an issuer this device cannot name.
+    const issuer = assetByMint(mint) ? "Backed Finance" : "The issuer";
+    // Said in the words a holder would use. The address is kept out of the
+    // middle of the sentence — a base58 string is where people stop reading.
+    const which = facts?.permanentDelegate
+      ? ` The delegate is ${short(facts.permanentDelegate)}.`
+      : " This order does not say which address holds that power.";
+
+    const key = `${issuer}\u0000${facts?.permanentDelegate ?? ""}`;
+    const group = delegated.get(key) ?? { issuer, which, symbols: [] };
+    group.symbols.push(symbolOfMint(mint));
+    delegated.set(key, group);
+  }
+
+  for (const { issuer, which, symbols } of delegated.values()) {
+    const many = symbols.length > 1;
+    disclosures.push({
+      severity: "warn",
+      // Null when it is about several: the field says which asset a
+      // disclosure concerns, and "several" is not one of them.
+      symbol: many ? null : symbols[0]!,
+      text:
+        `${issuer} can move ${naming(symbols)} out of your account without your ` +
+        `signature. That is how ${many ? "these tokens are" : "this token is"} issued — ` +
+        `no signer can change it.${which}`,
+    });
+  }
+
+  for (const mint of mints) {
+    const facts = factsForMint(manifest.mints, mint);
+    const symbol = symbolOfMint(mint);
 
     if (!facts) continue;
     if (facts.paused) {
@@ -495,7 +525,7 @@ function disclose(manifest: OrderManifest, lines: TicketLine[]): TicketDisclosur
       disclosures.push({
         severity: "note",
         symbol,
-        text: `${symbol} amounts are scaled by ×${facts.multiplier}, read from the mint by the relayer and not verifiable offline. Without it the figure above would read ${lines.find((l) => l.mint === mint)?.unscaledAmount ?? "differently"}.`,
+        text: `${symbol} amounts are scaled by ×${scale(facts.multiplier)}, read from the mint by the relayer and not verifiable offline. Without it the figure above would read ${lines.find((l) => l.mint === mint)?.unscaledAmount ?? "differently"}.`,
       });
     }
     if (facts.nextMultiplier !== undefined && facts.nextMultiplier !== facts.multiplier) {
@@ -508,12 +538,30 @@ function disclose(manifest: OrderManifest, lines: TicketLine[]): TicketDisclosur
       disclosures.push({
         severity: "note",
         symbol,
-        text: `A new ${symbol} multiplier takes effect${when}: ×${facts.multiplier} becomes ×${facts.nextMultiplier}. Amounts change with it.`,
+        text: `A new ${symbol} multiplier takes effect${when}: ×${scale(facts.multiplier)} becomes ×${scale(facts.nextMultiplier)}. Amounts change with it.`,
       });
     }
   }
 
   return disclosures;
+}
+
+/** "AAPLx, NVDAx and MSFTx", as anyone would say it out loud. */
+function naming(symbols: string[]): string {
+  if (symbols.length === 1) return symbols[0]!;
+  return `${symbols.slice(0, -1).join(", ")} and ${symbols[symbols.length - 1]}`;
+}
+
+/**
+ * A multiplier, at a length a person can read.
+ *
+ * The mint stores it as a float, so it arrives as 1.0032690125398187 and an
+ * eighteen-digit number in the middle of a sentence is a number nobody reads.
+ * Six decimals is finer than any corporate action ever published, and the
+ * unscaled amount sits beside it either way.
+ */
+function scale(multiplier: number): number {
+  return Number(multiplier.toFixed(6));
 }
 
 function short(address: string): string {
