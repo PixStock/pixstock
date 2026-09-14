@@ -42,6 +42,7 @@
   --ok:       #5ec26a;
   --warn:     #f0a23c;
   --crit:     #ff5470;
+  --recess:   color-mix(in srgb, var(--ground) 92%, #000);
 }
 
 /* the light ramp, and the band that flips while the dark theme is active */
@@ -58,6 +59,9 @@
   --ok:       #2f7a3a;
   --warn:     #8a5a00;
   --crit:     #c8203f;
+  /* Towards the surface, not towards black: on a near-white ground the dark
+     ramp's expression drops --ink-3 to 3.92:1. */
+  --recess:   color-mix(in srgb, var(--ground) 55%, var(--surface));
 }
 
 :root { color-scheme: dark; }
@@ -1444,7 +1448,7 @@ html:not(.js-anim) .wordmark .rise { transform: none; opacity: 1; }
   align-items: center;
   gap: 12px 26px;
   padding: 10px 40px;
-  background: color-mix(in srgb, var(--ground) 92%, #000);
+  background: var(--recess);
   border-bottom: 1px solid var(--rule-2);
   font-size: 13px;
   color: var(--ink-2);

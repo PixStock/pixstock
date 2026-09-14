@@ -137,7 +137,14 @@ h2 { font-size: 19px; margin: 0; letter-spacing: -0.01em; }
 .btn--solid { background: var(--ink); color: var(--ground); border-color: var(--ink); }
 
 .glued { border-top: 1px solid var(--rule); padding-top: 16px; }
-.glued summary { cursor: pointer; font-size: 14px; color: var(--ink-2); }
+.glued summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--ink-2);
+}
 .glued > *:not(summary) { margin-top: 12px; }
 .glued textarea {
   width: 100%;
@@ -268,7 +275,7 @@ h2 { font-size: 19px; margin: 0; letter-spacing: -0.01em; }
   color: var(--ink-2);
   cursor: pointer;
 }
-.ack input { margin-top: 2px; flex-shrink: 0; }
+.ack input { width: 18px; height: 18px; margin: 1px 0 0; flex: none; accent-color: var(--ok); }
 
 /* How far the order's own amounts sit from Pyth's price. The colour is the
    verdict: green signs, orange signs with a warning, red does not sign. */
@@ -515,7 +522,14 @@ h2 { font-size: 19px; margin: 0; letter-spacing: -0.01em; }
 /* 5. Everything else. Fees, slippage, when it was quoted — true, checkable,
    and not what the decision turns on. */
 .more { border-top: 1px solid var(--rule-2); padding-top: 14px; }
-.more summary { cursor: pointer; font-size: 14px; color: var(--ink-2); }
+.more summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--ink-2);
+}
 .more > *:not(summary) { margin-top: 14px; }
 .more .ticket-meta { padding-top: 0; border-top: 0; }
 
