@@ -10,16 +10,39 @@ built and run locally before being written about here.
 
 ## All three on Railway
 
-One project, four services: Postgres and the three above. Every service points
-at the same repository with **root directory `/`** — the builds need the whole
-workspace, because npm checks the lockfile against every manifest — and at its
-own config file.
+One project, four services: Postgres and the three above, all from this one
+repository.
 
-| Service | Config path | Port |
+### Tell each service to use its Dockerfile
+
+Do this **first**, before anything else. Railway's auto-detector otherwise
+takes over, finds an npm workspace with no start script, and fails with
+*"No start command detected"* — it never looks at the Dockerfile.
+
+In each service, **Settings**:
+
+| Field | Value (web shown) |
+|---|---|
+| Source → **Root Directory** | `/` |
+| Build → **Builder** | `Dockerfile` |
+| Build → **Dockerfile Path** | `apps/web/Dockerfile` |
+
+`apps/relayer/Dockerfile` and `apps/vault/Dockerfile` for the other two.
+
+**Root directory must stay `/`.** The Dockerfiles copy the whole workspace on
+purpose: `npm ci` validates the lockfile against every manifest, and each app
+imports local packages. Pointing a service at `apps/web` gives it a build
+context with no lockfile and no packages.
+
+The `railway.json` beside each Dockerfile says the same thing, for anyone who
+prefers config over dashboard: set Settings → **Config-as-code** to
+`apps/web/railway.json`. Either route works; neither is read by default.
+
+| Service | Dockerfile | Port |
 |---|---|---|
-| relayer | `apps/relayer/railway.json` | 4000 |
-| web | `apps/web/railway.json` | 3000 |
-| vault | `apps/vault/railway.json` | 8080 |
+| relayer | `apps/relayer/Dockerfile` | 4000 |
+| web | `apps/web/Dockerfile` | 3000 |
+| vault | `apps/vault/Dockerfile` | 8080 |
 
 Add the Postgres plugin first; it publishes `DATABASE_URL`, which the relayer
 reads with Railway's `${{Postgres.DATABASE_URL}}` reference.
