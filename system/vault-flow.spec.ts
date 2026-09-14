@@ -81,24 +81,31 @@ test.describe("the vault, end to end in a browser", () => {
     await page.getByRole("button", { name: "Continue" }).click();
 
     // ── review ──────────────────────────────────────────────────────────
-    await expect(page.getByRole("heading", { name: "Check this order" })).toBeVisible();
+    // The screen opens with the outcome in words, before any figure.
+    await expect(page.getByText("No signed price for this order")).toBeVisible();
     await expect(page.getByText("Frames assembled")).toBeVisible();
-    await expect(page.getByText("Policy (12 rules)")).toBeVisible();
+    await expect(page.getByText("Signing rules")).toBeVisible();
+    await expect(page.locator(".checkrow", { hasText: "Signing rules" })).toContainText("12 / 12");
 
-    // The order ticket: one line in and one out per leg.
+    // The amounts: one pay row and one receive block per leg.
     await expect(page.getByText("You pay").first()).toBeVisible();
     await expect(page.getByText("You receive").first()).toBeVisible();
-    await expect(page.getByText("paid by the relayer")).toBeVisible();
-    // Scoped to the ticket lines: each symbol also appears in the
+    // Scoped to the receive blocks: each symbol also appears in the
     // disclosures below, and "is it on the ticket" is the question here.
     for (const symbol of ["AAPLx", "NVDAx", "MSFTx"]) {
-      await expect(page.locator(".ticket-line dd", { hasText: symbol })).toHaveCount(1);
+      await expect(page.locator(".amount-get .sym", { hasText: symbol })).toHaveCount(1);
     }
+
+    // The fee, and the slippage said in words, are folded away — true,
+    // checkable, and not what the decision turns on.
+    await page.getByText("Order details, fees and one more note").click();
+    await expect(page.getByText("paid by the relayer, not you")).toBeVisible();
+    await expect(page.getByText("Most you can lose to slippage")).toBeVisible();
 
     // No price travelled with this order — our Pyth grant does not cover
     // these three — so the vault says so and will not sign until the holder
-    // says they accept it.
-    await expect(page.getByText("No price attestation").first()).toBeVisible();
+    // says they accept it. Approve exists here, unlike on a refusal: this is
+    // a decision the holder is allowed to make.
     await expect(page.getByRole("button", { name: "Approve" })).toBeDisabled();
     await page.getByRole("checkbox").check();
     await expect(page.getByRole("button", { name: "Approve" })).toBeEnabled();
@@ -108,12 +115,13 @@ test.describe("the vault, end to end in a browser", () => {
     // screen must show which one it applied and what the figure would read
     // without it — the difference reaches half a percent.
     for (const { multiplier } of order.expectedOut) {
-      await expect(page.getByText(`×${multiplier} applied`).first()).toBeVisible();
+      await expect(page.getByText(`×${multiplier} scale applied`).first()).toBeVisible();
     }
     await expect(page.getByText(/unscaled/).first()).toBeVisible();
 
-    // And the issuer's reach, on the screen where the decision is made.
-    await expect(page.getByText(/has a permanent delegate/).first()).toBeVisible();
+    // And the issuer's reach, on the screen where the decision is made, in
+    // the words a holder would use rather than in a base58 address.
+    await expect(page.getByText(/without your signature/).first()).toBeVisible();
 
     // ── sign ────────────────────────────────────────────────────────────
     await page.getByRole("button", { name: "Approve" }).click();
@@ -246,10 +254,12 @@ test.describe("the vault, end to end in a browser", () => {
     await feed(page, orderFor(FIXTURE_VAULT, { attestation: "forged" }).frames);
     await page.getByRole("button", { name: "Continue" }).click();
 
-    await expect(page.getByText("Price attestation could not be read").first()).toBeVisible();
-    await expect(page.getByText("This order cannot be signed")).toBeVisible();
+    await expect(page.getByText("This phone will not sign")).toBeVisible();
     await expect(page.getByRole("checkbox")).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "Approve" })).toBeDisabled();
+    // Absent, not disabled: a greyed-out control is an invitation to find the
+    // way around it, and there is no way around this one.
+    await expect(page.getByRole("button", { name: "Approve" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Reject and go back" })).toBeVisible();
   });
 
   test("refuses an order addressed to another vault", async ({ page }) => {

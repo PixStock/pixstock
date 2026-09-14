@@ -6,6 +6,7 @@ import {
   decodeMessage,
   type OrderTicket,
   type PolicyResult,
+  type TicketLine,
 } from "@pixstock/tx-policy";
 import type { OrderManifest } from "@pixstock/shared";
 import {
@@ -13,11 +14,14 @@ import {
   formatDeviation,
   permitsSigning,
   type AttestationStatus,
+  type LegAttestation,
 } from "@pixstock/pyth-verify";
 import { loadSettings } from "../vault/settings";
 
 export interface ReviewProps {
   payload: Uint8Array;
+  /** How many frames the assembler put together to make this payload. */
+  frames: number;
   /** The vault's own key, from its own storage — never from the payload. */
   vault: string;
   /**
@@ -43,8 +47,14 @@ type Verdict =
  * The whole product argument lives in this screen. It decodes the transaction
  * itself, runs the policy against it, and renders amounts taken from the
  * instructions — never from the description that travelled with them.
+ *
+ * It is laid out in the order a person reads it: the outcome in words, then
+ * the one figure the decision turns on, then the three checks behind it, then
+ * what cannot be hidden, then everything else folded away. The two buttons
+ * are sticky, because Approve used to sit below a disclosure list a screen
+ * tall and "scroll past the warning to reach the button" is not a design.
  */
-export function Review({ payload, vault, onVerdict, onApprove, onReject }: ReviewProps) {
+export function Review({ payload, frames, vault, onVerdict, onApprove, onReject }: ReviewProps) {
   const verdict = useMemo<Verdict>(() => {
     let request: SignRequest;
     try {
@@ -113,6 +123,7 @@ export function Review({ payload, vault, onVerdict, onApprove, onReject }: Revie
     <CheckedOrder
       request={verdict.request}
       result={verdict.result}
+      frames={frames}
       {...(onVerdict ? { onVerdict } : {})}
       onApprove={onApprove}
       onReject={onReject}
@@ -130,12 +141,14 @@ export function Review({ payload, vault, onVerdict, onApprove, onReject }: Revie
 function CheckedOrder({
   request,
   result,
+  frames,
   onVerdict,
   onApprove,
   onReject,
 }: {
   request: SignRequest;
   result: PolicyResult;
+  frames: number;
   onVerdict?: (refused: boolean) => void;
   onApprove: (request: SignRequest, ticket: OrderTicket) => void;
   onReject: () => void;
@@ -186,44 +199,80 @@ function CheckedOrder({
     onVerdict?.(refused);
   }, [refused, onVerdict]);
 
+  const pay = ticket?.lines.filter((line) => line.direction === "in") ?? [];
+  const receive = ticket?.lines.filter((line) => line.direction === "out") ?? [];
+  const warnings = ticket?.disclosures.filter((d) => d.severity === "warn") ?? [];
+  const notes = ticket?.disclosures.filter((d) => d.severity === "note") ?? [];
+
   return (
     <section className="stack">
-      <header className="stack stack--tight">
-        <p className="eyebrow">Step 2</p>
-        <h2>Check this order</h2>
-      </header>
-
-      <ol className="checks">
-        <Check state="ok" label="Frames assembled" />
-        <Check state={priceCheckState(price)} label={price.label} />
-        <Check
-          state={violations.length === 0 ? "ok" : "bad"}
-          label={`Policy (${result.evaluated.length} rules)`}
-        />
-      </ol>
-
-      {(price.state !== "verified" || !priceAllowsSigning || price.warn) && (
+      {/*
+        Above the verdict, deliberately: a build that does not run every rule
+        outranks anything the rules it did run have to say.
+      */}
+      {unevaluated.length > 0 && (
         <p className="alert" role="alert">
-          <strong>{price.label}.</strong> {price.detail}
+          <strong>{unevaluated.join(", ")} not enforced.</strong> This build does not check
+          everything it should. Do not use it with a funded vault.
         </p>
       )}
 
-      {price.state === "verified" && (
-        <dl className="ticket-meta">
-          {price.legs.map((leg) => (
-            <div key={leg.feedId}>
-              <dt>{leg.symbol} vs Pyth</dt>
-              <dd className={`dev dev--${leg.severity}`}>
-                <span className="num">{formatDeviation(leg.deviation)}</span>{" "}
-                <span className="muted">
-                  (<span className="num">{leg.oracle.toFixed(2)}</span> quoted,{" "}
-                  <span className="num">{leg.implied.toFixed(2)}</span> here)
-                </span>
-              </dd>
+      <VerdictStrip
+        refused={refused}
+        violations={violations}
+        price={price}
+        priceAllowsSigning={priceAllowsSigning}
+        tolerance={tolerance}
+      />
+
+      {ticket && (
+        <div className={`amounts${refused ? " amounts--refused" : ""}`}>
+          {pay.map((line, i) => (
+            <div key={`pay-${i}`} className="amount-pay">
+              <p className="amount-label">You pay</p>
+              <span className="v">
+                <span className="num">{line.amount}</span>{" "}
+                <span className="sym">{line.symbol}</span>
+              </span>
             </div>
           ))}
-        </dl>
+
+          <div className="amount-rule" aria-hidden="true" />
+
+          {receive.map((line, i) => (
+            <div key={`get-${i}`} className="amount-get">
+              <p className="amount-label">You receive</p>
+              <span className="v num">{line.amount}</span>
+              <span className="sym">
+                {line.symbol} · {nameOf(line.symbol)}
+              </span>
+              <span className="per">{perUnit(line, price)}</span>
+            </div>
+          ))}
+        </div>
       )}
+
+      <ul className="checkrows">
+        <CheckRow state="ok" label="Frames assembled" value={`${frames} / ${frames}`} />
+        <CheckRow
+          state={priceCheckState(price)}
+          label="Price against Pyth"
+          value={
+            price.state === "verified" ? (
+              <span className={`dev--${severityOfWorst(price)}`}>
+                {formatDeviation(price.deviation)}
+              </span>
+            ) : (
+              "not signed"
+            )
+          }
+        />
+        <CheckRow
+          state={violations.length === 0 ? "ok" : "bad"}
+          label="Signing rules"
+          value={`${result.evaluated.length} / ${result.evaluated.length + unevaluated.length}`}
+        />
+      </ul>
 
       {violations.length > 0 && (
         <div className="alert" role="alert">
@@ -238,13 +287,18 @@ function CheckedOrder({
         </div>
       )}
 
-      {ticket && <Ticket ticket={ticket} dapp={request.manifest.dapp} ageSeconds={quoteAgeSeconds} />}
-
-      {unevaluated.length > 0 && (
-        <p className="alert" role="note">
-          <strong>{unevaluated.join(", ")} not enforced.</strong> This build does not check
-          everything it should. Do not use it with a funded vault.
-        </p>
+      {/* Never folded away: these are the things no signing device can undo. */}
+      {warnings.length > 0 && (
+        <div className="warnbox">
+          <span className="mark" aria-hidden="true">
+            !
+          </span>
+          <ul className="warnbox-list">
+            {warnings.map((disclosure, i) => (
+              <li key={i}>{disclosure.text}</li>
+            ))}
+          </ul>
+        </div>
       )}
 
       {canAcknowledge(price) && violations.length === 0 && ticket && (
@@ -261,102 +315,224 @@ function CheckedOrder({
         </label>
       )}
 
-      {priceRefuses && (
-        <p className="alert" role="alert">
-          <strong>This order cannot be signed.</strong> The price it carries did not verify, so
-          there is nothing to approve.
-        </p>
+      {ticket && (
+        <details className="more">
+          <summary>Order details, fees and one more note</summary>
+
+          <dl className="ticket-meta">
+            <div>
+              <dt>Network fee</dt>
+              <dd>
+                {ticket.networkFeePaidBy === "relayer" ? "paid by the relayer, not you" : "paid by you"}
+              </dd>
+            </div>
+            <div>
+              <dt>Most you can lose to slippage</dt>
+              <dd className="num">{(ticket.slippageBps / 100).toFixed(2)}%</dd>
+            </div>
+            <div>
+              <dt>Quoted</dt>
+              <dd>
+                <span className="num">{quoteAgeSeconds}</span>s ago by {request.manifest.dapp}
+              </dd>
+            </div>
+            {ticket.mintsReadAt !== null && (
+              <div>
+                <dt>Mint read</dt>
+                <dd>
+                  <span className="num">{mintAgeMinutes(ticket.mintsReadAt)}</span> min ago by the
+                  relayer
+                </dd>
+              </div>
+            )}
+          </dl>
+
+          {notes.length > 0 && (
+            <ul className="disclosures" style={{ paddingTop: 0, borderTop: 0 }}>
+              {notes.map((disclosure, i) => (
+                <li key={i} className="disclosure disclosure--note">
+                  {disclosure.text}
+                </li>
+              ))}
+            </ul>
+          )}
+        </details>
       )}
 
-      <div className="row">
-        <button
-          type="button"
-          className="btn btn--solid"
-          disabled={violations.length > 0 || !ticket || !priceAllowsSigning}
-          onClick={() => ticket && onApprove(request, ticket)}
-        >
-          Approve
-        </button>
-        <button type="button" className="btn" onClick={onReject}>
-          Reject
-        </button>
+      {/*
+        On a refusal there is no Approve button at all — not a disabled one.
+        A greyed-out control is an invitation to find the way around it, and
+        there is no way around this one.
+      */}
+      <div className="actionbar">
+        {refused ? (
+          <button type="button" className="btn btn--only" onClick={onReject}>
+            Reject and go back
+          </button>
+        ) : (
+          <>
+            <button type="button" className="btn btn--reject" onClick={onReject}>
+              Reject
+            </button>
+            <button
+              type="button"
+              className="btn btn--solid btn--approve"
+              disabled={!priceAllowsSigning}
+              onClick={() => ticket && onApprove(request, ticket)}
+            >
+              Approve
+            </button>
+          </>
+        )}
       </div>
     </section>
   );
 }
 
-function Ticket({
-  ticket,
-  dapp,
-  ageSeconds,
+/**
+ * The outcome, in words, before any figure.
+ *
+ * Everything it says is composed from what the check already returned — the
+ * oracle price, the implied price, the deviation and the age. Nothing here is
+ * a second opinion.
+ */
+function VerdictStrip({
+  refused,
+  violations,
+  price,
+  priceAllowsSigning,
+  tolerance,
 }: {
-  ticket: OrderTicket;
-  dapp: string;
-  ageSeconds: number;
+  refused: boolean;
+  violations: PolicyResult["violations"];
+  price: AttestationStatus;
+  priceAllowsSigning: boolean;
+  tolerance: number;
 }) {
+  if (refused) {
+    return (
+      <div className="verdict verdict--crit" role="alert">
+        <span className="verdict-badge" aria-hidden="true">
+          ✕
+        </span>
+        <div className="verdict-body">
+          <p className="verdict-head">This phone will not sign</p>
+          <p className="verdict-detail">{refusalDetail(violations, price, tolerance)}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (price.state === "verified") {
+    const worst = worstLeg(price);
+    return (
+      <div className={`verdict verdict--${price.warn ? "warn" : "ok"}`}>
+        <span className="verdict-badge" aria-hidden="true">
+          {price.warn ? "!" : "✓"}
+        </span>
+        <div className="verdict-body">
+          <p className="verdict-head">Safe to sign</p>
+          <p className="verdict-detail">
+            Pyth signed this price <span className="num">{price.ageSeconds}</span> second
+            {price.ageSeconds === 1 ? "" : "s"} ago and the order sits{" "}
+            <span className="num">{formatDeviation(price.deviation)}</span> from it
+            {worst ? ` on ${worst.symbol}` : ""}. Checked on this phone, with no network.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Genuine but silent: no signed price exists for this order today. The
+  // holder can take that on, once, in the open — and until they do, the
+  // headline says what is missing rather than implying it is fine.
   return (
-    <div className="ticket">
-      <p className="ticket-kind">{ticket.kind}</p>
-
-      <dl className="ticket-lines">
-        {ticket.lines.map((line, i) => (
-          <div key={i} className={`ticket-line ticket-line--${line.direction}`}>
-            <dt>{line.direction === "in" ? "You pay" : "You receive"}</dt>
-            <dd>
-              <span className="num">{line.amount}</span> {line.symbol}
-              {line.multiplier !== 1 && (
-                // The scaled figure is the real one, so it is the large one.
-                // The unscaled figure is shown too: it is what every other
-                // wallet displays, and a holder comparing the two screens
-                // should find the difference explained rather than alarming.
-                <span className="ticket-scale">
-                  ×<span className="num">{line.multiplier}</span> applied ·{" "}
-                  <span className="num">{line.unscaledAmount}</span> unscaled
-                </span>
-              )}
-            </dd>
-          </div>
-        ))}
-      </dl>
-
-      <dl className="ticket-meta">
-        <div>
-          <dt>Network fee</dt>
-          <dd>{ticket.networkFeePaidBy === "relayer" ? "paid by the relayer" : "paid by you"}</dd>
-        </div>
-        <div>
-          <dt>Max slippage</dt>
-          <dd className="num">{(ticket.slippageBps / 100).toFixed(2)}%</dd>
-        </div>
-        <div>
-          <dt>Quoted</dt>
-          <dd>
-            <span className="num">{ageSeconds}</span>s ago by {dapp}
-          </dd>
-        </div>
-        {ticket.mintsReadAt !== null && (
-          <div>
-            <dt>Mint read</dt>
-            <dd>
-              <span className="num">{mintAgeMinutes(ticket.mintsReadAt)}</span> min ago by the
-              relayer
-            </dd>
-          </div>
-        )}
-      </dl>
-
-      {ticket.disclosures.length > 0 && (
-        <ul className="disclosures">
-          {ticket.disclosures.map((disclosure, i) => (
-            <li key={i} className={`disclosure disclosure--${disclosure.severity}`}>
-              {disclosure.text}
-            </li>
-          ))}
-        </ul>
-      )}
+    <div className="verdict verdict--warn">
+      <span className="verdict-badge" aria-hidden="true">
+        !
+      </span>
+      <div className="verdict-body">
+        <p className="verdict-head">No signed price for this order</p>
+        <p className="verdict-detail">
+          {price.detail}
+          {priceAllowsSigning ? " You have taken that on." : ""}
+        </p>
+      </div>
     </div>
   );
 }
+
+/** Why it refuses, in the same order the checks run. */
+function refusalDetail(
+  violations: PolicyResult["violations"],
+  price: AttestationStatus,
+  tolerance: number,
+): string {
+  if (violations.length > 0) {
+    return `${violations[0]!.detail}. There is no checkbox for this.`;
+  }
+
+  if (price.state === "verified") {
+    const worst = worstLeg(price);
+    if (worst) {
+      // The two numbers side by side, because "4.20% away" on its own is a
+      // statistic and "439.60 against 421.88" is the thing that is wrong.
+      return (
+        `The order prices ${worst.symbol} at ${worst.implied.toFixed(2)}. ` +
+        `Pyth signed ${worst.oracle.toFixed(2)} ${price.ageSeconds} second` +
+        `${price.ageSeconds === 1 ? "" : "s"} ago — ${formatDeviation(worst.deviation)} away, ` +
+        `past the ${(tolerance * 100).toFixed(1)}% you allow. There is no checkbox for this.`
+      );
+    }
+  }
+
+  return `${price.detail} There is no checkbox for this.`;
+}
+
+function worstLeg(price: AttestationStatus): LegAttestation | null {
+  if (price.state !== "verified" || price.legs.length === 0) return null;
+  return price.legs.reduce((a, b) => (Math.abs(b.deviation) > Math.abs(a.deviation) ? b : a));
+}
+
+function severityOfWorst(price: AttestationStatus): "ok" | "warn" | "refuse" {
+  return worstLeg(price)?.severity ?? "ok";
+}
+
+/**
+ * What one unit costs, and what the scale did to the figure above.
+ *
+ * The per-unit price is the one the vault derived from the transaction's own
+ * amounts, so it only exists where a price verified. Where it does not, the
+ * clause is dropped rather than filled with the manifest's claim.
+ */
+function perUnit(line: TicketLine, price: AttestationStatus): string {
+  const parts: string[] = [];
+
+  if (price.state === "verified") {
+    const leg = price.legs.find((l) => l.symbol === line.symbol);
+    if (leg) parts.push(`at ${leg.implied.toFixed(2)} each`);
+  }
+
+  if (line.multiplier !== 1) {
+    parts.push(`×${line.multiplier} scale applied, ${line.unscaledAmount} unscaled`);
+  }
+
+  return parts.join(" · ");
+}
+
+/** The asset's name, for the line under the figure. */
+function nameOf(symbol: string): string {
+  return NAMES[symbol] ?? symbol;
+}
+
+const NAMES: Record<string, string> = {
+  TSLAx: "Tesla",
+  NVDAx: "NVIDIA",
+  AAPLx: "Apple",
+  MSFTx: "Microsoft",
+  SPYx: "S&P 500 ETF",
+  USDC: "USD Coin",
+};
 
 /** How stale the mint reading is. Multipliers change; this says when. */
 function mintAgeMinutes(readAt: number): number {
@@ -386,11 +562,22 @@ function priceCheckState(status: AttestationStatus): CheckState {
   return "warn";
 }
 
-function Check({ state, label }: { state: CheckState; label: string }) {
+function CheckRow({
+  state,
+  label,
+  value,
+}: {
+  state: CheckState;
+  label: string;
+  value: React.ReactNode;
+}) {
   return (
-    <li className={`check check--${state}`}>
-      <span aria-hidden="true">{MARKS[state]}</span>
-      {label}
+    <li className={`checkrow checkrow--${state}`}>
+      <span className="mark" aria-hidden="true">
+        {MARKS[state]}
+      </span>
+      <span className="label">{label}</span>
+      <span className="value">{value}</span>
     </li>
   );
 }
@@ -406,13 +593,18 @@ function Refusal({
 }) {
   return (
     <section className="stack">
-      <div className="alert" role="alert">
-        <strong>{title}</strong>
-        <p style={{ margin: "6px 0 0" }}>{detail}</p>
+      <div className="verdict verdict--crit" role="alert">
+        <span className="verdict-badge" aria-hidden="true">
+          ✕
+        </span>
+        <div className="verdict-body">
+          <p className="verdict-head">{title}</p>
+          <p className="verdict-detail">{detail}</p>
+        </div>
       </div>
-      <div className="row">
-        <button type="button" className="btn" onClick={onReject}>
-          Back
+      <div className="actionbar">
+        <button type="button" className="btn btn--only" onClick={onReject}>
+          Reject and go back
         </button>
       </div>
     </section>

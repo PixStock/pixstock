@@ -108,10 +108,13 @@ describe("an honest order", () => {
     // The issuer can move these tokens without the holder. No signing device
     // changes that, so the only honest thing left is to say it here.
     const { ticket } = evaluate();
-    const delegate = ticket!.disclosures.find((d) => d.text.includes("permanent delegate"));
+    const delegate = ticket!.disclosures.find((d) => d.text.includes("without your signature"));
     expect(delegate).toBeDefined();
     expect(delegate!.severity).toBe("warn");
     expect(delegate!.symbol).toBe("TSLAx");
+    // Named, in the words a holder would use, and without an address in the
+    // middle of the sentence.
+    expect(delegate!.text).toContain("Backed Finance can move TSLAx out of your account");
   });
 
   it("is ok, with every rule actually evaluated", () => {
@@ -512,10 +515,10 @@ describe("P11 — the multiplier that has to travel", () => {
     const { ticket } = evaluate({
       manifest: withMints([{ mint: fixture.outputMint, multiplier: 1, readAt: 1 }]),
     });
-    const delegate = ticket!.disclosures.find((d) => d.text.includes("permanent delegate"))!;
+    const delegate = ticket!.disclosures.find((d) => d.text.includes("without your signature"))!;
     expect(delegate).toBeDefined();
     expect(delegate.severity).toBe("warn");
-    expect(delegate.text).toContain("does not say which");
+    expect(delegate.text).toContain("does not say which address");
   });
 
   it("dates the reading, because a multiplier is a moving number", () => {

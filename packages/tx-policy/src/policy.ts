@@ -466,13 +466,20 @@ function disclose(manifest: OrderManifest, lines: TicketLine[]): TicketDisclosur
     // travels with the order, so a sender who left it out would otherwise
     // silence this. Omitting it now only costs them the name.
     if (assetByMint(mint)?.hasPermanentDelegate || facts?.permanentDelegate) {
-      const named = facts?.permanentDelegate
-        ? `(${short(facts.permanentDelegate)})`
-        : "(this order does not say which)";
+      // Said in the words a holder would use. The address is kept out of the
+      // sentence — it is on the ticket below — because a base58 string in the
+      // middle of a warning is where people stop reading.
+      // Named where the vault knows the name. Every asset in the shared
+      // table is a Backed Finance xStock; a delegate the relayer reported
+      // on some other mint is an issuer this device cannot name.
+      const issuer = assetByMint(mint) ? "Backed Finance" : "The issuer";
+      const which = facts?.permanentDelegate
+        ? ` The delegate is ${short(facts.permanentDelegate)}.`
+        : " This order does not say which address holds that power.";
       disclosures.push({
         severity: "warn",
         symbol,
-        text: `${symbol} has a permanent delegate ${named}. The issuer can move it out of your account without your signature — this order does not change that, and no signing device can.`,
+        text: `${issuer} can move ${symbol} out of your account without your signature. That is how this token is issued — no signer can change it.${which}`,
       });
     }
 
@@ -481,7 +488,7 @@ function disclose(manifest: OrderManifest, lines: TicketLine[]): TicketDisclosur
       disclosures.push({
         severity: "warn",
         symbol,
-        text: `Transfers of ${symbol} are paused by the issuer. This order will not execute while that holds.`,
+        text: `The issuer has paused ${symbol} transfers. This order cannot execute while that holds.`,
       });
     }
     if (isScaledMint(mint) && facts.multiplier !== 1) {

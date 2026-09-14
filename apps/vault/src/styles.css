@@ -387,3 +387,150 @@ h2 { font-size: 19px; margin: 0; letter-spacing: -0.01em; }
 .notice h3 { margin: 0; font-size: 15.5px; font-weight: 600; letter-spacing: -0.01em; }
 .notice .copy { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--ink-2); }
 .notice .btn { justify-self: start; }
+
+/* ==================================================================== review
+
+   The screen the product exists for, in the order a person reads it: the
+   verdict in words, then the figure they are deciding about, then the three
+   checks behind it, then what cannot be hidden, then everything else folded
+   away, then the two buttons — reachable without scrolling past any of it. */
+
+/* 1. The outcome, stated before any number. */
+.verdict {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid var(--rule);
+}
+.verdict-badge {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ground);
+}
+.verdict-body { display: grid; gap: 3px; }
+.verdict-head { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+.verdict-detail { margin: 0; font-size: 13.5px; line-height: 1.45; color: var(--ink-2); }
+
+.verdict--ok {
+  border-color: color-mix(in srgb, var(--ok) 32%, var(--rule));
+  background: color-mix(in srgb, var(--ok) 8%, var(--ground));
+}
+.verdict--ok .verdict-badge { background: var(--ok); }
+.verdict--warn {
+  border-color: color-mix(in srgb, var(--warn) 32%, var(--rule));
+  background: color-mix(in srgb, var(--warn) 8%, var(--ground));
+}
+.verdict--warn .verdict-badge { background: var(--warn); }
+.verdict--crit {
+  border-color: color-mix(in srgb, var(--crit) 32%, var(--rule));
+  background: color-mix(in srgb, var(--crit) 8%, var(--ground));
+}
+.verdict--crit .verdict-badge { background: var(--crit); }
+/* On a refusal the detail is the reason, so it carries full ink. */
+.verdict--crit .verdict-detail { color: var(--ink); }
+
+/* 2. The amounts. Not a card: a card would make them one object among
+   several, and what you receive is the whole decision. */
+.amounts { display: grid; gap: 14px; }
+.amount-label {
+  margin: 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.amount-pay { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+.amount-pay .v {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 21px;
+  color: var(--ink-2);
+  text-align: right;
+}
+.amount-pay .v .sym { font-family: var(--ui); font-size: 16px; }
+.amount-rule { height: 1px; background: var(--rule-2); }
+.amount-get { display: grid; gap: 4px; }
+.amount-get .v {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 40px;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--ok);
+}
+.amount-get .sym { font-size: 19px; font-weight: 600; letter-spacing: -0.01em; }
+.amount-get .per { font-size: 13px; color: var(--ink-3); }
+
+/* Demoted with the ramp, never with opacity: a refused order's figures must
+   stay readable — they are the evidence for the refusal. */
+.amounts--refused .amount-get .v { color: var(--ink-2); }
+.amounts--refused .amount-pay .v { color: var(--ink-2); }
+
+/* 3. The three checks, as rows rather than bullets. */
+.checkrows { margin: 0; padding: 0; list-style: none; }
+.checkrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 0;
+  border-top: 1px solid var(--rule-2);
+}
+.checkrow:last-child { border-bottom: 1px solid var(--rule-2); }
+.checkrow .mark { flex: none; width: 14px; font-size: 14px; font-weight: 700; }
+.checkrow .label { margin-right: auto; font-size: 14.5px; color: var(--ink-2); }
+.checkrow .value {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 14px;
+  text-align: right;
+}
+.checkrow--ok .mark { color: var(--ok); }
+.checkrow--warn .mark { color: var(--warn); }
+.checkrow--bad .mark { color: var(--crit); }
+
+/* 4. What the product cannot prevent and will not fold away. */
+.warnbox {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 13px 14px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--warn) 32%, var(--rule));
+  background: color-mix(in srgb, var(--warn) 8%, var(--ground));
+}
+.warnbox .mark { flex: none; color: var(--warn); font-weight: 700; }
+.warnbox-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.warnbox-list li { font-size: 13.5px; line-height: 1.45; color: var(--ink); }
+
+/* 5. Everything else. Fees, slippage, when it was quoted — true, checkable,
+   and not what the decision turns on. */
+.more { border-top: 1px solid var(--rule-2); padding-top: 14px; }
+.more summary { cursor: pointer; font-size: 14px; color: var(--ink-2); }
+.more > *:not(summary) { margin-top: 14px; }
+.more .ticket-meta { padding-top: 0; border-top: 0; }
+
+/* 6. The two buttons, always in reach. Sticky is the whole point: Approve
+   used to sit below a disclosure list that could be a screen tall. */
+.actionbar {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  gap: 10px;
+  margin: 0 -16px -64px;
+  padding: 14px 16px 18px;
+  background: var(--ground);
+  border-top: 1px solid var(--rule-2);
+}
+.actionbar .btn { height: 52px; font-size: 16px; font-weight: 600; }
+.actionbar .btn--reject { flex: 1; }
+.actionbar .btn--approve { flex: 2; }
+.actionbar .btn--only { flex: 1; }

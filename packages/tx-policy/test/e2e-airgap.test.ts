@@ -185,7 +185,7 @@ describe("a real basket crossing the air gap", () => {
 
     // And the issuer's reach is on the ticket, not buried in a legal page.
     expect(
-      result.ticket!.disclosures.filter((d) => d.text.includes("permanent delegate")),
+      result.ticket!.disclosures.filter((d) => d.text.includes("without your signature")),
     ).toHaveLength(3);
 
     // ── vault: sign, and never keep the seed ────────────────────────────

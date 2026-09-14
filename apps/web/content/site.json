@@ -151,7 +151,7 @@
       "titlePrefix": "Own tokenized stocks on a phone that ",
       "titleAccent": "never goes online",
       "titleSuffix": ".",
-      "lede": "PixStock turns the phone in your drawer into a signer for xStocks. It holds no SOL, it shows you the order instead of a hash, and it refuses to sign more than 1 % away from a Pyth price it verified offline.",
+      "lede": "A spare phone in airplane mode signs your xStocks. It holds no SOL, it never touches a network again, and it prints the order in words instead of a hash.",
       "ctaSeeMechanic": "See how it works",
       "ctaRequestAccess": "Try it with your phone",
       "stats": [

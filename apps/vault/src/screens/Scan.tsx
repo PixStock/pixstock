@@ -10,7 +10,8 @@ export function Scan({
   onPair,
   onSettings,
 }: {
-  onScanned: (payload: Uint8Array) => void;
+  /** The bytes, and how many frames they arrived in — the ticket says so. */
+  onScanned: (payload: Uint8Array, frames: number) => void;
   onPair: () => void;
   onSettings: () => void;
 }) {
@@ -72,7 +73,7 @@ export function Scan({
             <button
               type="button"
               className="btn btn--solid"
-              onClick={() => onScanned(state.payload)}
+              onClick={() => onScanned(state.payload, state.frames)}
             >
               Continue
             </button>
