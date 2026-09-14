@@ -5,8 +5,6 @@ import { useEffect, useMemo, useState } from "react";
 import { ASSETS, USDC_MINT, formatAmount } from "@pixstock/shared";
 import { api, RelayerError, type Quote } from "@/lib/api";
 import { usePairedVault } from "@/lib/vault";
-import { VaultField } from "@/components/VaultField";
-import { RelayerStatus } from "@/components/RelayerStatus";
 import { content } from "@/content/site";
 
 const PRESETS = [
@@ -30,7 +28,7 @@ function toRawUsdc(amount: string): bigint | null {
 export function BasketBuilder() {
   const b = content.basket;
   const router = useRouter();
-  const { vault, setVault, isValid } = usePairedVault();
+  const { vault, isValid } = usePairedVault();
 
   const [amount, setAmount] = useState("500");
   const [lines, setLines] = useState<Line[]>(
@@ -123,8 +121,6 @@ export function BasketBuilder() {
 
   return (
     <div className="stack-24">
-      <RelayerStatus />
-
       <div className="row-wrap">
         <span className="eyebrow">{b.presets.label}</span>
         {PRESETS.map((preset) => (
@@ -155,7 +151,6 @@ export function BasketBuilder() {
             <span className="affix">{b.builder.amountUnit}</span>
           </span>
         </label>
-        <VaultField vault={vault} onChange={setVault} />
       </div>
 
       <table className={`spec-table${quoting ? " quote-stale" : ""}`}>

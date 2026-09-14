@@ -5,8 +5,6 @@ import { useEffect, useMemo, useState } from "react";
 import { ASSETS, USDC_MINT, formatAmount } from "@pixstock/shared";
 import { api, RelayerError, type DisplayPrice, type Quote } from "@/lib/api";
 import { usePairedVault } from "@/lib/vault";
-import { VaultField } from "@/components/VaultField";
-import { RelayerStatus } from "@/components/RelayerStatus";
 import { content } from "@/content/site";
 
 /** USDC has six decimals; a u64 of them is what the vault will check. */
@@ -19,7 +17,7 @@ function toRawUsdc(amount: string): string | null {
 export function TradeForm() {
   const t = content.trade;
   const router = useRouter();
-  const { vault, setVault, isValid } = usePairedVault();
+  const { vault, isValid } = usePairedVault();
 
   const [symbol, setSymbol] = useState(ASSETS[0]!.symbol);
   const [amount, setAmount] = useState("50");
@@ -110,8 +108,6 @@ export function TradeForm() {
 
   return (
     <div className="stack-24">
-      <RelayerStatus />
-
       <div className="field-row">
         <label className="field-block">
           <span className="eyebrow">{t.form.assetLabel}</span>
@@ -140,8 +136,6 @@ export function TradeForm() {
           </span>
         </label>
       </div>
-
-      <VaultField vault={vault} onChange={setVault} />
 
       {quote && (
         <div className={`quote-card${quoting ? " quote-stale" : ""}`}>

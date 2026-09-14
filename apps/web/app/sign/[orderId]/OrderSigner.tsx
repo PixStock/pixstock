@@ -10,6 +10,7 @@ import {
   type MintFacts,
 } from "@pixstock/shared";
 import { api, RelayerError, type Order } from "@/lib/api";
+import { AppShell, type RailStep } from "@/components/AppShell";
 import { AnimatedQr } from "@/components/AnimatedQr";
 import { SignatureScanner } from "@/components/SignatureScanner";
 
@@ -127,21 +128,43 @@ export function OrderSigner({ orderId }: { orderId: string }) {
     }
   }
 
+  const shell = {
+    current: "sign" as const,
+    eyebrow: "AGQP v1",
+    title: "Show this to your phone",
+    lede:
+      "Point the vault camera at this screen. The frames cycle, so it can join " +
+      "anywhere — there is nothing to time and nothing to click.",
+    session: encodeSessionId(sid),
+  };
+
   if (problem && !order) {
     return (
-      <p className="alert-inline" role="alert">
-        {problem}
-      </p>
+      <AppShell {...shell} step={2}>
+        <p className="alert-inline" role="alert">
+          {problem}
+        </p>
+      </AppShell>
     );
   }
 
-  if (!order || !payload) return <p className="muted">Loading the order…</p>;
+  if (!order || !payload) {
+    return (
+      <AppShell {...shell} step={2}>
+        <p className="muted">Loading the order…</p>
+      </AppShell>
+    );
+  }
 
   const settled = submitted ?? order;
 
   const spent = order.manifest.legs.reduce((sum, leg) => sum + BigInt(leg.inAmount), 0n);
 
+  // Two once it is on screen, four once it has left for the cluster.
+  const step: RailStep = submitted ? 4 : 2;
+
   return (
+    <AppShell {...shell} step={step}>
     <div className="stack-24">
       <div className="quote-card">
         <span className="eyebrow">{order.kind}</span>
@@ -231,6 +254,7 @@ export function OrderSigner({ orderId }: { orderId: string }) {
         </p>
       )}
     </div>
+    </AppShell>
   );
 }
 

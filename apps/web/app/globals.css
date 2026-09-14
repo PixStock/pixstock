@@ -39,6 +39,7 @@
   --rule:     #37332f;
   --rule-2:   #272420;
   --sand:     #453d36;
+  --ok:       #5ec26a;
   --warn:     #f0a23c;
   --crit:     #ff5470;
 }
@@ -54,6 +55,7 @@
   --rule:     #d8d5d0;
   --rule-2:   #e5e3df;
   --sand:     #d4c9be;
+  --ok:       #2f7a3a;
   --warn:     #8a5a00;
   --crit:     #c8203f;
 }
@@ -108,6 +110,7 @@
   --color-line:   var(--rule);
   --color-line-2: var(--rule-2);
   --color-sand:   var(--sand);
+  --color-ok:     var(--ok);
   --color-warn:   var(--warn);
   --color-crit:   var(--crit);
 
@@ -1376,3 +1379,145 @@ html:not(.js-anim) .wordmark .rise { transform: none; opacity: 1; }
 .quote-row dt { color: var(--ink-3); }
 .quote-row dd { margin: 0; }
 .quote-stale { opacity: 0.45; transition: opacity 0.2s var(--ease-io); }
+
+/* ===========================================================================
+   app shell — /trade, /basket, /sign, /vault
+
+   The four app routes used to borrow the marketing chrome: a fixed
+   transparent header and a band whose h1 is clamp(34px, 5.4vw, 64px). At
+   1440px that is 64px of headline and about 180px of band before the first
+   control on a page whose whole job is the control.
+
+   The landing page, /protocol and /legal keep that chrome exactly as it is.
+   =========================================================================== */
+
+.app-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 40px;
+  border-bottom: 1px solid var(--rule-2);
+  background: var(--ground);
+}
+.app-head .brand { margin-right: 8px; }
+.app-head .brand svg { width: 24px; height: 24px; }
+.app-head .brand-name { font-size: 15.5px; font-weight: 600; letter-spacing: -0.01em; }
+
+.app-tabs { display: flex; gap: 4px; margin-right: auto; }
+.app-tab {
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-size: 14px;
+  color: var(--ink-2);
+  transition: background 0.25s var(--ease-io), color 0.25s var(--ease-io);
+}
+.app-tab:hover { color: var(--ink); }
+.app-tab[aria-current="page"] { background: var(--surface); color: var(--ink); font-weight: 500; }
+
+/* The paired vault, in the header, once. No route asks for it again: a
+   public key retyped on three pages is a public key mistyped on one. */
+.vault-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px 7px 12px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  font-size: 13px;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.vault-chip:hover { border-color: color-mix(in srgb, var(--ink) 42%, transparent); }
+.vault-chip .dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.vault-chip .addr { font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--ink); }
+.vault-chip--on { border-color: color-mix(in srgb, var(--ok) 32%, var(--rule)); }
+.vault-chip--on .dot { background: var(--ok); }
+.vault-chip--off { border-color: color-mix(in srgb, var(--warn) 32%, var(--rule)); }
+.vault-chip--off .dot { background: var(--warn); }
+
+/* What is up, said out loud. RelayerStatus rendered nothing at all until
+   something was broken — and what a judge asks about first is exactly the
+   thing it was hiding. */
+.strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 26px;
+  padding: 10px 40px;
+  background: color-mix(in srgb, var(--ground) 92%, #000);
+  border-bottom: 1px solid var(--rule-2);
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.strip-item { display: inline-flex; align-items: center; gap: 8px; }
+.strip-item .dot { width: 6px; height: 6px; border-radius: 50%; flex: none; background: var(--ink-3); }
+.strip-item--ok .dot { background: var(--ok); }
+.strip-item--warn .dot { background: var(--warn); }
+.strip-item--crit .dot { background: var(--crit); }
+.strip-item .age { font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-3); }
+.strip-end { margin-left: auto; color: var(--ink-3); }
+
+.app-page-head {
+  display: flex;
+  align-items: flex-end;
+  gap: 40px;
+  padding: 34px 40px 26px;
+  border-bottom: 1px solid var(--rule-2);
+}
+.app-page-head .t { display: grid; gap: 10px; }
+.app-page-head h1 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 34px;
+  font-weight: 600;
+  letter-spacing: -0.028em;
+  line-height: 1.1;
+}
+.app-page-head .lede { margin: 0; font-size: 15.5px; color: var(--ink-2); max-width: 60ch; }
+
+/* The same construction as the phone's rail, so the two screens read as one
+   process rather than two products. */
+.app-rail { flex: none; width: 520px; display: flex; gap: 10px; }
+.app-rail-step { flex: 1; display: flex; flex-direction: column; gap: 7px; }
+.app-rail-bar {
+  height: 2px;
+  border-radius: 2px;
+  background: var(--rule);
+  transition: background 0.3s var(--ease-io);
+}
+.app-rail-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  transition: color 0.3s var(--ease-io);
+}
+.app-rail-step--done .app-rail-bar { background: var(--ok); }
+.app-rail-step--done .app-rail-label { color: var(--ink-2); }
+.app-rail-step--current .app-rail-bar { background: var(--ink); }
+.app-rail-step--current .app-rail-label { color: var(--ink); }
+
+.app-body { padding: 36px 40px 48px; }
+.app-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  gap: 36px;
+  align-items: start;
+}
+.app-cols--even { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 44px; }
+
+@media (max-width: 1080px) {
+  .app-head, .strip, .app-page-head, .app-body { padding-inline: 22px; }
+  .app-page-head { flex-direction: column; align-items: stretch; gap: 24px; }
+  .app-rail { width: auto; }
+  /* The preview comes first when the two columns stack: what you receive is
+     the decision, and it should not be below the fold on a laptop. */
+  .app-cols, .app-cols--even { grid-template-columns: minmax(0, 1fr); }
+  .app-cols > .app-col--preview { order: -1; }
+}
+
+@media (max-width: 720px) {
+  .app-tabs { order: 3; width: 100%; overflow-x: auto; }
+  .app-head { flex-wrap: wrap; }
+}

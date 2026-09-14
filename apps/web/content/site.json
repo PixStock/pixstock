@@ -516,22 +516,28 @@
     "pageHead": {
       "eyebrow": "Trade",
       "title": "Buy a tokenized stock",
-      "lede": "Choose an asset and an amount. The order is built here, signed on a device that has no network, and broadcast from here."
+      "lede": "Built here, signed on a phone with no network, broadcast from here. You never hold SOL and you never see a hash."
     },
     "form": {
-      "assetLabel": "Asset",
-      "amountLabel": "Amount to spend",
+      "assetLabel": "What are you buying",
+      "amountLabel": "How much are you spending",
       "amountUnit": "USDC",
       "sideBuy": "Buy",
       "sideSell": "Sell",
-      "submit": "Send to vault",
+      "submit": "Show this to my phone",
       "assetHeaders": {
         "symbol": "Symbol",
         "name": "Name",
         "mint": "Mint",
         "program": "Token program",
         "feed": "Pyth feed"
-      }
+      },
+      "worstCase": "Worst case",
+      "routedThrough": "Routed through",
+      "priceImpact": "Your price impact",
+      "networkFee": "Network fee",
+      "feePaid": "paid for you",
+      "pythReference": "Pyth reference"
     },
     "pending": {
       "title": "No live quote yet",
@@ -555,7 +561,7 @@
     "pageHead": {
       "eyebrow": "Index baskets",
       "title": "Several stocks, one signature",
-      "lede": "A basket is several swaps stacked into a single Solana transaction. It crosses the gap once and is approved once — not once per line."
+      "lede": "Three swaps stacked into one Solana transaction. It crosses to the phone once and is approved once, not once per line."
     },
     "presets": {
       "label": "Start from",
@@ -564,12 +570,13 @@
     "builder": {
       "amountLabel": "Total to spend",
       "amountUnit": "USDC",
-      "allocationLabel": "Allocation",
+      "allocationLabel": "How it splits",
       "totalLabel": "Total allocated",
       "addLabel": "Add a line",
       "removeLabel": "Remove",
-      "submit": "Send to vault",
-      "mustTotal": "Allocations must add up to 100%."
+      "submit": "Show this to my phone",
+      "mustTotal": "Allocations must add up to 100%.",
+      "maxSlippage": "Most you can lose to slippage"
     },
     "pending": {
       "title": "Sizing is real, quoting is not",
