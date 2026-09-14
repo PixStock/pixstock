@@ -1,142 +1,71 @@
-# Conventions Git — PixStock
+# Git conventions
 
-Conventions du monorepo (même équipe, mêmes
-réflexes) — reproduites ici pour que ce dépôt reste autonome.
-
----
+Everything that leaves this machine is in English: commits, pull requests,
+branch names, and every document in the repository. The jury reads GitHub.
 
 ## Branches
 
-### Structure principale
+`main` is what deploys. Work happens on a branch and arrives through a pull
+request; nothing is committed to `main` directly.
 
-```
-main        ← production (protégée — jamais de commit direct)
-develop     ← intégration (toutes les features mergent ici)
-```
-
-### Branches de travail
-
-| Préfixe | Usage | Exemple |
+| Prefix | Use | Example |
 |---|---|---|
-| `feature/` | Nouvelle fonctionnalité | `feature/token-page` |
-| `fix/` | Correction de bug sur develop | `fix/mechanic-table-overflow` |
-| `hotfix/` | Correction urgente en prod | `hotfix/hero-canvas-crash` |
-| `release/` | Préparation d'une release | `release/1.2.0` |
-| `chore/` | Maintenance, deps, config | `chore/update-next` |
+| `feat/` | A new capability | `feat/ui-refont` |
+| `fix/` | A bug fix | `fix/nonce-release` |
+| `chore/` | Maintenance, dependencies, config | `chore/update-next` |
+| `docs/` | Documentation only | `docs/english` |
 
-### Règles
-
-- **`main`** — jamais de commit direct. Seulement des merges depuis `release/` ou `hotfix/`
-- **`develop`** — jamais de commit direct. Seulement des merges depuis `feature/`, `fix/`, `chore/`
-- Toute feature part d'une branche dérivée de `develop`
-- Une branche = une fonctionnalité ou un fix (pas de mélanges)
-
----
-
-## Flux de travail (Gitflow simplifié)
-
-### Feature (cas standard)
+One branch, one intention. A branch that fixes a bug and refactors a module
+is two reviews wearing one hat.
 
 ```bash
-git checkout develop
-git pull origin develop
-git checkout -b feature/nom-de-la-feature
-
-# ... travail ...
-
-git checkout develop
-git merge --no-ff feature/nom-de-la-feature
-git push origin develop
-git branch -d feature/nom-de-la-feature
+git checkout main && git pull
+git checkout -b feat/the-thing
+# ... work ...
+git push -u origin feat/the-thing
+gh pr create --base main
 ```
 
-### Hotfix (bug critique en production)
-
-```bash
-git checkout main
-git checkout -b hotfix/description-du-bug
-
-# ... fix ...
-
-git checkout main
-git merge --no-ff hotfix/description-du-bug
-git tag -a v1.0.1 -m "hotfix: description"
-
-git checkout develop
-git merge --no-ff hotfix/description-du-bug
-
-git branch -d hotfix/description-du-bug
-```
-
-### Release
-
-```bash
-git checkout develop
-git checkout -b release/1.2.0
-
-# Ajustements finaux (version, changelog)
-
-git checkout main
-git merge --no-ff release/1.2.0
-git tag -a v1.2.0 -m "release: 1.2.0"
-
-git checkout develop
-git merge --no-ff release/1.2.0
-
-git branch -d release/1.2.0
-```
-
----
-
-## Conventions de commit
-
-**Les messages de commit s'écrivent en anglais.** Les commentaires de code
-et les échanges d'équipe restent en français : ce qui part sur GitHub est en
-anglais.
-
-Sont donc en anglais : les commits, les pull requests, et les fichiers que
-GitHub expose publiquement — `README.md`, `CONTRIBUTING.md`, `SECURITY.md`,
-les templates d'issue et de PR. Un jury de hackathon lit le README avant tout
-le reste.
-
-Restent en français, ce sont les documents de travail de l'équipe :
-`SPECS.md`, `RULES.md`, `SKILLS.md`, `CLAUDE.md`, `GIT.md`.
-
-Format :
+## Commit messages
 
 ```
-<type>(<scope>): <description courte en anglais>
+<type>(<scope>): <short description>
 
-[corps optionnel]
+[optional body: why, not what — the diff already says what]
 
-[footer optionnel : BREAKING CHANGE, closes #issue]
+[optional footer: BREAKING CHANGE, closes #issue]
 ```
 
-### Types
-
-| Type | Usage |
+| Type | Use |
 |---|---|
-| `feat` | Nouvelle fonctionnalité |
-| `fix` | Correction de bug |
-| `hotfix` | Correction urgente en prod |
-| `refactor` | Refactoring sans changement de comportement |
-| `chore` | Maintenance, mise à jour de dépendances, config |
-| `docs` | Documentation uniquement |
-| `test` | Ajout ou modification de tests |
-| `perf` | Optimisation de performance |
-| `ci` | CI/CD, scripts de déploiement |
+| `feat` | A new capability |
+| `fix` | A bug fix |
+| `refactor` | No behaviour change |
+| `chore` | Maintenance, dependencies, config |
+| `docs` | Documentation only |
+| `test` | Tests added or changed |
+| `perf` | Performance |
+| `ci` | CI, deployment scripts |
 
-### Scopes recommandés
+Scopes follow the monorepo: a package from `packages/` or an app from
+`apps/`, plus a few cross-cutting ones — `agqp` · `vault` · `web` ·
+`relayer` · `policy` · `pyth` · `basket` · `paper-vault` · `docs` · `ci` ·
+`deps`. `agqp` covers both sides of the optical channel, which is the point
+of a monorepo: one commit changes the format, the encoder and the decoder
+together.
 
-`agqp` · `vault` · `web` · `relayer` · `policy` · `pyth` · `basket` ·
-`paper-vault` · `design-system` · `docs` · `ci` · `deps`
+### Rules
 
-Les scopes suivent le découpage du monorepo : un paquet de `packages/` ou
-une app de `apps/`, plus quelques transverses. `agqp` couvre le protocole
-optique des deux côtés du canal — c'est justement l'intérêt du monorepo :
-un seul commit change le format, l'encodeur et le décodeur.
+- Lowercase description, no trailing full stop
+- First line at most 72 characters
+- Imperative or noun phrase, never past tense
+  - `feat(web): add the basket builder`
+  - not `feat(web): I added the basket builder`
+- One commit, one intention
+- `BREAKING CHANGE` in the footer for any change to a format both sides of
+  the air gap read — see [docs/AGQP-SPEC.md](docs/AGQP-SPEC.md)
 
-### Exemples valides
+### Examples
 
 ```
 feat(agqp): encode a payload into indexed base45 frames
@@ -151,67 +80,33 @@ chore(deps): bump next 16.3.4 to 16.4.0
 ci: add lint, typecheck and vitest on pull requests
 ```
 
-### Règles
+A body is worth writing when the change is not self-evident from the diff:
+what was wrong, why this fixes it, and what a reader would otherwise have to
+reconstruct. A message that only repeats the filename is a message nobody
+gains from.
 
-- Description en minuscules, sans point final
-- Max 72 caractères pour la première ligne
-- Utiliser l'impératif ou le substantif, pas le passé
-  - ✅ `feat(web): add the basket builder`
-  - ❌ `feat(marketing): I added the faq page`
-- Un commit = une seule intention (ne pas mélanger fix + refactor)
-- `BREAKING CHANGE` dans le footer si changement d'API publique exposée par
-  le frontend (peu probable avant le Lot 1)
+## Pull requests
 
----
+- Title in the same format as a commit
+- CI must be green before a merge — `lint · typecheck · tests · build`
+- A description that says what changed, what it fixes, and how it was checked
+- Anything that changes what the phone shows before it signs should say so
+  explicitly. That screen is the product.
 
-## Pull Requests
+## Tags and versioning
 
-- **Titre et description : en anglais**, comme les commits. Le titre suit le
-  même format : `feat(token-page): description`.
-- **Reviewers** : minimum 1
-- **Merge strategy** : `--no-ff` (merge commit) pour conserver l'historique des branches
-- Pas de merge si CI échoue
-- Résoudre tous les commentaires avant de merger
-- Toute PR qui affiche un montant, un barème ou un délai issu du CDC doit
-  référencer les exigences concernées (`EF-xx`, `ENF-xx`) dans sa description
-  — voir `RULES.md` et `SPECS.md`
-
----
-
-## Tags et versioning
-
-Suivre **SemVer** : `MAJEUR.MINEUR.PATCH`
-
-```
-v1.0.0     → première release prod
-v1.1.0     → nouvelle fonctionnalité rétro-compatible
-v1.1.1     → hotfix
-v2.0.0     → breaking change d'API
-```
+SemVer: `MAJOR.MINOR.PATCH`.
 
 ```bash
-# Créer un tag annoté
 git tag -a v1.0.0 -m "release: description"
 git push origin v1.0.0
-
-# Lister les tags
-git tag -l
-
-# Voir un tag spécifique
-git show v1.0.0
 ```
 
----
+## Never commit
 
-## .gitignore — rappels
+- `.env` — the relayer's key lives there and it is real money
+- `node_modules/`, `.next/`, `dist/`, `*.tsbuildinfo`
+- Any private key, seed or Paper-Vault code, in any file, ever
 
-Ne jamais commiter :
-- `.env` — vide pour l'instant, contiendra les clés publiques (Jupiter,
-  Birdeye) une fois le Lot 1 démarré ; aucune clé privée ne doit jamais y
-  figurer côté frontend (`ENF-13`)
-- `node_modules/`
-- `.next/`
-- `tsconfig.tsbuildinfo`
-- `AGENTS.md` si le workflow d'équipe décide de ne pas le versionner — sinon
-  le committer tel quel : il est régénéré par `next dev` à chaque lancement
-  (voir `CLAUDE.md`)
+`apps/web/AGENTS.md` is committed as-is: Next regenerates it on every
+`next dev`, so leaving it untracked only produces a dirty working tree.

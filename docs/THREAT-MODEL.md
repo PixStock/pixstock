@@ -1,117 +1,155 @@
-# Modèle de menace et politique de signature
+# Threat model and signing policy
 
-> **À compléter (J0-J2).** Source : `PLAN_INTEGRATION.md §4.3` et `§6.B`.
->
-> Ce fichier décrit ce que chaque composant n'a **jamais** le droit de faire,
-> et les règles P1..P11 que `packages/tx-policy` applique avant toute
-> signature. Il est distinct de [`../SECURITY.md`](../SECURITY.md), qui est
-> la politique de divulgation de vulnérabilités.
+What each component is **never** allowed to do, the twelve rules
+`packages/tx-policy` applies before any signature, and — the section most
+projects leave out — what this product does not protect you from.
+
+This is distinct from [`../SECURITY.md`](../SECURITY.md), which is the
+vulnerability disclosure policy.
 
 ## Invariants
 
-| Composant | N'a jamais le droit de… |
+| Component | May never… |
 |---|---|
-| `apps/vault` | émettre une requête réseau (`fetch`, `XMLHttpRequest`, WebSocket, script tiers) ; persister la graine déchiffrée ; signer sans vérification biométrique |
-| `apps/relayer` | stocker une clé utilisateur ; signer autre chose que fee payer et nonce authority ; construire une transaction non demandée par la dApp |
-| `apps/web` | détenir une clé privée ; signer quoi que ce soit |
+| `apps/vault` | make a network request (`fetch`, `XMLHttpRequest`, WebSocket, third-party script); persist the decrypted seed; sign without the biometric check where one is enrolled |
+| `apps/relayer` | store a user key; sign anything but fee payer and nonce authority; build a transaction the dApp did not ask for |
+| `apps/web` | hold a private key; sign anything |
 
-## Ce contre quoi le produit ne protège pas
+The first of these is enforced by a lint rule that fails the build, not by
+review — see `apps/vault/eslint.config.mjs`. The built bundle is checked again:
+`apps/vault/dist/assets/*.js` contains no `fetch`, `XMLHttpRequest`,
+`WebSocket`, `EventSource` or `navigator.sendBeacon`. The service worker
+Workbox generates does use `fetch`, which is how a PWA serves its own
+precache offline at all; it never has a remote origin to reach.
 
-**L'émetteur peut saisir ou geler les tokens.** Les cinq xStocks sont des
-mints Token-2022 portant un *permanent delegate* et une *freeze authority*,
-tous deux détenus par l'émetteur. Vérifié sur mainnet le 12 sept. 2026 : les
-cinq partagent le délégué `5aMNNLQJwAEeoemTEMkv5NVjqKwvvefRYCQ5Z67HFvEq`.
-Cette adresse peut sortir des tokens de n'importe quel compte, **sans la
-signature du détenteur**.
+## What this product does not protect you from
 
-C'est la limite honnête de ce qu'un signataire hors ligne protège : il empêche
-quiconque n'est pas l'émetteur de bouger vos actifs, et il n'empêche rien à
-l'émetteur. La simulation le rappelle d'elle-même — créer un compte pour l'un
-de ces mints journalise « Mint has a permanent delegate, so tokens in this
-account may be seized at any time ».
+**The issuer can seize or freeze the tokens.** All five xStocks are
+Token-2022 mints carrying a *permanent delegate* and a *freeze authority*,
+both held by the issuer. Verified on mainnet 12 Sept 2026: the five share the
+delegate `5aMNNLQJwAEeoemTEMkv5NVjqKwvvefRYCQ5Z67HFvEq`. That address can move
+tokens out of any account **without the holder's signature**.
 
-À reporter sur la fiche d'ordre du vault : un porteur qui signe devrait le
-voir au moment de signer, pas seulement sur la page légale.
+This is the honest boundary of what an offline signer buys you. It stops
+everyone who is not the issuer from moving your assets, and it stops the
+issuer from nothing. Solana's own tooling says so out loud — creating an
+account for one of these mints logs *"Mint has a permanent delegate, so tokens
+in this account may be seized at any time."*
 
-## Le manifest n'est jamais la source de vérité
+So the vault says it too, on the screen where the decision is made rather than
+in a legal page nobody opens: *"Backed Finance can move TSLAx out of your
+account without your signature. That is how this token is issued — no signer
+can change it."* On a basket it is one sentence naming every asset, not the
+same paragraph once per leg.
 
-La fiche d'ordre affichée est dérivée des **instructions décompilées**, pas
-du manifest. Le manifest sert uniquement de contrôle croisé : s'il diverge
-des instructions, la signature est refusée.
+**And the rest of the honest list.** This is a hackathon build. It is
+unaudited. The relayer is a single point of availability — if it is down, no
+order can be built, though nothing you already hold is at risk. A compromised
+relayer cannot forge Pyth's signature or move your tokens, but it can refuse
+to serve you. The phone's own screen is trusted: if the phone is compromised
+before the vault is installed, nothing below applies.
 
-## Règles P1..P11
+## The manifest is never the source of truth
 
-Implémentées dans `packages/tx-policy/src/policy.ts`, chacune avec sa mutation
-adverse dans `test/policy.test.ts`, appliquée à une **vraie transaction
-Jupiter mainnet**.
+Every figure on the order ticket is derived from the **decompiled
+instructions**. The manifest that travels beside them exists only to be
+contradicted: if the two disagree, the signature is refused. That is rule P6,
+and it has an adversarial mutation test.
 
-| Règle | Énoncé | État |
+## Rules P1–P12
+
+Implemented in `packages/tx-policy/src/policy.ts`, each with its adversarial
+mutation in `test/policy.test.ts`, applied to a **real mainnet Jupiter
+transaction**.
+
+| Rule | Statement | State |
 |---|---|---|
-| `P1` | Le vault ne doit pas être le fee payer | ✅ |
-| `P2` | Tout programme doit être dans la liste blanche et nommable | ✅ |
-| `P3` | Aucune délégation : ni `approve`, ni `revoke`, ni changement d'autorité | ✅ |
-| `P4` | Aucune fermeture ni destruction d'un compte de tokens du vault | ✅ |
-| `P5` | La sortie d'un swap doit atterrir dans un compte que le vault dérive lui-même | ✅ |
-| `P6` | Les montants doivent correspondre au manifest | ✅ |
-| `P7` | Le slippage doit rester sous le manifest et sous le plafond dur (300 bps) | ✅ |
-| `P8` | Au plus une avance de nonce, et le vault n'en est pas l'autorité | ❌ **non appliquée** |
-| `P9` | Le nombre de lignes de swap doit correspondre au manifest | ✅ |
-| `P10` | Aucun lamport ne peut sortir du vault | ✅ |
-| `P11` | Un mint scalé doit déclarer un multiplicateur plausible, et lui seul peut en déclarer un | ✅ |
+| `P1` | The vault must not be the fee payer | Enforced |
+| `P2` | Every program must be in the allowlist and nameable | Enforced |
+| `P3` | No delegation: no approve, revoke or authority change | Enforced |
+| `P4` | No closing or burning a vault token account | Enforced |
+| `P5` | Swap output must land in an account the vault derives itself | Enforced |
+| `P6` | Amounts must match the manifest | Enforced |
+| `P7` | Slippage must be within the manifest and the hard cap | Enforced |
+| `P8` | At most one nonce advance, and the vault is not its authority | Enforced |
+| `P9` | The number of swap legs must match the manifest | Enforced |
+| `P10` | No lamports may leave the vault | Enforced |
+| `P11` | Scaled mints must declare a plausible multiplier, and only scaled mints may declare one | Enforced |
+| `P12` | Every swap must be authorised by this vault, and by nothing else | Enforced |
 
-**Une règle non implémentée n'est pas une règle qui passe.** `applyPolicy`
-renvoie `ok: false` tant que `unevaluated` n'est pas vide, et liste les règles
-concernées. Un moteur qui rendrait un feu vert en sautant la moitié de ses
-contrôles serait pire que pas de moteur du tout : le porteur lui ferait
-confiance.
+The statements above are `POLICY_RULES` in the source, word for word.
 
-### Le multiplicateur, et pourquoi il fait exception
+`EVALUATED_RULES` in the source is what `/protocol` renders, so the page
+cannot claim a rule the engine does not run.
 
-`ScaledUiAmount` (Token-2022) rend le montant réel égal à
-`brut / 10^décimales × multiplicateur`. Le multiplicateur vit sur le mint, et
-le vault est en mode avion : c'est **le seul chiffre de la fiche que
-l'expéditeur choisit**. Tous les autres sont extraits de la transaction.
+**A rule that is not implemented is not a rule that passes.** `applyPolicy`
+returns `ok: false` for as long as `unevaluated` is non-empty, and lists the
+rules concerned. An engine that returned a green light while skipping half its
+checks would be worse than no engine at all, because the holder would trust
+it.
 
-Ce qu'un menteur y gagne : pas un centime de plus dépensé — la transaction
-signée est inchangée — mais un porteur qui croit recevoir autre chose que ce
-qu'il reçoit. Pour ce produit, c'est la même chose.
+## The offline price guard
 
-La défense n'est pas la confiance, c'est la divulgation plus une borne :
+The phone verifies Pyth's ed25519 signature over the exact bytes that
+travelled, against signers read from the chain and pinned into the build. It
+then compares the oracle's price to the price the transaction's **own
+amounts** imply.
 
-- **P11** refuse un mint scalé sans multiplicateur, un multiplicateur hors de
-  `[1e-4, 1e4]`, et un multiplicateur déclaré pour un mint que le vault sait
-  non scalé. Ces trois-là sont décidables hors ligne, depuis la table de
+Three outcomes, not two:
+
+- **It verifies and holds.** Sign.
+- **It is forged, stale, or off the market.** Never sign — and there is no
+  checkbox. The vault knows the order is wrong, and a confirmation dialog
+  would only be a way of talking someone into it.
+- **There is no price at all.** The holder decides, once, in the open. Pyth
+  does not cover every asset and a grant does not cover every feed; refusing
+  outright would make the vault useless for those, and pretending would be
+  worse. So the phone says what it could not check, and asks.
+
+The holder's own tolerance rides on top and **can only be tightened** — see
+`apps/vault/src/vault/settings.ts`. Choosing a stricter number can never turn
+a refusal into an approval.
+
+## The multiplier, and why it is the exception
+
+`ScaledUiAmount` (Token-2022) makes the real amount
+`raw / 10^decimals × multiplier`. The multiplier lives on the mint, and the
+vault is in airplane mode: it is **the only figure on the ticket the sender
+chooses**. Every other one is extracted from the transaction.
+
+What a liar gains: not one cent more spent — the signed transaction is
+unchanged — but a holder who believes they are receiving something other than
+what they receive. For this product those are the same thing.
+
+The defence is not trust. It is disclosure plus a bound:
+
+- **P11** refuses a scaled mint with no multiplier, a multiplier outside
+  `PLAUSIBLE_MULTIPLIER` (`1e-4` to `1e4`), and a multiplier declared for a
+  mint the vault knows is not scaled. All three are decidable offline, from the table in
   `@pixstock/shared`.
-- `buildTicket` **n'applique jamais** un multiplicateur à un mint que cette
-  même table dit non scalé, quoi qu'en dise l'ordre.
-- La fiche **imprime** le multiplicateur, dit qu'il vient du relayer et n'est
-  pas vérifiable hors ligne, et affiche à côté le montant non scalé.
+- `buildTicket` **never** applies a multiplier to a mint that same table says
+  is unscaled, whatever the order claims.
+- The ticket **prints** the multiplier, says it came from the relayer and is
+  not verifiable offline, and shows the unscaled amount beside it.
 
-Trois mesures sur cinq mints, 12 sept. 2026 : l'écart entre montant brut et
-montant réel atteint **0,59 %** (MSFTx). Sur l'écran qui prétend montrer les
-vrais montants.
+Three measurements across five mints, 12 Sept 2026: the gap between the raw
+amount and the real amount reaches **0.59 %** (MSFTx) — on the screen that
+claims to show you real amounts.
 
-### Ce que le vault sait sans qu'on le lui dise
+## What the vault knows without being told
 
-Deux propriétés des xStocks sont dans la table hors ligne plutôt que dans
-l'ordre, `scaledUiAmount` et `hasPermanentDelegate`, et ce n'est pas une
-optimisation : **un avertissement qu'un expéditeur peut faire taire en
-omettant un champ n'est pas un avertissement.** L'adresse du délégué voyage,
-mais l'existence du délégué, non — l'omettre ne coûte plus à l'attaquant que
-le nom.
+Two properties of the xStocks live in the offline table rather than in the
+order — `scaledUiAmount` and `hasPermanentDelegate` — and that is not an
+optimisation. **A warning a sender can silence by omitting a field is not a
+warning.** The delegate's address travels; the delegate's *existence* does
+not. Leaving it out now costs an attacker only the name.
 
-### Le manifest n'est jamais cru
+## What the decoder refuses to guess
 
-Chaque chiffre de la fiche d'ordre vient des instructions décompilées. Le
-manifest ne sert qu'à être confronté à elles, et un désaccord est un refus —
-c'est exactement ce que teste la mutation `P6`.
-
-### Ce que le décodeur refuse de deviner
-
-Le plan de route Jupiter est une liste de variantes d'AMM qui change à chaque
-intégration : le décoder serait viser une cible mobile. Seuls les arguments de
-queue, de largeur fixe (montant, montant coté, slippage, frais de plateforme),
-sont lus ; le plan reste opaque et signalé comme tel (`routePlanOpaque`). De
-même, un programme tiré d'une table de lookup est rapporté `lookup:<index>`,
-jamais affublé d'un nom plausible — une étiquette fausse, c'est le blind
-signing qui revient déguisé.
+Jupiter's route plan is a list of AMM variants that changes with every
+integration; decoding it would be aiming at a moving target. Only the
+fixed-width tail arguments are read — amount, quoted amount, slippage,
+platform fee — and the plan stays opaque and is flagged as such
+(`routePlanOpaque`). Likewise, a program pulled from an address lookup table
+is reported as `lookup:<index>` and never given a plausible name. A false
+label is blind signing in a costume.
