@@ -2,21 +2,13 @@ import Link from "next/link";
 import { Logo } from "./Logo";
 import type { Content } from "@/content/site";
 
-/**
- * `slim` drops the navigation and the wordmark and keeps the legal strip.
- * Trade, Basket and Vault are tools, not pages to be read, and a marketing
- * footer under a form is noise. The disclaimers are the opposite: a person
- * about to sign a mainnet order is exactly who needs to be told the build is
- * unaudited and who may not hold these assets, so those lines stay.
- */
-export function Footer({ dict, slim }: { dict: Content; slim?: boolean }) {
+export function Footer({ dict }: { dict: Content }) {
   const footer = dict.common.footer;
   const columns = [footer.columns.product, footer.columns.protocol, footer.columns.company];
 
   return (
-    <footer className={`foot${slim ? " foot--slim" : ""}`} id="foot">
+    <footer className="foot" id="foot">
       <div className="shell">
-        {!slim && (
         <div className="foot-cols">
           <div>
             <Link className="brand" href="/" style={{ marginBottom: 16 }}>
@@ -42,9 +34,7 @@ export function Footer({ dict, slim }: { dict: Content; slim?: boolean }) {
             </div>
           ))}
         </div>
-        )}
 
-        {!slim && (
         <div className="wordmark" id="wordmark">
           <svg viewBox="0 0 1000 140" aria-hidden="true">
             <text
@@ -63,7 +53,6 @@ export function Footer({ dict, slim }: { dict: Content; slim?: boolean }) {
             </text>
           </svg>
         </div>
-        )}
 
         <div className="legal">
           <ul className="legal-list">
