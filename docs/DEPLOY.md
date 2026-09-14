@@ -3,6 +3,80 @@
 Three pieces, three shapes: a static PWA, a Next.js app, and a Node service
 with a database and a hot key.
 
+Each has a Dockerfile that builds from the repository root, and each has been
+built and run locally before being written about here.
+
+---
+
+## All three on Railway
+
+One project, four services: Postgres and the three above. Every service points
+at the same repository with **root directory `/`** — the builds need the whole
+workspace, because npm checks the lockfile against every manifest — and at its
+own config file.
+
+| Service | Config path | Port |
+|---|---|---|
+| relayer | `apps/relayer/railway.json` | 4000 |
+| web | `apps/web/railway.json` | 3000 |
+| vault | `apps/vault/railway.json` | 8080 |
+
+Add the Postgres plugin first; it publishes `DATABASE_URL`, which the relayer
+reads with Railway's `${{Postgres.DATABASE_URL}}` reference.
+
+### In the order that avoids rework
+
+**1. Relayer.** Deploy it first: the other two need its public URL.
+
+```
+DATABASE_URL     = ${{Postgres.DATABASE_URL}}
+SOLANA_CLUSTER   = mainnet-beta
+SOLANA_RPC_URL   = <your Helius URL>
+RELAYER_SECRET_KEY = <the hot key>
+PYTH_PRO_TOKEN   = <from pythdata.app>
+PYTH_ROUTER_URLS = wss://pyth-lazer-0.dourolabs.app/v1/stream
+RELAYER_ALLOW_BROADCAST = false
+```
+
+Generate a domain, then check `/healthz` before going further. It names every
+capability that is absent rather than answering a bare "ok".
+
+**2. Vault.** No variables at all — it has nothing to configure and holds no
+secret. Generate a domain and open it on a phone.
+
+**3. Web.** One build-time variable:
+
+```
+NEXT_PUBLIC_RELAYER_URL = https://<relayer domain>
+```
+
+> **The one that catches everyone.** Next inlines `NEXT_PUBLIC_*` into the
+> browser bundle *at build time*. Setting it after the fact leaves the shipped
+> JavaScript pointing at `localhost:4000` — a page that loads perfectly and
+> cannot reach anything. Set it, then redeploy.
+
+**4. Back to the relayer,** now that the other two have domains:
+
+```
+ALLOWED_ORIGINS = https://<web domain>,https://<vault domain>
+```
+
+Without it the browser's CORS check refuses every call, and the web app
+reports the relayer as not answering.
+
+### Checking it
+
+```bash
+curl https://<relayer domain>/healthz
+curl "https://<relayer domain>/v1/prices?symbols=TSLAx"
+```
+
+Then open the web app, pair a vault, and build an order. `/healthz` should
+report `pythStream.connected: true` and a `noncePool` above zero before you
+film anything.
+
+---
+
 The one that carries risk is the relayer. Everything below assumes its key is
 a hot key holding only what it can afford to lose — fees and token-account
 rent — because that is all it is ever able to spend.
