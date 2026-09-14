@@ -9,7 +9,14 @@ import { ProblemCarousel } from "@/components/ProblemCarousel";
 import { content } from "@/content/site";
 
 const GITHUB = "https://github.com/PixStock/pixstock";
-const VAULT = "https://vault.pixstock.xyz";
+// The vault lives on its own origin, and has to: it shares no storage, no
+// service worker and no cookie with the online app, which is the boundary the
+// whole design rests on.
+//
+// Read from the environment so moving it is a variable, not a commit. Next
+// inlines NEXT_PUBLIC_* at build time, so changing it needs a rebuild — a
+// restart leaves the old address in the shipped bundle.
+const VAULT = process.env.NEXT_PUBLIC_VAULT_URL ?? "https://pixstock-production.up.railway.app";
 
 export function generateMetadata(): Metadata {
   const dict = content;

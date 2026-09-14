@@ -2,12 +2,13 @@
 #
 #   docker build -f apps/web/Dockerfile \
 #     --build-arg NEXT_PUBLIC_RELAYER_URL=https://relayer.example.com \
+#     --build-arg NEXT_PUBLIC_VAULT_URL=https://vault.example.com \
 #     -t pixstock-web .
 #
-# NEXT_PUBLIC_RELAYER_URL is a BUILD argument, not a runtime one. Next inlines
-# NEXT_PUBLIC_* into the browser bundle at build time, so setting it only as a
-# runtime variable leaves the shipped JavaScript pointing at localhost:4000 —
-# a page that loads perfectly and cannot reach anything.
+# Both are BUILD arguments, not runtime ones. Next inlines NEXT_PUBLIC_* into
+# the browser bundle at build time, so setting one only as a runtime variable
+# leaves the shipped JavaScript pointing at localhost — a page that loads
+# perfectly and cannot reach anything, or a button that goes nowhere.
 
 FROM node:22-slim AS build
 WORKDIR /app
@@ -21,6 +22,8 @@ RUN npm run build:packages
 
 ARG NEXT_PUBLIC_RELAYER_URL=http://localhost:4000
 ENV NEXT_PUBLIC_RELAYER_URL=$NEXT_PUBLIC_RELAYER_URL
+ARG NEXT_PUBLIC_VAULT_URL=http://localhost:5183
+ENV NEXT_PUBLIC_VAULT_URL=$NEXT_PUBLIC_VAULT_URL
 RUN npm run build -w @pixstock/web
 
 FROM node:22-slim AS run

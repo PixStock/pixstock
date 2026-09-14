@@ -135,14 +135,23 @@ Any static host works. On Vercel, point the project's root directory at
 ## The web app — `app.pixstock.xyz`
 
 Next.js. `apps/web/vercel.json` carries the build commands for the monorepo.
-One environment variable:
+Two environment variables:
 
 ```
 NEXT_PUBLIC_RELAYER_URL=https://relayer.pixstock.xyz
+NEXT_PUBLIC_VAULT_URL=https://vault.pixstock.xyz
 ```
 
-It is public by design — the browser calls the relayer directly, and nothing
-secret passes through this app.
+Both are public by design — the browser calls the relayer directly, the vault
+link is a link, and nothing secret passes through this app.
+
+**Both are read at build time, not at run time.** Next inlines `NEXT_PUBLIC_*`
+into the JavaScript it ships, so changing either one needs a new build:
+restarting the service leaves the previous address in the bundle, and the
+symptom is a page that loads perfectly while reaching nothing. On a platform
+that builds from a Dockerfile, set them as service variables — they are
+declared as build arguments in `apps/web/Dockerfile` and picked up from
+there. Redeploy, do not restart.
 
 ## The relayer — `relayer.pixstock.xyz`
 
