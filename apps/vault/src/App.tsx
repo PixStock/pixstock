@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import type { SignRequest } from "@pixstock/agqp";
+import { encodeSessionId, type SignRequest } from "@pixstock/agqp";
 import type { OrderTicket } from "@pixstock/tx-policy";
 import type { VaultBlob } from "@pixstock/vault-crypto";
 import { base58 } from "@scure/base";
+import { Mark } from "./components/Mark";
 import { Pair } from "./screens/Pair";
 import { Restore } from "./screens/Restore";
 import { Review } from "./screens/Review";
@@ -22,6 +23,11 @@ type Screen =
   | { name: "review"; payload: Uint8Array }
   | { name: "sign"; request: SignRequest; ticket: OrderTicket };
 
+/** Where the crossing has got to. Derived from the screen, never stored. */
+type Step = "done" | "current" | "future" | "refused";
+
+const STEPS = ["Scan", "Check", "Return"] as const;
+
 /**
  * Offline signer: onboarding, scan, review, sign.
  *
@@ -40,6 +46,10 @@ export function App() {
   const [fatal, setFatal] = useState<string | null>(null);
   const install = useInstallPrompt();
   const [showHow, setShowHow] = useState(false);
+  // Set by Review when it will not sign, and by Sign once the reply is up.
+  // Both are facts about the crossing that only the child screen knows.
+  const [refused, setRefused] = useState(false);
+  const [replying, setReplying] = useState(false);
 
   // Reported, never relied upon. A phone in airplane mode is the real control;
   // this only tells the holder when it is not.
@@ -66,33 +76,63 @@ export function App() {
     }
   }, []);
 
+  // Onboarding has a header of its own, and a rail that says "1 Scan" above a
+  // password field would be describing a crossing that has not started.
+  const chrome = screen.name !== "setup" && screen.name !== "restore";
+
+  const steps = railFor(screen, { refused, replying });
+  const counterpart = counterpartFor(screen, { refused, replying });
+
   return (
     <main>
-      <div className="stack">
-        <header className="stack stack--tight">
-          <h1>PixStock Vault</h1>
-          <p className="lede">This app never connects to anything.</p>
-        </header>
+      {chrome && (
+        <div className="chrome">
+          <div className="chrome-bar">
+            <Mark size={20} />
+            <p className="chrome-title">Vault</p>
+            <span className={`chip chip--${online ? "warn" : "ok"}`}>
+              <span className="dot" aria-hidden="true" />
+              {online ? "Radios on" : "Airplane mode"}
+            </span>
+          </div>
 
-        <p className={`airgap ${online ? "airgap--online" : "airgap--offline"}`}>
-          <span className="dot" aria-hidden="true" />
-          {online
-            ? "This device has a network. Turn on airplane mode before signing."
-            : "Offline. Nothing can leave this device."}
-        </p>
+          <div className="rail" role="list" aria-label="Progress">
+            {STEPS.map((label, i) => (
+              <div key={label} className={`rail-step rail-step--${steps[i]}`} role="listitem">
+                <span className="rail-bar" aria-hidden="true" />
+                <span className="rail-label">
+                  {i + 1} {label}
+                </span>
+              </div>
+            ))}
+          </div>
 
+          {counterpart && <p className="counterpart">{counterpart}</p>}
+
+          {/*
+            The sentence in full, and only when it is true. As a permanent
+            banner it taught everyone to stop reading the one line that would
+            have mattered on the one day it did.
+          */}
+          {online && (
+            <p className="alert" role="alert">
+              This device has a network. Turn on airplane mode before signing.
+            </p>
+          )}
+        </div>
+      )}
+
+      <div className="screen stack">
         {/*
-          Shown whenever this is not the installed app, with a button either
-          way. A tab is not a signer: it closes by accident, has no icon to
-          open, and on a phone with the radios off it reads as a broken
-          website rather than one working exactly as designed.
+          Shown on the scan screen, with a button either way. A tab is not a
+          signer: it closes by accident, has no icon to open, and on a phone
+          with the radios off it reads as a broken website rather than one
+          working exactly as designed.
 
-          The button does not wait for Chrome to offer the prompt. Chrome
-          decides that on its own schedule, and a button that appears only
-          when the browser feels like it is one nobody can be told to look
-          for — so without the event it says where the menu command lives.
+          Kept off Review and Sign deliberately — nothing competes with the
+          screen where a signature is decided.
         */}
-        {install.status !== "installed" && (
+        {install.status !== "installed" && screen.name === "scan" && (
           <div className="notice">
             <h3>Install this on the phone</h3>
             <p className="copy">
@@ -148,7 +188,11 @@ export function App() {
           />
         ) : screen.name === "scan" ? (
           <Scan
-            onScanned={(payload) => setScreen({ name: "review", payload })}
+            onScanned={(payload) => {
+              setRefused(false);
+              setReplying(false);
+              setScreen({ name: "review", payload });
+            }}
             onPair={() => setScreen({ name: "pair" })}
             onSettings={() => setScreen({ name: "settings" })}
           />
@@ -161,6 +205,7 @@ export function App() {
             <Review
               payload={screen.payload}
               vault={base58.encode(blob.publicKey)}
+              onVerdict={setRefused}
               onApprove={(request, ticket) => setScreen({ name: "sign", request, ticket })}
               onReject={() => setScreen({ name: "scan" })}
             />
@@ -171,11 +216,59 @@ export function App() {
               blob={blob}
               request={screen.request}
               ticket={screen.ticket}
-              onDone={() => setScreen({ name: "scan" })}
+              onReplying={setReplying}
+              onDone={() => {
+                setReplying(false);
+                setScreen({ name: "scan" });
+              }}
             />
           )
         )}
       </div>
     </main>
   );
+}
+
+/**
+ * The three bars, from the screen alone.
+ *
+ * Pair and Settings are side trips off the scan screen rather than points in
+ * the crossing, so they read as step one: nothing has been scanned, and
+ * nothing is owed to the laptop.
+ */
+function railFor(
+  screen: Screen,
+  flags: { refused: boolean; replying: boolean },
+): [Step, Step, Step] {
+  switch (screen.name) {
+    case "review":
+      return flags.refused
+        ? ["done", "refused", "future"]
+        : ["done", "current", "future"];
+    case "sign":
+      return flags.replying ? ["done", "done", "current"] : ["done", "current", "future"];
+    default:
+      return ["current", "future", "future"];
+  }
+}
+
+/** What the other screen is doing. The phone is the one that can say it. */
+function counterpartFor(
+  screen: Screen,
+  flags: { refused: boolean; replying: boolean },
+): string | null {
+  switch (screen.name) {
+    case "scan":
+      return "laptop → showing the order on /sign";
+    case "review":
+      return flags.refused
+        ? "laptop → still waiting. Ask it for a fresh quote."
+        : "laptop → waiting for your signature";
+    case "sign":
+      return flags.replying
+        ? `laptop → webcam is open, looking for session ${encodeSessionId(screen.request.sid)}`
+        : "laptop → waiting for your signature";
+    default:
+      return null;
+  }
 }

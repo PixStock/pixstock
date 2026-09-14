@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { encodeSessionId, encodeSignatureResponse, type SignRequest } from "@pixstock/agqp";
 import type { OrderTicket } from "@pixstock/tx-policy";
 import { signWith, type VaultBlob } from "@pixstock/vault-crypto";
@@ -9,6 +9,8 @@ export interface SignProps {
   blob: VaultBlob;
   request: SignRequest;
   ticket: OrderTicket;
+  /** True once the reply QR is up, so the rail can move to step 3. */
+  onReplying?: (replying: boolean) => void;
   onDone: () => void;
 }
 
@@ -20,7 +22,7 @@ export interface SignProps {
  * message itself — the relayer attaches it to the message it already holds,
  * which is why only sixty-four bytes need to travel back.
  */
-export function Sign({ blob, request, ticket, onDone }: SignProps) {
+export function Sign({ blob, request, ticket, onReplying, onDone }: SignProps) {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,6 +30,12 @@ export function Sign({ blob, request, ticket, onDone }: SignProps) {
   const [biometric, setBiometric] = useState<"passed" | "absent" | null>(null);
 
   const enrolled = storedCredential() !== null;
+
+  // Told to the chrome rather than read from it: App owns the rail, and the
+  // reply only exists once the signature has been produced here.
+  useEffect(() => {
+    onReplying?.(reply !== null);
+  }, [reply, onReplying]);
 
   async function confirm() {
     setBusy(true);

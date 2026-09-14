@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { decodePayload, type SignRequest } from "@pixstock/agqp";
 import {
   applyPolicy,
@@ -20,6 +20,14 @@ export interface ReviewProps {
   payload: Uint8Array;
   /** The vault's own key, from its own storage — never from the payload. */
   vault: string;
+  /**
+   * True as soon as this screen knows it will not sign.
+   *
+   * The step rail lives in App and cannot see a policy result, so the screen
+   * that reaches the verdict is the one that reports it. Presentation only —
+   * nothing here decides anything.
+   */
+  onVerdict?: (refused: boolean) => void;
   onApprove: (request: SignRequest, ticket: OrderTicket) => void;
   onReject: () => void;
 }
@@ -36,9 +44,7 @@ type Verdict =
  * itself, runs the policy against it, and renders amounts taken from the
  * instructions — never from the description that travelled with them.
  */
-export function Review({ payload, vault, onApprove, onReject }: ReviewProps) {
-  const [acknowledged, setAcknowledged] = useState(false);
-
+export function Review({ payload, vault, onVerdict, onApprove, onReject }: ReviewProps) {
   const verdict = useMemo<Verdict>(() => {
     let request: SignRequest;
     try {
@@ -80,6 +86,13 @@ export function Review({ payload, vault, onApprove, onReject }: ReviewProps) {
     }
   }, [payload, vault]);
 
+  // An order that cannot be read, or is not ours, is refused before anything
+  // is shown — so the rail is told here rather than inside the checked path.
+  const unreadable = verdict.state !== "checked";
+  useEffect(() => {
+    if (unreadable) onVerdict?.(true);
+  }, [unreadable, onVerdict]);
+
   if (verdict.state === "unreadable") {
     return (
       <Refusal title="This order cannot be read" detail={verdict.reason} onReject={onReject} />
@@ -96,7 +109,38 @@ export function Review({ payload, vault, onApprove, onReject }: ReviewProps) {
     );
   }
 
-  const { request, result } = verdict;
+  return (
+    <CheckedOrder
+      request={verdict.request}
+      result={verdict.result}
+      {...(onVerdict ? { onVerdict } : {})}
+      onApprove={onApprove}
+      onReject={onReject}
+    />
+  );
+}
+
+/**
+ * An order that decoded, and is addressed to this vault. Everything from here
+ * on is about whether it may be signed.
+ *
+ * Its own component because the two verdicts above return early, and the
+ * acknowledgement checkbox and the verdict report both need hooks.
+ */
+function CheckedOrder({
+  request,
+  result,
+  onVerdict,
+  onApprove,
+  onReject,
+}: {
+  request: SignRequest;
+  result: PolicyResult;
+  onVerdict?: (refused: boolean) => void;
+  onApprove: (request: SignRequest, ticket: OrderTicket) => void;
+  onReject: () => void;
+}) {
+  const [acknowledged, setAcknowledged] = useState(false);
   const { ticket, violations, unevaluated } = result;
 
   // The price check, against the ticket's own amounts — the ones read out of
@@ -133,6 +177,14 @@ export function Review({ payload, vault, onApprove, onReject }: ReviewProps) {
   const priceRefuses = !priceVerified && !canAcknowledge(price);
   const priceAllowsSigning = priceVerified || (canAcknowledge(price) && acknowledged);
   const quoteAgeSeconds = Math.max(0, Math.floor(Date.now() / 1000) - request.manifest.quotedAt);
+
+  // Refused means there is nothing to approve: a policy violation, a price
+  // that came back wrong, or no ticket at all. Not "not yet acknowledged" —
+  // that one is still a decision the holder can make.
+  const refused = violations.length > 0 || !ticket || priceRefuses;
+  useEffect(() => {
+    onVerdict?.(refused);
+  }, [refused, onVerdict]);
 
   return (
     <section className="stack">
