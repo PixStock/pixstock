@@ -244,7 +244,7 @@ everything else is negotiable.
 ## The numbers
 
 ```
-310  unit and integration tests   offline, deterministic
+326  unit and integration tests   offline, deterministic
  17  live tests                    real Jupiter, real RPC, real Pyth
  36  system tests                  both apps, in a real browser
  12  signing rules                 P1..P12, every one enforced

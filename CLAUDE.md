@@ -65,7 +65,7 @@ npm run dev -w @pixstock/relayer  # :4000
 npm run dev -w @pixstock/web      # :3000
 npm run dev -w @pixstock/vault    # :5183
 
-npm test                          # 310 unit and integration tests
+npm test                          # 326 unit and integration tests
 npm run test:live                 # real Jupiter and RPC
 npm run test:system               # Playwright, both apps
 npm run typecheck                 # runs next typegen first, then tsc -b
