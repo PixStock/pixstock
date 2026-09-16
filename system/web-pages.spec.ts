@@ -133,4 +133,56 @@ test.describe("the basket builder", () => {
     await expect(page.getByText("150 USDC").first()).toBeVisible();
     await expect(page.getByText("100%")).toBeVisible();
   });
+
+  /**
+   * The builder once allowed five legs while `CreateOrderDto` capped at four,
+   * and with exactly five assets in the table the fifth was reachable: quote
+   * every leg, press send, collect a 400. The interface has to hold the same
+   * line the relayer does.
+   */
+  test("stops adding legs at the number the relayer accepts", async ({ page }) => {
+    await page.goto(`${WEB}/basket`);
+
+    const add = page.getByRole("button", { name: "Add a line" });
+    for (let i = 0; i < 6 && (await add.isEnabled()); i++) {
+      await add.click();
+    }
+
+    await expect(add).toBeDisabled();
+    expect(await page.locator(".alloc-row").count()).toBeLessThanOrEqual(4);
+  });
+});
+
+/**
+ * Pairing is the first thing anyone does and nothing works without it: with no
+ * vault address, neither /trade nor /basket can build an order. For a while
+ * the only way in was a webcam, which is the one part of this flow a machine
+ * may simply not have.
+ */
+test.describe("pairing a vault", () => {
+  test("takes a typed address, on a machine with no webcam", async ({ page }) => {
+    const vault = "8ZqYQ7mKPfLmVm4Uu1kKXHkbXaqvYuQhzFHBBLPuKvnQ";
+
+    await page.goto(`${WEB}/vault`);
+
+    // Shut by default, because the camera is the ordinary path — but it must
+    // be there, and it must say what it is for.
+    await page.getByText(/No webcam on this machine/).click();
+    await page.getByPlaceholder(/public key shown on your vault/).fill(vault);
+
+    // Written to the same store the scanner writes to, so the two paths
+    // cannot come to mean different things.
+    await expect
+      .poll(() => page.evaluate(() => localStorage.getItem("pixstock.pairedVault")))
+      .toBe(vault);
+  });
+
+  test("says so rather than remembering something that is not an address", async ({ page }) => {
+    await page.goto(`${WEB}/vault`);
+
+    await page.getByText(/No webcam on this machine/).click();
+    await page.getByPlaceholder(/public key shown on your vault/).fill("not-an-address");
+
+    await expect(page.getByText("That is not a Solana address.")).toBeVisible();
+  });
 });

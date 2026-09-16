@@ -27,8 +27,18 @@ function toRawUsdc(amount: string): bigint | null {
 
 const QUICK = ["100", "500", "1000"] as const;
 
-/** Up to five legs fit in one transaction — see docs/AGQP-SPEC.md. */
-const MAX_LEGS = 5;
+/**
+ * Four, because four is what was measured and what the relayer accepts.
+ *
+ * `docs/AGQP-SPEC.md` §3 stops at a four-leg basket, at 1,052 bytes against
+ * Solana's 1,232 — and `CreateOrderDto` caps at four for that reason. This
+ * said five, and with exactly five assets in the table it was reachable: the
+ * builder let someone allocate a fifth line, quote every leg, and then get a
+ * 400 back from the relayer at the end of a flow they had completed. A limit
+ * the interface knows about is a button that never lights up; a limit only
+ * the server knows about is wasted work and a refusal with no lesson in it.
+ */
+const MAX_LEGS = 4;
 
 export function BasketBuilder() {
   const b = content.basket;
@@ -274,7 +284,7 @@ export function BasketBuilder() {
             <button type="button" className="preset" disabled={!canAdd} onClick={addLine}>
               {b.builder.addLabel}
             </button>
-            <span className="note">Up to five legs fit in one transaction.</span>
+            <span className="note">Up to {MAX_LEGS} legs fit in one transaction.</span>
           </div>
         </div>
       </div>

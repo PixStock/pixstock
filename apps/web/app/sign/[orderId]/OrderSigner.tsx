@@ -138,7 +138,7 @@ export function OrderSigner({ orderId }: { orderId: string }) {
     eyebrow: "Crossing the gap",
     title: "Show this screen to your phone",
     lede:
-      "Hold the phone up to the code. The frames repeat, so it can join anywhere " +
+      "Hold the phone up to the code. The frames repeat, so it can join anywhere. " +
       "Nothing to time, nothing to click.",
     session: encodeSessionId(sid),
     // The order is already built by the time anyone reads this, so the first

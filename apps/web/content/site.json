@@ -379,7 +379,7 @@
       "description": "How an order crosses an air gap as animated QR codes, what the phone checks before it signs, and why a corrupted browser cannot lie to it about the price."
     },
     "breadcrumbName": "Protocol",
-  "mapLabel": "On this page",
+    "mapLabel": "On this page",
     "pageHead": {
       "eyebrow": "AGQP v1",
       "title": "How an order crosses the gap",
@@ -600,7 +600,9 @@
       "title": "Pairing",
       "body": "The vault displays a code holding its public key, a label and the network it is set to. Scanning it teaches this browser where to send orders and whose balances to show. It carries no secret, so a photograph of it is harmless.",
       "scanLabel": "Scan with webcam",
-      "stopLabel": "Stop"
+      "stopLabel": "Stop",
+      "manualSummary": "No webcam on this machine? Type the address instead",
+      "manualBody": "The vault prints its address under the code, on the same screen. Typing it reaches the same place the scan does: a public key this browser remembers, and nothing else. Check the first and last four characters against the phone before you build an order against it."
     },
     "pending": {
       "title": "Hold the vault's code up to the webcam",
