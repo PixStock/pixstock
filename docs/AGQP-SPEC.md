@@ -77,9 +77,20 @@ The setting is exposed in the web UI at `/sign` for the measurement matrix
 
 ## 2. Payload (CBOR)
 
-One structure for every message. The `sid` is repeated inside it: the
-assembler checks that it matches the frames' `SID`, which stops a captured
-payload from being re-wrapped into another session.
+One structure for every message. The `sid` is repeated inside it, and the two
+copies are compared: pass the frames' `SID` — `FrameAssembler.sessionId` — to
+`decodePayload(bytes, { sid })` and a payload claiming a different session is
+refused. That is what stops a captured payload from being re-wrapped in the
+headers of another session; without the comparison the repetition guarantees
+nothing.
+
+The check belongs to the decoder rather than to the assembler, because the
+assembler is the transport in section 1 and knows nothing of CBOR. What the
+assembler does enforce is that every frame of one message carries the same
+`SID` as the first — a frame from another session is counted as ignored, never
+mixed in. The vault runs both: `Review` passes the assembler's session id
+straight through to the decoder. The return direction is checked the same way,
+in `SignatureScanner`, against the session the laptop minted.
 
 ```
 SignRequest { v: 1, kind: "SIGN", sid: bytes(3), vault: bytes(32),

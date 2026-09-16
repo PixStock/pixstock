@@ -22,6 +22,11 @@ export interface ReviewProps {
   payload: Uint8Array;
   /** How many frames the assembler put together to make this payload. */
   frames: number;
+  /**
+   * The session id those frames carried. The payload repeats it inside the
+   * CBOR, and the two are compared here — see AGQP-SPEC.md section 2.
+   */
+  sid: string;
   /** The vault's own key, from its own storage — never from the payload. */
   vault: string;
   /**
@@ -54,11 +59,23 @@ type Verdict =
  * are sticky, because Approve used to sit below a disclosure list a screen
  * tall and "scroll past the warning to reach the button" is not a design.
  */
-export function Review({ payload, frames, vault, onVerdict, onApprove, onReject }: ReviewProps) {
+export function Review({
+  payload,
+  frames,
+  sid,
+  vault,
+  onVerdict,
+  onApprove,
+  onReject,
+}: ReviewProps) {
   const verdict = useMemo<Verdict>(() => {
     let request: SignRequest;
     try {
-      const decoded = decodePayload(payload);
+      // `sid` makes the decoder compare the session id inside the payload
+      // against the one the frames carried. They are written together by the
+      // sender, so a disagreement means the CBOR arrived in frames that were
+      // not the ones it was sent in.
+      const decoded = decodePayload(payload, { sid });
       if (decoded.kind !== "SIGN") {
         return { state: "unreadable", reason: `This is a ${decoded.kind} code, not an order.` };
       }
@@ -71,6 +88,24 @@ export function Review({ payload, frames, vault, onVerdict, onApprove, onReject 
     // naming another vault is not ours to read, let alone sign.
     if (request.vault !== vault) {
       return { state: "wrong-vault", addressed: request.vault };
+    }
+
+    // A basket too big for one transaction is split in two by the relayer,
+    // and then it needs two signatures. This screen decompiles `txs[0]` and
+    // Sign signs `txs[0]`, so the second one would travel back unsigned and
+    // the relayer would reject the reply with a count mismatch — after the
+    // holder had typed their password and believed they were done.
+    //
+    // Refused here, in words, rather than half-done in silence. CLAUDE.md:
+    // a path that is not written says so.
+    if (request.txs.length !== 1) {
+      return {
+        state: "unreadable",
+        reason:
+          `This order carries ${request.txs.length} transactions and this version of the ` +
+          `vault signs one. Nothing has been signed. Build the basket with fewer legs and ` +
+          `it will fit in a single transaction.`,
+      };
     }
 
     try {
@@ -94,7 +129,7 @@ export function Review({ payload, frames, vault, onVerdict, onApprove, onReject 
     } catch (err) {
       return { state: "unreadable", reason: (err as Error).message };
     }
-  }, [payload, vault]);
+  }, [payload, sid, vault]);
 
   // An order that cannot be read, or is not ours, is refused before anything
   // is shown — so the rail is told here rather than inside the checked path.

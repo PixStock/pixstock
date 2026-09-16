@@ -50,8 +50,10 @@ export function AnimatedQr({
   }, [onCycle]);
 
   // Encoding is pure and cheap, so it happens during render rather than in an
-  // effect. Once the CBOR layer lands the same session id goes inside the
-  // payload too, so the vault can check the two agree.
+  // effect. The same session id goes inside the CBOR payload as well as into
+  // every frame header, and the vault compares the two — see AGQP-SPEC.md
+  // section 2. Both copies come from this one `sid`, so they agree here by
+  // construction; the point of the check is the case where they do not.
   const encoded = useMemo(() => {
     try {
       return { frames: encodeFrames(payload, { sid, size }), error: null };

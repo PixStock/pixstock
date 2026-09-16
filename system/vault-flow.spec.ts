@@ -144,6 +144,39 @@ test.describe("the vault, end to end in a browser", () => {
     await expect(page.getByText("Nothing left this phone but a signature.")).toBeVisible();
   });
 
+  /**
+   * The relayer splits a basket that will not fit in 1,232 bytes and then
+   * wants a signature per message. This screen decompiles `txs[0]` and Sign
+   * signs `txs[0]`, so a two-transaction order used to be reviewed as if it
+   * were one: the holder would type their password, believe they were done,
+   * and the relayer would reject the reply for a count it never got.
+   */
+  test("refuses an order carrying more transactions than it signs", async ({ page }) => {
+    await installFixtureVault(page);
+    await feed(page, orderFor(FIXTURE_VAULT, { txCount: 2 }).frames);
+
+    await expect(page.getByText("This order cannot be read")).toBeVisible();
+    await expect(page.getByText(/carries 2 transactions and this version/)).toBeVisible();
+    // Said out loud, and said to be harmless: nothing was signed.
+    await expect(page.getByText(/Nothing has been signed/)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Approve" })).toHaveCount(0);
+  });
+
+  /**
+   * The session id travels twice — in every frame header and inside the CBOR
+   * — so that a payload captured from one session cannot be re-wrapped in
+   * another's frames. Nothing compared the two copies until now, which made
+   * the second one decoration. AGQP-SPEC section 2.
+   */
+  test("refuses a payload wrapped in another session's frames", async ({ page }) => {
+    await installFixtureVault(page);
+    await feed(page, orderFor(FIXTURE_VAULT, { wrongSession: true }).frames);
+
+    await expect(page.getByText("This order cannot be read")).toBeVisible();
+    await expect(page.getByText(/arrived in the frames of session/)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Approve" })).toHaveCount(0);
+  });
+
   test("shows its own address as a pairing code", async ({ page }) => {
     await installFixtureVault(page);
     await page.getByRole("button", { name: "My address" }).click();

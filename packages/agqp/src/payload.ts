@@ -17,7 +17,7 @@
 import { decode as cborDecode, encode as cborEncode } from "cbor-x";
 import { base58 } from "@scure/base";
 import type { MintFacts } from "@pixstock/shared";
-import { SID_BYTES } from "./frame.js";
+import { SID_BYTES, encodeSessionId } from "./frame.js";
 
 export const PAYLOAD_VERSION = 1;
 export const PUBKEY_BYTES = 32;
@@ -251,7 +251,24 @@ function encodeMintFacts(facts: MintFacts) {
  * the vault's scanner — turns that into a refusal on screen, never a partial
  * order.
  */
-export function decodePayload(input: Uint8Array): Payload {
+export interface DecodeOptions {
+  /**
+   * The session id the frames carried — `FrameAssembler.sessionId`, in the
+   * five Base45 characters a frame header spells it with.
+   *
+   * Pass it and the payload's own `sid` must match. The two are written by
+   * the same sender at the same moment, so a disagreement means the CBOR came
+   * from somewhere other than the frames that delivered it: a payload lifted
+   * out of one session and re-wrapped in the headers of another. Skipping the
+   * comparison is what makes that re-wrap free.
+   *
+   * Optional because a PAIR record carries no `sid` to compare, and because
+   * the encoder's own round-trip tests have no frames in hand.
+   */
+  sid?: string;
+}
+
+export function decodePayload(input: Uint8Array, options: DecodeOptions = {}): Payload {
   let raw: Record<string, unknown>;
   try {
     raw = cborDecode(input) as Record<string, unknown>;
@@ -268,16 +285,33 @@ export function decodePayload(input: Uint8Array): Payload {
     throw new Error(`agqp: unsupported payload version ${version}`);
   }
 
-  switch (raw.kind) {
-    case "SIGN":
-      return decodeSignRequest(raw);
-    case "SIGR":
-      return decodeSignResponse(raw);
-    case "PAIR":
-      return decodePairRecord(raw);
-    default:
-      throw new Error(`agqp: unknown payload kind ${JSON.stringify(raw.kind)}`);
+  const payload = ((): Payload => {
+    switch (raw.kind) {
+      case "SIGN":
+        return decodeSignRequest(raw);
+      case "SIGR":
+        return decodeSignResponse(raw);
+      case "PAIR":
+        return decodePairRecord(raw);
+      default:
+        throw new Error(`agqp: unknown payload kind ${JSON.stringify(raw.kind)}`);
+    }
+  })();
+
+  // AGQP-SPEC.md section 2. The frame header and the payload each carry the
+  // session id; this is the one place the two are put side by side, and
+  // without it the repetition guarantees nothing.
+  if (options.sid !== undefined && "sid" in payload) {
+    const carried = encodeSessionId(payload.sid);
+    if (carried !== options.sid) {
+      throw new Error(
+        `agqp: this payload belongs to session ${carried}, but it arrived in the ` +
+          `frames of session ${options.sid}`,
+      );
+    }
   }
+
+  return payload;
 }
 
 function decodeSignRequest(raw: Record<string, unknown>): SignRequest {

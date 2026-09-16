@@ -20,7 +20,7 @@ type Screen =
   | { name: "scan" }
   | { name: "pair" }
   | { name: "settings" }
-  | { name: "review"; payload: Uint8Array; frames: number }
+  | { name: "review"; payload: Uint8Array; frames: number; sid: string }
   | { name: "sign"; request: SignRequest; ticket: OrderTicket };
 
 /** Where the crossing has got to. Derived from the screen, never stored. */
@@ -188,10 +188,10 @@ export function App() {
           />
         ) : screen.name === "scan" ? (
           <Scan
-            onScanned={(payload, frames) => {
+            onScanned={(payload, frames, sid) => {
               setRefused(false);
               setReplying(false);
-              setScreen({ name: "review", payload, frames });
+              setScreen({ name: "review", payload, frames, sid });
             }}
             onPair={() => setScreen({ name: "pair" })}
             onSettings={() => setScreen({ name: "settings" })}
@@ -205,6 +205,7 @@ export function App() {
             <Review
               payload={screen.payload}
               frames={screen.frames}
+              sid={screen.sid}
               vault={base58.encode(blob.publicKey)}
               onVerdict={setRefused}
               onApprove={(request, ticket) => setScreen({ name: "sign", request, ticket })}
