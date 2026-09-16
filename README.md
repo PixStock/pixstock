@@ -200,7 +200,7 @@ separate: [`docs/TESTING.md`](./docs/TESTING.md).
 The loop is closed and runs on mainnet data: the web app builds a real
 Jupiter order, the phone reads it through the camera, checks Pyth's signature
 on the price with no network, prints a readable ticket, signs, and the
-relayer co-signs and broadcasts. 304 unit and integration tests, 34 system
+relayer co-signs and broadcasts. 309 unit and integration tests, 36 system
 tests in a real browser, and every one of the twelve signing rules enforced.
 
 Three things are worth saying plainly, because a demo that hides them is
