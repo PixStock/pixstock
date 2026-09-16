@@ -79,6 +79,23 @@ export interface OrderOptions {
    * would attach if attaching bytes were enough.
    */
   attestation?: "none" | "forged";
+  /**
+   * How many transactions the order carries.
+   *
+   * The relayer really does split a basket that overflows 1,232 bytes, and
+   * then it wants a signature per message. The vault reviews and signs the
+   * first one only, so anything above 1 has to be refused out loud rather
+   * than half-signed — see tx-builder.service.ts.
+   */
+  txCount?: number;
+  /**
+   * Wraps the payload in the frames of a different session.
+   *
+   * The session id travels twice, in the frame headers and inside the CBOR.
+   * This is the attack the second copy exists to stop: a payload captured
+   * from one session, re-wrapped and replayed in another's headers.
+   */
+  wrongSession?: boolean;
 }
 
 /** An order addressed to `vault`, which the test reads out of the browser. */
@@ -90,7 +107,9 @@ export function orderFor(vault: string, options: OrderOptions = {}): Order {
     kind: "SIGN",
     sid,
     vault,
-    txs: fixture.messages.map((m) => Uint8Array.from(Buffer.from(m, "base64"))),
+    txs: Array.from({ length: options.txCount ?? 1 }, () =>
+      Uint8Array.from(Buffer.from(fixture.messages[0]!, "base64")),
+    ),
     manifest: {
       kind: fixture.kind,
       legs: fixture.legs.map((leg) => ({
@@ -110,7 +129,9 @@ export function orderFor(vault: string, options: OrderOptions = {}): Order {
   };
 
   return {
-    frames: encodeFrames(encodePayload(request), { sid }),
+    frames: encodeFrames(encodePayload(request), {
+      sid: options.wrongSession ? newSessionId() : sid,
+    }),
     legCount: fixture.legs.length,
     expectedOut: fixture.legs.map((leg) => ({
       mint: leg.outMint,

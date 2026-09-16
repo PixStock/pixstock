@@ -18,8 +18,12 @@ export function Scan({
   onPair,
   onSettings,
 }: {
-  /** The bytes, and how many frames they arrived in — the ticket says so. */
-  onScanned: (payload: Uint8Array, frames: number) => void;
+  /**
+   * The bytes, how many frames they arrived in — the ticket says so — and the
+   * session id those frames carried, which Review compares against the one
+   * inside the payload.
+   */
+  onScanned: (payload: Uint8Array, frames: number, sid: string) => void;
   onPair: () => void;
   onSettings: () => void;
 }) {
@@ -33,7 +37,7 @@ export function Scan({
   // callback: the payload arrives mid-render otherwise.
   const done = state.status === "done" ? state : null;
   useEffect(() => {
-    if (done) onScanned(done.payload, done.frames);
+    if (done) onScanned(done.payload, done.frames, done.sid);
   }, [done, onScanned]);
 
   return (

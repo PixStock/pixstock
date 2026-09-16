@@ -4,6 +4,7 @@ import {
   CHUNK_SIZES,
   decodePayload,
   encodeFrames,
+  encodeSessionId,
   encodePayload,
   newSessionId,
   type PairRecord,
@@ -311,5 +312,56 @@ describe("mint facts", () => {
 
   it("refuses mint state that is not a list", () => {
     expect(() => decodePayload(encodePayload(withMints({ [MINT]: 1.002 })))).toThrow();
+  });
+});
+
+/**
+ * The session id travels twice: in every frame header, and inside the CBOR.
+ * AGQP-SPEC section 2 says the two are compared, and for a while nothing
+ * compared them — which made the second copy decoration. A payload lifted out
+ * of one session and re-wrapped in another session's frames would have been
+ * read as if it belonged there.
+ */
+describe("the session id inside the payload", () => {
+  it("is accepted when it matches the frames it arrived in", () => {
+    const sid = newSessionId();
+    const original = request({ sid });
+    const decoded = decodePayload(encodePayload(original), {
+      sid: encodeSessionId(sid),
+    }) as SignRequest;
+    expect(decoded.sid).toEqual(sid);
+  });
+
+  it("refuses a payload that belongs to another session", () => {
+    const original = request({ sid: newSessionId() });
+    expect(() =>
+      decodePayload(encodePayload(original), { sid: encodeSessionId(newSessionId()) }),
+    ).toThrow(/belongs to session .*, but it arrived in the frames of session/);
+  });
+
+  it("checks a signature reply the same way", () => {
+    const sid = newSessionId();
+    const reply: SignResponse = { kind: "SIGR", sid, signatures: [new Uint8Array(64).fill(9)] };
+    expect(() =>
+      decodePayload(encodePayload(reply), { sid: encodeSessionId(newSessionId()) }),
+    ).toThrow(/belongs to session/);
+    expect(decodePayload(encodePayload(reply), { sid: encodeSessionId(sid) })).toEqual(reply);
+  });
+
+  it("leaves a pairing record alone, because it carries no session", () => {
+    const pair: PairRecord = {
+      kind: "PAIR",
+      vault: VAULT,
+      label: "Kitchen drawer",
+      network: "mainnet",
+    };
+    expect(decodePayload(encodePayload(pair), { sid: encodeSessionId(newSessionId()) })).toEqual(
+      pair,
+    );
+  });
+
+  it("still decodes when no session id is offered to compare", () => {
+    const original = request();
+    expect(decodePayload(encodePayload(original))).toEqual(original);
   });
 });
