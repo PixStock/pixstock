@@ -79,9 +79,9 @@ The browser remembers which vault to build orders for. Nothing secret crosses
 
 `/trade` for a single stock, `/basket` for the 40/30/30 index.
 
-Use **TSLAx** if you want the price guard to have something to verify: it is
-the feed our Pyth grant covers. A basket of the other three is a better
-demonstration of the ticket and of "three swaps, one signature".
+Every asset carries a signed price, so either route exercises the guard. A
+basket is the better demonstration of the ticket and of "three swaps, one
+signature"; a single **TSLAx** order is the shorter one to film.
 
 ## 6. Cross the gap
 

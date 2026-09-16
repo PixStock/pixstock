@@ -250,7 +250,17 @@ function pairLegs(
  * which a phone in airplane mode should not be reasoning about — so whichever
  * one Pyth actually signed is the one used.
  */
-function findFeed(
+/**
+ * The feed carrying a price for this asset, preferring its own over the
+ * extended-hours one.
+ *
+ * Exported for its test. Every asset shipped today sets `extFeedId` to null —
+ * `Crypto.*X/USD` runs seven days a week, so there is no closed session to
+ * fall back from — which leaves the second branch unreachable through
+ * `checkAttestation`. It stays because an asset priced off an `Equity.US.*`
+ * feed would need it, and untested fallbacks are how they rot.
+ */
+export function findFeed(
   feeds: readonly FeedUpdate[],
   feedId: number,
   extFeedId: number | null,

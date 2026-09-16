@@ -200,7 +200,7 @@ separate: [`docs/TESTING.md`](./docs/TESTING.md).
 The loop is closed and runs on mainnet data: the web app builds a real
 Jupiter order, the phone reads it through the camera, checks Pyth's signature
 on the price with no network, prints a readable ticket, signs, and the
-relayer co-signs and broadcasts. 309 unit and integration tests, 36 system
+relayer co-signs and broadcasts. 310 unit and integration tests, 36 system
 tests in a real browser, and every one of the twelve signing rules enforced.
 
 Three things are worth saying plainly, because a demo that hides them is
@@ -210,11 +210,12 @@ worse than one that does not:
   undone, so it stays behind `RELAYER_ALLOW_BROADCAST` until someone turns it
   on deliberately. Everything up to it — building, quoting, co-signing,
   simulating — works with it off.
-- **Our Pyth grant covers the Tesla feed.** Apple, Nvidia, Microsoft and SPY
-  come back `no grant accepts this feed`, and the extended-hours feeds are
-  inactive out of session. An order for those travels with a price for the
-  legs it covers, the ticket names the ones it does not, and the phone asks
-  the holder to accept that before it will sign.
+- **The price check rests on a Pyth Pro grant.** All five xStock feeds are
+  covered, at one update per second — the grant's rate limit, not the feeds'.
+  A grant is not a right: if it lapses, an order travels with a price for the
+  legs it still covers, the ticket names the ones it does not, and the phone
+  asks the holder to accept that before it will sign. That path stays tested
+  for the day it is needed.
 - **The nonce pool has to be created before a demo.** Without a durable
   nonce an order dies with its blockhash in about ninety seconds. Creating
   one costs rent, so it is a command someone runs — `npm run nonces:create`

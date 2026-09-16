@@ -166,6 +166,7 @@ Jupiter routes, with `payer ≠ signer` and Token-2022 ATA creation included.
 | Four-leg basket | **1,052** |
 | Pyth Pro `solana` message, 1 feed | ≈ 145 |
 | Pyth Pro `solana` message, 3 feeds | ≈ 205 |
+| Pyth Pro `solana` message, 5 feeds | **261** — measured 16 Sept 2026 |
 | **SIGN, one swap**, full CBOR payload | **903 → 4 frames at `M`** |
 | **SIGN, three-leg basket**, full CBOR payload | **1,519 → 6 frames at `M`** |
 | **SIGR** (one signature) | 107 characters → 1 static QR |
@@ -177,6 +178,14 @@ Jupiter routes, with `payer ≠ signer` and Token-2022 ATA creation included.
 > as soon as there is more than one leg — without it a basket can overflow at
 > the router's whim — and why the live tests assert that lookup tables are
 > applied rather than asserting a byte count.
+
+**The attestation carries every feed the relayer subscribes to**, not just
+the legs of the order — one signature covers the whole message, so splitting
+it would mean throwing the signature away. Since 16 Sept 2026 that is all five
+xStocks rather than the one feed the grant used to reach, which adds ~116
+bytes to every `SIGN` payload above: about 29 bytes per extra feed. A one-swap
+payload gains roughly a seventh of a frame; the three-leg basket stays inside
+its 6.
 
 The figures above assume a **cold** vault: every leg creates its token
 account. Once those exist — the state from the second order onwards — the

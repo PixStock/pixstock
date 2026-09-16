@@ -73,7 +73,7 @@ const capture = (url) =>
           formats: ["solana"],
           deliveryFormat: "json",
           jsonBinaryEncoding: "hex",
-          channel: "real_time",
+          channel: "fixed_rate@1000ms",
         }),
       ),
     );

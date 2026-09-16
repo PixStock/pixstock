@@ -53,6 +53,7 @@ export {
 
 export {
   checkAttestation,
+  findFeed,
   permitsSigning,
   type AttestationInput,
   type AttestationStatus,

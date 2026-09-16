@@ -121,12 +121,24 @@ whether the browser is telling the truth about the market. That is also why
 the check had to be offline: a signer that asks the network what a share costs
 has handed away the very thing it was built to keep.
 
-**The honest limit:** our Pyth grant currently reaches the Tesla feed only.
-Apple, Nvidia, Microsoft and SPY come back `no grant accepts this feed`. So
-the brief's own *Tech Giant Index* travels **unattested**, the ticket says so
-in words, and the vault asks the holder to accept that before it will sign.
-We would rather ship the refusal working and the coverage narrow than the
-reverse.
+**Which price, exactly.** The xStock's own — `Crypto.TSLAX/USD`, never
+`Equity.US.TSLA/USD`. They are two different numbers: an xStock trades against
+its underlying at a premium or a discount, and Pyth publishes a
+redemption-rate feed (`Crypto.TSLAX/TSLA.RR`) because they diverge.
+
+This build priced all five off the **equity** feeds until 16 Sept 2026. Two
+things were wrong with that and only one was visible. The visible one: four of
+the five were refused, so the *Tech Giant Index* travelled unattested. The
+quiet one: the equity feeds keep the New York session and publish nothing at
+the weekend, while the token trades seven days a week — so a Saturday order
+had no price to check at all, and nothing said so. Both are gone
+(`packages/shared/src/index.ts`), and the attestation the suite verifies is a
+real `Crypto.TSLAX/USD` message captured from the router.
+
+**The honest limit that remains:** coverage is a grant, not a right. If it
+lapses the order travels unattested, the ticket says so in words, and the
+vault asks the holder to accept that before it will sign. We would rather ship
+the refusal working than assume the price will always be there.
 
 ### E · Paper-Vault
 
@@ -218,8 +230,7 @@ reading the apps. And the Paper-Vault opens with `scripts/export-key.mjs`
 whether or not this project still exists — which is the only honest test of a
 self-custody claim.
 
-Next, in the order that matters: widen the Pyth grant beyond the Tesla feed so
-the index stops travelling unattested; move to native for hardware-backed keys
+Next, in the order that matters: move to native for hardware-backed keys
 — Secure Enclave and StrongBox hold a key that cannot be exported, and today's
 seed is one a compromised device can be made to give up (`docs/README.md`);
 and an audit before anyone is invited to put real size behind any of it.
@@ -233,7 +244,7 @@ everything else is negotiable.
 ## The numbers
 
 ```
-309  unit and integration tests   offline, deterministic
+310  unit and integration tests   offline, deterministic
  17  live tests                    real Jupiter, real RPC, real Pyth
  36  system tests                  both apps, in a real browser
  12  signing rules                 P1..P12, every one enforced

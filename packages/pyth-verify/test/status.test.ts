@@ -5,6 +5,7 @@ import { ASSETS, USDC_MINT } from "@pixstock/shared";
 import {
   MAX_DEVIATION,
   checkAttestation,
+  findFeed,
   permitsSigning,
   type PricedLine,
   type TrustedSigner,
@@ -185,14 +186,21 @@ describe("what the vault may claim about a price", () => {
     expect(status.detail).toMatch(/TSLAx/);
   });
 
-  it("uses the extended-hours feed when that is the one Pyth signed", () => {
-    const status = check(
-      attestation([feedFor(TSLA.pythExtFeedId!, TSLA_PRICE)]),
-      leg(TSLA, TSLA_PRICE, 500),
-    );
-    expect(status.state).toBe("verified");
-    if (status.state !== "verified") return;
-    expect(status.legs[0]!.feedId).toBe(TSLA.pythExtFeedId);
+  it("says so when the feed Pyth signed is not the one this asset is priced on", () => {
+    // TSLAx priced off Tesla the equity: a real message, for the wrong asset.
+    const status = check(attestation([feedFor(1435, TSLA_PRICE)]), leg(TSLA, TSLA_PRICE, 500));
+    expect(status.state).toBe("unverifiable");
+    expect(status.detail).toMatch(/TSLAx/);
+  });
+
+  it("falls back to the extended-hours feed, for an asset that has one", () => {
+    // Unreachable through checkAttestation while every asset runs a seven-day
+    // feed and sets pythExtFeedId to null, so it is asserted where it lives.
+    const priced = (feedId: number) => ({ feedId, price: 1n, exponent: -8 });
+    expect(findFeed([priced(99)], 1, 99)?.feedId).toBe(99);
+    expect(findFeed([priced(1), priced(99)], 1, 99)?.feedId).toBe(1);
+    expect(findFeed([priced(99)], 1, null)).toBeUndefined();
+    expect(findFeed([{ feedId: 1 }], 1, 99)).toBeUndefined();
   });
 });
 

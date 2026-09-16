@@ -22,7 +22,7 @@ import {
  * correctly, which no amount of self-consistency can establish. Recapture it
  * with:
  *
- *   node scripts/capture-pyth-attestation.mjs 1435 > packages/pyth-verify/test/attestation.json
+ *   node scripts/capture-pyth-attestation.mjs 1847 > packages/pyth-verify/test/attestation.json
  *
  * `now` is pinned to the capture: a recorded message is old by definition,
  * and the freshness rule is tested on its own terms elsewhere.
@@ -64,7 +64,7 @@ describe("a price Pyth really signed", () => {
       `no feed ${TSLA.pythFeedId} among ${payload.feeds.map((f) => f.feedId).join(", ")}`,
     ).toBeDefined();
     expect(feed!.price).toBeDefined();
-    expect(feed!.exponent).toBe(-5);
+    expect(feed!.exponent).toBe(-8);
 
     const price = oraclePrice(feed!.price!, feed!.exponent!);
     // Not an assertion about Tesla's valuation — an assertion that the
