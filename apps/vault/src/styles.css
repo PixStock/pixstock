@@ -585,8 +585,22 @@ h2 { font-size: 19px; margin: 0; letter-spacing: -0.01em; }
 /* One decision per row. The primary fills the width; the two side trips sit
    under it and are visibly not the thing to press. */
 .btn--wide { width: 100%; height: 52px; font-size: 16px; font-weight: 600; }
-.btn-pair { display: flex; gap: 10px; }
-.btn-pair .btn { flex: 1; height: 44px; font-size: 14.5px; color: var(--ink-2); }
+/*
+  Sized to their words, not split down the middle. `flex: 1` gave "Cancel" the
+  same width as "Erase it. I have the paper.", and a fixed 44px height left
+  the longer one nowhere to go: it was clipped on a phone, on the one screen
+  where reading the button before pressing it is the entire point. 44px is a
+  floor now rather than a ceiling — a thumb still lands on it, and the text
+  takes the room it needs or wraps onto a second line.
+*/
+.btn-pair { display: flex; flex-wrap: wrap; gap: 10px; }
+.btn-pair .btn {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 44px;
+  font-size: 14.5px;
+  color: var(--ink-2);
+}
 
 /* ================================================================ sign */
 
