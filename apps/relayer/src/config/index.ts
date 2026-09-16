@@ -104,11 +104,14 @@ export const relayerConfig = registerAs('relayer', () => ({
    * nothing and changes nothing.
    */
   allowBroadcast: process.env.RELAYER_ALLOW_BROADCAST === 'true',
-  noncePoolSize: parseInt(process.env.NONCE_POOL_SIZE ?? '10', 10),
   jupiterApiUrl: process.env.JUPITER_API_URL ?? 'https://lite-api.jup.ag/swap/v1',
   jupiterApiKey: process.env.JUPITER_API_KEY ?? '',
   pythProToken: process.env.PYTH_PRO_TOKEN ?? '',
   pythRouterUrls: process.env.PYTH_ROUTER_URLS?.split(',') ?? [],
-  maxSlippageBps: parseInt(process.env.MAX_SLIPPAGE_BPS ?? '100', 10),
-  maxRentLamports: parseInt(process.env.MAX_RENT_LAMPORTS ?? '10000000', 10),
+  // The two policy ceilings are deliberately NOT here. Slippage is capped by
+  // MAX_SLIPPAGE_BPS in @pixstock/tx-policy, which the vault applies offline
+  // where no environment variable can reach it; rent is capped by
+  // MAX_RENT_LAMPORTS in modules/orders/relayer-policy.ts. A limit an
+  // operator can raise at deploy time is not a limit, and reading them from
+  // the environment here only ever produced values nothing consumed.
 }));
