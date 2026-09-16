@@ -10,26 +10,42 @@ const ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:";
 
 const REVERSE = (() => {
   const map = new Map<string, number>();
-  for (let i = 0; i < ALPHABET.length; i++) map.set(ALPHABET[i], i);
+  [...ALPHABET].forEach((char, i) => map.set(char, i));
   return map;
 })();
+
+/**
+ * An indexed read whose bound is stated rather than asserted away.
+ *
+ * `noUncheckedIndexedAccess` is on and this file is where it earns its keep:
+ * the input arrives from a camera. Most reads below sit inside a bound the
+ * loop above them just established — but the last one in `fromBase45` relies
+ * on a guard ten lines earlier (`length % 3 === 1` is what makes the tail's
+ * `i + 1` safe), and that is the kind of proof that rots without anyone
+ * noticing. A `!` would hide all of them equally well, including that one.
+ */
+function at<T>(list: ArrayLike<T>, index: number, what: string): T {
+  const value = list[index];
+  if (value === undefined) throw new Error(`base45: ${what} ${index} is out of range`);
+  return value;
+}
 
 export function toBase45(bytes: Uint8Array): string {
   let out = "";
   let i = 0;
 
   for (; i + 1 < bytes.length; i += 2) {
-    const value = bytes[i] * 256 + bytes[i + 1];
+    const value = at(bytes, i, "byte") * 256 + at(bytes, i + 1, "byte");
     const e = Math.floor(value / (45 * 45));
     const rest = value % (45 * 45);
     const d = Math.floor(rest / 45);
     const c = rest % 45;
-    out += ALPHABET[c] + ALPHABET[d] + ALPHABET[e];
+    out += at(ALPHABET, c, "value") + at(ALPHABET, d, "value") + at(ALPHABET, e, "value");
   }
 
   if (i < bytes.length) {
-    const value = bytes[i];
-    out += ALPHABET[value % 45] + ALPHABET[Math.floor(value / 45)];
+    const value = at(bytes, i, "byte");
+    out += at(ALPHABET, value % 45, "value") + at(ALPHABET, Math.floor(value / 45), "value");
   }
 
   return out;
@@ -53,13 +69,14 @@ export function fromBase45(text: string): Uint8Array {
   let i = 0;
 
   for (; i + 2 < values.length; i += 3) {
-    const value = values[i] + values[i + 1] * 45 + values[i + 2] * 45 * 45;
+    const value =
+      at(values, i, "digit") + at(values, i + 1, "digit") * 45 + at(values, i + 2, "digit") * 45 * 45;
     if (value > 0xffff) throw new Error("base45: chunk overflows 16 bits");
     out.push(value >> 8, value & 0xff);
   }
 
   if (i < values.length) {
-    const value = values[i] + values[i + 1] * 45;
+    const value = at(values, i, "digit") + at(values, i + 1, "digit") * 45;
     if (value > 0xff) throw new Error("base45: final chunk overflows 8 bits");
     out.push(value);
   }
