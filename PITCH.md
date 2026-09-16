@@ -30,6 +30,26 @@ claim; everything below is how it was built and how to verify each part.
 
 ---
 
+## Who this is for
+
+Someone who holds tokenized equities and does not want a browser tab to be the
+last thing standing between an attacker and their position.
+
+The problem is not that signing is difficult. It is that at the moment of
+signing, nobody is shown what they are agreeing to — which is why the brief
+makes anti-blind signing a must-have of its own. A `ScaledUiAmount` mint makes
+it worse: the raw figure in the transaction is **not** the quantity you own,
+so a careful person can read the bytes correctly and still be wrong about what
+they just sold.
+
+The existing answers ask you to buy a device, wait for the post, and learn
+what a lamport is. This one asks for the phone already in your drawer. Radios
+off, zero SOL, nothing to purchase — and at the moment that matters it shows
+the trade in words it derived from the transaction itself, then refuses
+instead of asking you to be careful.
+
+---
+
 ## The five must-haves
 
 ### A · Zero-SOL cold storage
@@ -93,6 +113,13 @@ Three properties this deliberately has: the signature is verified **before**
 any field is read, a refusal has **no checkbox to override it**, and there are
 three distinct states — no price, unverifiable price, rejected price — because
 collapsing them would let the worst one hide behind the mildest.
+
+**Pyth is a control here, not a widget.** The price is not drawn on a chart
+beside the trade — it decides whether the trade can be signed at all. Take
+Pyth out and the vault does not lose a feature; it loses its only way to know
+whether the browser is telling the truth about the market. That is also why
+the check had to be offline: a signer that asks the network what a share costs
+has handed away the very thing it was built to keep.
 
 **The honest limit:** our Pyth grant currently reaches the Tesla feed only.
 Apple, Nvidia, Microsoft and SPY come back `no grant accepts this feed`. So
@@ -178,6 +205,28 @@ The same guarantee is enforced twice more: a lint rule fails the build on
 [the exact command is here](./docs/README.md#checking-the-air-gap-yourself),
 along with why grepping for the bare word `fetch` finds React DOM properties
 that call nothing.
+
+---
+
+## After the hackathon
+
+The parts that took longest are the ones built to outlive the demo. AGQP is a
+specified protocol (`docs/AGQP-SPEC.md`) rather than a pair of functions, so a
+second implementation can be written against it. The signing rules are a
+package with one adversarial test each, so they can be reviewed without
+reading the apps. And the Paper-Vault opens with `scripts/export-key.mjs`
+whether or not this project still exists — which is the only honest test of a
+self-custody claim.
+
+Next, in the order that matters: widen the Pyth grant beyond the Tesla feed so
+the index stops travelling unattested; move to native for hardware-backed keys
+— Secure Enclave and StrongBox hold a key that cannot be exported, and today's
+seed is one a compromised device can be made to give up (`docs/README.md`);
+and an audit before anyone is invited to put real size behind any of it.
+
+What will not change: the vault never gets a network call, and the relayer
+never gets a key that can move your tokens. Those two are the product, and
+everything else is negotiable.
 
 ---
 
