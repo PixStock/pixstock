@@ -117,10 +117,11 @@ test.describe("the protocol page", () => {
   test("says the offline price guard is enforced, and names its limit", async ({ page }) => {
     await page.goto(`${WEB}/protocol`);
     await expect(page.getByText(/Built and enforced/)).toBeVisible();
-    // The page must keep saying which feeds the grant does not cover. A
-    // capability claimed more broadly than it is held is the one kind of
-    // inaccuracy this product cannot afford.
-    await expect(page.getByText(/grant currently covers/)).toBeVisible();
+    // The page must keep stating the limit on its own guarantee. A capability
+    // claimed more broadly than it is held is the one kind of inaccuracy this
+    // product cannot afford — and the limit moved once already, when the
+    // coverage widened, so this asserts that one is named rather than which.
+    await expect(page.getByText(/a grant rather than a right/)).toBeVisible();
   });
 });
 
