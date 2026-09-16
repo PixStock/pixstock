@@ -9,6 +9,11 @@ vault:
 [`3NEPTtAB…1sB52`](https://solscan.io/tx/3NEPTtABYDpJaWge3rL5jD5AngtWysZJqMyPfMqozCDtwd7RbhBgeGfvFYGyBShPbKBq9uZQKXXm68rcL1Y1sB52)
 — slot 446957081, `err: None`.
 
+In a hurry, or judging: [**PITCH.md**](../PITCH.md) maps each must-have in
+the brief to the file that implements it, the test that proves it, and the
+thirty-second way to check it yourself. It also names where this build
+departs from the brief, and why.
+
 ## If you have three minutes
 
 Read [**THREAT-MODEL.md**](THREAT-MODEL.md). It is the argument: what each
