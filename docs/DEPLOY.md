@@ -212,8 +212,14 @@ shape that does this. To reclaim them:
 npm run nonces:release -w @pixstock/relayer -- 30
 ```
 
-That spends real SOL, so it refuses unless `RELAYER_ALLOW_BROADCAST=true`,
-and it prints the cost before it acts.
+That one spends nothing and needs no gate: it only clears the `inUse` flag on
+rows whose order can never use them, and the accounts themselves stay on
+chain, rent already paid. An order that was broadcast keeps its nonce however
+old it is — the transaction may still land, and handing the account to a
+second order would let it build on a value the cluster has not consumed.
+
+`nonces:create` is the one that spends: it refuses unless
+`RELAYER_ALLOW_BROADCAST=true`, and it prints the rent before it acts.
 
 ---
 

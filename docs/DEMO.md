@@ -139,6 +139,14 @@ rent per account and the relayer creates it on request.
 refuses to send anything whose simulation failed, so a transaction that would
 fail on chain is never paid for.
 
-Check the relayer's balance before a demo: `/healthz` reports it, and an
-empty fee payer fails at the last step of the flow, which is the worst place
-to find out.
+Check the relayer's balance before a demo. `/healthz` does not report it —
+it answers for the database, the key, the Pyth stream and the nonce pool —
+so the command to run is:
+
+```bash
+npm run nonces:status -w @pixstock/relayer
+```
+
+It prints the fee payer, its balance in SOL, and every nonce account with
+whether it is free and whether it is actually on chain. An empty fee payer
+fails at the last step of the flow, which is the worst place to find out.

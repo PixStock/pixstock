@@ -2,8 +2,10 @@
  * Turns a vault back into a key Phantom, Solflare or the Solana CLI will take.
  *
  * Accepts either half of the backup story: the Paper-Vault code, or the raw
- * blob out of the phone's localStorage — because the Paper-Vault is shown
- * once, at creation, and nothing in the app shows it again.
+ * blob out of the phone's localStorage. The sheet is ciphertext, so the vault
+ * will redraw it on demand — Settings -> Show my Paper-Vault — and someone who
+ * never printed it is not locked out; someone whose phone is gone needs the
+ * sheet they did print.
  *
  *   node export-key.mjs
  *

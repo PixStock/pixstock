@@ -2,8 +2,8 @@
 
 Thanks for taking the time. This file is the short version — the detailed
 internal conventions live in [`GIT.md`](./GIT.md) and
-[`CLAUDE.md`](./CLAUDE.md) (both in French, they are the team's working
-documents), and the architecture is in [`docs/`](./docs/).
+[`CLAUDE.md`](./CLAUDE.md) — the team's working documents — and the
+architecture is in [`docs/`](./docs/).
 
 ## Getting set up
 

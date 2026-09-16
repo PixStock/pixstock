@@ -17,6 +17,12 @@ function toRawUsdc(amount: string): string | null {
 /** The amounts people actually type, plus the one they mean but never type. */
 const QUICK = ["50", "100", "500"] as const;
 
+/** "Tesla", "Tesla and Apple", "Tesla, Apple and Nvidia". */
+function listed(names: string[]): string {
+  if (names.length <= 1) return names[0] ?? "";
+  return `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+}
+
 export function TradeForm() {
   const t = content.trade;
   const router = useRouter();
@@ -135,6 +141,25 @@ export function TradeForm() {
 
   const priceOf = (s: string) => prices.find((p) => p.symbol === s) ?? null;
   const selected = priceOf(symbol);
+
+  // Named from the relayer's own answer, for the same reason the per-card
+  // badges are: a list of covered symbols typed into the copy is a list that
+  // is wrong the first time the grant changes, and this one used to say
+  // "Tesla" three lines under a comment explaining why it must not.
+  // `unavailable` is the reason, not a flag: present means the grant does not
+  // reach this feed, and its absence is what "signed price" on the card means.
+  const covered = ASSETS.filter((a) => {
+    const p = priceOf(a.symbol);
+    return p !== null && !p.unavailable;
+  }).map((a) => a.name);
+  const grantLine =
+    prices.length === 0
+      ? null
+      : covered.length === 0
+        ? t.form.grantNone
+        : covered.length === ASSETS.length
+          ? t.form.grantAll
+          : `Our Pyth grant covers ${listed(covered)}. ${t.form.grantTail}`;
   const balance =
     isValid && usdc?.vault === vault && usdc.balance ? usdc.balance.amount.toFixed(2) : null;
 
@@ -173,11 +198,11 @@ export function TradeForm() {
               );
             })}
           </div>
-          <p className="muted" style={{ fontSize: 13.5, margin: 0 }}>
-            Our Pyth grant covers Tesla. For the others the order travels without a signed
-            price, the phone says so on the ticket, and it asks you to accept that before it
-            signs.
-          </p>
+          {grantLine && (
+            <p className="muted" style={{ fontSize: 13.5, margin: 0 }}>
+              {grantLine}
+            </p>
+          )}
         </div>
 
         <div style={{ display: "grid", gap: 12 }}>

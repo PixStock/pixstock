@@ -11,7 +11,15 @@ npm run test:system # Playwright, both apps in a browser · ~50 s
 npm run test:all    # all three
 ```
 
-Today: **304 unit and integration tests**, **17 live**, **29 system**.
+Today: **304 unit and integration tests**, **17 live**, **34 system**.
+
+One more command shares the system suite's machinery without being part of
+it. `npm run screenshots` drives the vault through a real order and writes the
+three screens in the README to `docs/img/`. It runs off
+`playwright.shots.config.ts` and matches `*.shot.ts`, which the default
+`testMatch` does not, so `test:system` never picks it up — and because it is
+generated rather than pasted, a screen that changes shape fails the command
+instead of quietly leaving a stale picture in the README.
 
 After a clone, two preparations, once per machine:
 
