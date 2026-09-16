@@ -14,12 +14,15 @@ export function HeroCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    const cv = canvasRef.current;
-    if (!cv) return;
+    const element = canvasRef.current;
+    if (!element) return;
+    // Non-null by type rather than by narrowing, for the reason given at `gl`
+    // below: the hoisted helpers in this effect do not inherit the guard.
+    const cv: HTMLCanvasElement = element;
 
     const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    const gl = cv.getContext("webgl2", {
+    const context = cv.getContext("webgl2", {
       alpha: true,
       antialias: false,
       depth: false,
@@ -27,7 +30,14 @@ export function HeroCanvas() {
       premultipliedAlpha: true,
       powerPreference: "high-performance",
     });
-    if (!gl) return;
+    if (!context) return;
+
+    // Typed non-null here rather than asserted at every use. TypeScript resets
+    // narrowing inside a hoisted `function` declaration — it cannot prove none
+    // of them runs before the guard — and this file has eight of them, so the
+    // guard above was being restated as `gl` 122 times. Saying it once is the
+    // same fact, checked in one place.
+    const gl: WebGL2RenderingContext = context;
 
     const hdr = !!(gl.getExtension("EXT_color_buffer_float") || gl.getExtension("EXT_color_buffer_half_float"));
     const TEX_FMT = hdr ? gl.RGBA16F : gl.RGBA8;
@@ -110,35 +120,35 @@ export function HeroCanvas() {
     }
 
     function sh(type: number, src: string) {
-      const o = gl!.createShader(type)!;
-      gl!.shaderSource(o, src);
-      gl!.compileShader(o);
-      if (!gl!.getShaderParameter(o, gl!.COMPILE_STATUS)) {
-        console.warn("shader:", gl!.getShaderInfoLog(o));
+      const o = gl.createShader(type)!;
+      gl.shaderSource(o, src);
+      gl.compileShader(o);
+      if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) {
+        console.warn("shader:", gl.getShaderInfoLog(o));
         return null;
       }
       return o;
     }
     function prog(vs: string, fs: string) {
-      const a = sh(gl!.VERTEX_SHADER, vs),
-        b = sh(gl!.FRAGMENT_SHADER, fs);
+      const a = sh(gl.VERTEX_SHADER, vs),
+        b = sh(gl.FRAGMENT_SHADER, fs);
       if (!a || !b) return null;
-      const p = gl!.createProgram()!;
-      gl!.attachShader(p, a);
-      gl!.attachShader(p, b);
-      gl!.linkProgram(p);
-      if (!gl!.getProgramParameter(p, gl!.LINK_STATUS)) {
-        console.warn("link:", gl!.getProgramInfoLog(p));
+      const p = gl.createProgram()!;
+      gl.attachShader(p, a);
+      gl.attachShader(p, b);
+      gl.linkProgram(p);
+      if (!gl.getProgramParameter(p, gl.LINK_STATUS)) {
+        console.warn("link:", gl.getProgramInfoLog(p));
         return null;
       }
       return p;
     }
     function uni(p: WebGLProgram) {
       const m: Record<string, WebGLUniformLocation | null> = {};
-      const n = gl!.getProgramParameter(p, gl!.ACTIVE_UNIFORMS);
+      const n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS);
       for (let i = 0; i < n; i++) {
-        const nm = gl!.getActiveUniform(p, i)!.name.replace("[0]", "");
-        m[nm] = gl!.getUniformLocation(p, nm);
+        const nm = gl.getActiveUniform(p, i)!.name.replace("[0]", "");
+        m[nm] = gl.getUniformLocation(p, nm);
       }
       return m;
     }
@@ -263,20 +273,24 @@ void main(){
 
     type Target = { t: WebGLTexture; f: WebGLFramebuffer; w: number; h: number };
     function target(w: number, h: number): Target {
-      const t = gl!.createTexture()!;
-      gl!.bindTexture(gl!.TEXTURE_2D, t);
-      gl!.texImage2D(gl!.TEXTURE_2D, 0, TEX_FMT, w, h, 0, gl!.RGBA, TEX_TYPE, null);
-      gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_MIN_FILTER, gl!.LINEAR);
-      gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_MAG_FILTER, gl!.LINEAR);
-      gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_WRAP_S, gl!.CLAMP_TO_EDGE);
-      gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_WRAP_T, gl!.CLAMP_TO_EDGE);
-      const f = gl!.createFramebuffer()!;
-      gl!.bindFramebuffer(gl!.FRAMEBUFFER, f);
-      gl!.framebufferTexture2D(gl!.FRAMEBUFFER, gl!.COLOR_ATTACHMENT0, gl!.TEXTURE_2D, t, 0);
-      gl!.bindFramebuffer(gl!.FRAMEBUFFER, null);
+      const t = gl.createTexture()!;
+      gl.bindTexture(gl.TEXTURE_2D, t);
+      gl.texImage2D(gl.TEXTURE_2D, 0, TEX_FMT, w, h, 0, gl.RGBA, TEX_TYPE, null);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      const f = gl.createFramebuffer()!;
+      gl.bindFramebuffer(gl.FRAMEBUFFER, f);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
       return { t, f, w, h };
     }
 
+    // These three stay `!` at their use sites, unlike `gl` and `cv`. They are
+    // reassigned by `resize()` and null until it has run once, so there is no
+    // point in the code where a non-null type would be honest — the assertion
+    // is load-bearing on the order of calls, not hiding a guard that exists.
     let acc: Target | null = null,
       b1: Target | null = null,
       b2: Target | null = null;
@@ -286,17 +300,17 @@ void main(){
 
     function resize() {
       DPR = Math.min(window.devicePixelRatio || 1, small ? 1.5 : 1.75);
-      const w = Math.max(1, Math.round(cv!.clientWidth * DPR));
-      const h = Math.max(1, Math.round(cv!.clientHeight * DPR));
+      const w = Math.max(1, Math.round(cv.clientWidth * DPR));
+      const h = Math.max(1, Math.round(cv.clientHeight * DPR));
       if (w === W && h === H) return;
       W = w;
       H = h;
-      cv!.width = W;
-      cv!.height = H;
+      cv.width = W;
+      cv.height = H;
       [acc, b1, b2].forEach((r) => {
         if (r) {
-          gl!.deleteTexture(r.t);
-          gl!.deleteFramebuffer(r.f);
+          gl.deleteTexture(r.t);
+          gl.deleteFramebuffer(r.f);
         }
       });
       acc = target(W, H);
@@ -319,9 +333,9 @@ void main(){
     let needsMeasure = true;
 
     function measureBand() {
-      const box = cv!.getBoundingClientRect();
+      const box = cv.getBoundingClientRect();
       const spacer = document.getElementById("head-spacer");
-      const copy = cv!.parentElement?.querySelector<HTMLElement>(".hero-body h1");
+      const copy = cv.parentElement?.querySelector<HTMLElement>(".hero-body h1");
       bandTop = spacer ? Math.max(0, spacer.getBoundingClientRect().bottom - box.top) * DPR : 0;
       bandBottom = copy ? (copy.getBoundingClientRect().top - box.top) * DPR : H;
     }
@@ -335,7 +349,7 @@ void main(){
 
     const parent = cv.parentNode as HTMLElement;
     const onPointerMove = (e: PointerEvent) => {
-      const r = cv!.getBoundingClientRect();
+      const r = cv.getBoundingClientRect();
       tmx = (e.clientX - r.left - r.width / 2) * DPR;
       tmy = (r.height / 2 - (e.clientY - r.top)) * DPR;
       tforce = 1;
@@ -400,64 +414,64 @@ void main(){
       const scale = Math.max(34 * DPR, Math.min(wanted, room * 0.5 - 30 * DPR));
       const centerY = H * 0.5 - (bandTop + room * 0.5);
 
-      gl!.bindFramebuffer(gl!.FRAMEBUFFER, acc!.f);
-      gl!.viewport(0, 0, W, H);
-      gl!.clearColor(0, 0, 0, 0);
-      gl!.clear(gl!.COLOR_BUFFER_BIT);
-      gl!.enable(gl!.BLEND);
-      gl!.blendFunc(gl!.ONE, gl!.ONE);
-      gl!.useProgram(pPoints);
-      gl!.bindVertexArray(vaoP);
-      gl!.uniform2f(uP.u_res, W, H);
-      gl!.uniform2f(uP.u_center, 0, centerY);
-      gl!.uniform2f(uP.u_mouse, mx, my);
-      gl!.uniform1f(uP.u_scale, scale);
-      gl!.uniform1f(uP.u_time, t);
-      gl!.uniform1f(uP.u_conv, conv);
-      gl!.uniform1f(uP.u_mforce, force);
-      gl!.uniform1f(uP.u_dpr, DPR);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, acc!.f);
+      gl.viewport(0, 0, W, H);
+      gl.clearColor(0, 0, 0, 0);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.ONE, gl.ONE);
+      gl.useProgram(pPoints);
+      gl.bindVertexArray(vaoP);
+      gl.uniform2f(uP.u_res, W, H);
+      gl.uniform2f(uP.u_center, 0, centerY);
+      gl.uniform2f(uP.u_mouse, mx, my);
+      gl.uniform1f(uP.u_scale, scale);
+      gl.uniform1f(uP.u_time, t);
+      gl.uniform1f(uP.u_conv, conv);
+      gl.uniform1f(uP.u_mforce, force);
+      gl.uniform1f(uP.u_dpr, DPR);
       const dens = Math.min(2.4, Math.max(1.0, Math.pow(scale / (100 * DPR), 1.3)));
-      gl!.uniform1f(uP.u_gain, (hdr ? 0.42 : 0.16) * dens);
-      gl!.drawArrays(gl!.POINTS, 0, COUNT);
+      gl.uniform1f(uP.u_gain, (hdr ? 0.42 : 0.16) * dens);
+      gl.drawArrays(gl.POINTS, 0, COUNT);
 
-      gl!.disable(gl!.BLEND);
-      gl!.useProgram(pBlur);
-      gl!.bindVertexArray(vaoQ);
-      gl!.uniform1i(uB.u_src, 0);
-      gl!.activeTexture(gl!.TEXTURE0);
+      gl.disable(gl.BLEND);
+      gl.useProgram(pBlur);
+      gl.bindVertexArray(vaoQ);
+      gl.uniform1i(uB.u_src, 0);
+      gl.activeTexture(gl.TEXTURE0);
 
-      gl!.bindFramebuffer(gl!.FRAMEBUFFER, b1!.f);
-      gl!.viewport(0, 0, b1!.w, b1!.h);
-      gl!.bindTexture(gl!.TEXTURE_2D, acc!.t);
-      gl!.uniform2f(uB.u_dir, 1.4 / b1!.w, 0);
-      gl!.uniform1f(uB.u_thresh, hdr ? 0.22 : 0.08);
-      gl!.drawArrays(gl!.TRIANGLE_STRIP, 0, 4);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, b1!.f);
+      gl.viewport(0, 0, b1!.w, b1!.h);
+      gl.bindTexture(gl.TEXTURE_2D, acc!.t);
+      gl.uniform2f(uB.u_dir, 1.4 / b1!.w, 0);
+      gl.uniform1f(uB.u_thresh, hdr ? 0.22 : 0.08);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
-      gl!.bindFramebuffer(gl!.FRAMEBUFFER, b2!.f);
-      gl!.viewport(0, 0, b2!.w, b2!.h);
-      gl!.bindTexture(gl!.TEXTURE_2D, b1!.t);
-      gl!.uniform2f(uB.u_dir, 0, 1.4 / b1!.h);
-      gl!.uniform1f(uB.u_thresh, 0);
-      gl!.drawArrays(gl!.TRIANGLE_STRIP, 0, 4);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, b2!.f);
+      gl.viewport(0, 0, b2!.w, b2!.h);
+      gl.bindTexture(gl.TEXTURE_2D, b1!.t);
+      gl.uniform2f(uB.u_dir, 0, 1.4 / b1!.h);
+      gl.uniform1f(uB.u_thresh, 0);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
-      gl!.bindFramebuffer(gl!.FRAMEBUFFER, null);
-      gl!.viewport(0, 0, W, H);
-      gl!.clearColor(0, 0, 0, 0);
-      gl!.clear(gl!.COLOR_BUFFER_BIT);
-      gl!.useProgram(pComp);
-      gl!.activeTexture(gl!.TEXTURE0);
-      gl!.bindTexture(gl!.TEXTURE_2D, acc!.t);
-      gl!.uniform1i(uC.u_acc, 0);
-      gl!.activeTexture(gl!.TEXTURE1);
-      gl!.bindTexture(gl!.TEXTURE_2D, b2!.t);
-      gl!.uniform1i(uC.u_bloom, 1);
-      gl!.uniform1f(uC.u_amt, 1.12);
-      gl!.uniform1f(uC.u_fade, 1.0);
-      gl!.drawArrays(gl!.TRIANGLE_STRIP, 0, 4);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      gl.viewport(0, 0, W, H);
+      gl.clearColor(0, 0, 0, 0);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.useProgram(pComp);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, acc!.t);
+      gl.uniform1i(uC.u_acc, 0);
+      gl.activeTexture(gl.TEXTURE1);
+      gl.bindTexture(gl.TEXTURE_2D, b2!.t);
+      gl.uniform1i(uC.u_bloom, 1);
+      gl.uniform1f(uC.u_amt, 1.12);
+      gl.uniform1f(uC.u_fade, 1.0);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
       if (!lit) {
         lit = true;
-        cv!.classList.add("lit");
+        cv.classList.add("lit");
       }
       if (!reduce) raf = requestAnimationFrame(frame);
     }
