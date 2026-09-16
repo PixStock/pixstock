@@ -65,11 +65,12 @@ npm run dev -w @pixstock/relayer  # :4000
 npm run dev -w @pixstock/web      # :3000
 npm run dev -w @pixstock/vault    # :5183
 
-npm test                          # 304 unit and integration tests
+npm test                          # 309 unit and integration tests
 npm run test:live                 # real Jupiter and RPC
 npm run test:system               # Playwright, both apps
 npm run typecheck                 # runs next typegen first, then tsc -b
 npm run lint
+npm run screenshots               # redraws the README's three vault screens
 ```
 
 `npm run typecheck` covers `packages/*`, `apps/vault` and `apps/web`.
