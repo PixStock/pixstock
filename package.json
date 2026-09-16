@@ -18,7 +18,8 @@
     "test:system": "npm run build:packages && playwright test",
     "test:all": "npm run test && npm run test:live && npm run test:system",
     "lint": "npm run lint --workspaces --if-present",
-    "clean": "rm -rf packages/*/dist packages/*/*.tsbuildinfo apps/web/.next apps/vault/dist apps/relayer/dist"
+    "clean": "rm -rf packages/*/dist packages/*/*.tsbuildinfo apps/web/.next apps/vault/dist apps/relayer/dist",
+    "screenshots": "npm run build:packages && playwright test --config playwright.shots.config.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

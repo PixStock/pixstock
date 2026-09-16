@@ -19,8 +19,10 @@ import { RelayerService } from '../modules/relayer/relayer.service';
  * Inside a deployed container there is no workspace root, so the same three
  * are `node apps/relayer/dist/cli/nonce-pool.js <command> <n>`.
  *
- * It refuses unless RELAYER_ALLOW_BROADCAST is true, for the same reason
- * broadcasting does.
+ * `create` refuses unless RELAYER_ALLOW_BROADCAST is true, for the same
+ * reason broadcasting does: it spends real SOL. `status` and `release` spend
+ * nothing — release only clears the in-use flag on rows whose order can never
+ * use them — so neither is gated.
  */
 async function main() {
   const logger = new Logger('NoncePool');

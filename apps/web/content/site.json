@@ -160,7 +160,7 @@
           "label": "Held by the signing device"
         },
         {
-          "value": "943 B",
+          "value": "910 B",
           "label": "Three stocks, one signature"
         },
         {
@@ -261,7 +261,7 @@
       "basket": {
         "side": "One scan",
         "title": "Three stocks, one signature",
-        "claim": "An equal-weight basket of AAPLx, NVDAx and MSFTx routes through Jupiter inside a single transaction of 943 bytes, measured rather than estimated, and crosses the air gap in five frames.",
+        "claim": "An equal-weight basket of AAPLx, NVDAx and MSFTx routes through Jupiter inside a single transaction of 910 bytes, measured rather than estimated, and crosses the air gap in five frames. Solana's limit is 1,232, and the number moves with the route Jupiter picks.",
         "kv": [
           {
             "k": "Legs in one message",
@@ -269,7 +269,7 @@
           },
           {
             "k": "Transaction size",
-            "v": "943 B"
+            "v": "910 B"
           },
           {
             "k": "Frames, at 8 fps",
@@ -538,7 +538,10 @@
       "priceImpact": "Your price impact",
       "networkFee": "Network fee",
       "feePaid": "paid for you",
-      "pythReference": "Pyth reference"
+      "pythReference": "Pyth reference",
+      "grantTail": "For the others the order travels without a signed price, the phone says so on the ticket, and it asks you to accept that before it signs.",
+      "grantNone": "No feed is signed right now, so an order travels without a signed price, the phone says so on the ticket, and it asks you to accept that before it signs.",
+      "grantAll": "Every feed on this list is signed right now, so the phone can check each one."
     },
     "pending": {
       "title": "No live quote yet",

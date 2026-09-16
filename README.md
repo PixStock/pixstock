@@ -12,9 +12,57 @@ The only signer that checks the market price offline before it signs.
 [AGQP spec](./docs/AGQP-SPEC.md) · [Threat model](./docs/THREAT-MODEL.md) ·
 [Reproduce the demo](./docs/DEMO.md)
 
-<!-- Deployment: add the app, vault and video URLs to this line at submission. -->
+**[Open the dApp](https://web-production-502d1.up.railway.app)** ·
+**[Open the vault](https://pixstock-production.up.railway.app)** ·
+[Relayer health](https://relayer-production-b097.up.railway.app/healthz)
+
+![The vault: waiting for the laptop, the order ticket, and the signature going back](./docs/img/vault-demo-loop.png)
+
+<sub>The signer, on a phone with its radios off. It waits, it shows what it
+decompiled from the transaction itself — and says plainly that no signed price
+came with this order — and it answers with sixty-four bytes. Generated from
+the running app by `npm run screenshots`, so it cannot drift from the product.</sub>
 
 </div>
+
+---
+
+## It has already happened, on mainnet
+
+One confirmed swap, real money, and **zero SOL in the vault** — the account
+that signed it has never held any:
+
+> [`3NEPTtAB…1sB52`](https://solscan.io/tx/3NEPTtABYDpJaWge3rL5jD5AngtWysZJqMyPfMqozCDtwd7RbhBgeGfvFYGyBShPbKBq9uZQKXXm68rcL1Y1sB52)
+> — slot 446957081, `err: None`, two signatures.
+
+Open it. The fee payer is `2oQgk1TC…cSfof`, the relayer; the other signature
+is the vault's, produced on a phone in airplane mode and carried back across
+the room as sixty-four bytes of QR. Nothing in between could have moved a
+token, and nothing in between ever saw the key.
+
+And the vault is deployed, so the claim everything else rests on is one you
+can check in your own browser rather than take from us. Open
+[the vault](https://pixstock-production.up.railway.app), open the devtools
+console, and ask the page to reach the network — by all three of the ways it
+could:
+
+```js
+addEventListener("securitypolicyviolation", (e) =>
+  console.log("blocked", e.blockedURI, "by", e.effectiveDirective));
+
+fetch("https://example.com");                 // TypeError: Failed to fetch
+new WebSocket("wss://example.com");
+const x = new XMLHttpRequest();
+x.open("GET", "https://example.com"); x.send();
+
+// blocked https://example.com/ by connect-src
+// blocked wss://example.com/   by connect-src
+// blocked https://example.com/ by connect-src
+```
+
+The response header is `connect-src 'none'`. That is not a promise about our
+code — it is the browser refusing on our behalf, and it binds any script that
+ever runs on that page, ours or not, injected or not.
 
 ---
 
@@ -133,6 +181,8 @@ npm run test:all         # all three
 
 npm run typecheck        # project-wide type check
 npm run lint             # every workspace that defines a linter
+
+npm run screenshots      # redraws the three vault screens above, from the app
 ```
 
 The system tests need a browser once per machine:
@@ -150,7 +200,7 @@ separate: [`docs/TESTING.md`](./docs/TESTING.md).
 The loop is closed and runs on mainnet data: the web app builds a real
 Jupiter order, the phone reads it through the camera, checks Pyth's signature
 on the price with no network, prints a readable ticket, signs, and the
-relayer co-signs and broadcasts. 296 unit and integration tests, 25 system
+relayer co-signs and broadcasts. 304 unit and integration tests, 34 system
 tests in a real browser, and every one of the twelve signing rules enforced.
 
 Three things are worth saying plainly, because a demo that hides them is
@@ -185,8 +235,8 @@ spec section that defines it, so nothing fails silently.
 | [`docs/DEMO.md`](./docs/DEMO.md) | How to reproduce the demo end to end |
 | [`docs/DEPLOY.md`](./docs/DEPLOY.md) | Deploying the three pieces, and what each may do |
 | [`docs/TESTING.md`](./docs/TESTING.md) | The four test layers and what each one catches |
-| [`CLAUDE.md`](./CLAUDE.md) | Development conventions (French — team working document) |
-| [`GIT.md`](./GIT.md) | Branch, commit and PR conventions (French) |
+| [`CLAUDE.md`](./CLAUDE.md) | Development conventions — the team's working document |
+| [`GIT.md`](./GIT.md) | Branch, commit and PR conventions |
 
 ## Getting your keys out
 

@@ -13,7 +13,7 @@ import {
  * What the relayer checks before it spends its own SOL on someone's
  * transaction.
  *
- * The mirror image of the vault's P1..P10. The vault protects its holder from
+ * The mirror image of the vault's P1..P12. The vault protects its holder from
  * the relayer; these protect the relayer from whoever is talking to it. It
  * holds a hot key that pays fees and rent, so every rule here exists to stop
  * that key funding something it did not build.

@@ -154,6 +154,54 @@ test.describe("the basket builder", () => {
 });
 
 /**
+ * The five asset cards, and the sentence under them, both say which feeds our
+ * Pyth grant reaches. The sentence used to say "Tesla" in the JSX — three
+ * lines under a comment explaining that a list written here goes stale the
+ * first time the grant changes. It has to follow the relayer's answer, so the
+ * relayer's answer is what this test changes.
+ */
+test.describe("which feeds carry a signed price", () => {
+  const priceFor = (symbol: string, unavailable?: string) => ({
+    symbol,
+    price: 100,
+    confidence: null,
+    expo: -8,
+    publisherCount: null,
+    feedId: 1,
+    session: "regular",
+    publishTime: Date.now(),
+    ...(unavailable ? { unavailable } : {}),
+  });
+
+  const serve = (page: import("@playwright/test").Page, prices: unknown[]) =>
+    page.route("**/v1/prices*", (route) =>
+      route.fulfill({ json: { prices, verifiedBy: "test" } }),
+    );
+
+  test("names the covered feeds rather than a list typed into the page", async ({ page }) => {
+    await serve(page, [
+      priceFor("TSLAx"),
+      priceFor("AAPLx", "no grant accepts this feed"),
+      priceFor("NVDAx", "no grant accepts this feed"),
+      priceFor("MSFTx"),
+      priceFor("SPYx", "no grant accepts this feed"),
+    ]);
+    await page.goto(`${WEB}/trade`);
+
+    // Both covered names, and neither of the uncovered ones.
+    await expect(page.getByText(/Our Pyth grant covers/)).toContainText("Tesla and Microsoft");
+    await expect(page.getByText(/Our Pyth grant covers/)).not.toContainText("Apple");
+  });
+
+  test("says so plainly when the grant reaches nothing", async ({ page }) => {
+    await serve(page, [priceFor("TSLAx", "no grant accepts this feed")]);
+    await page.goto(`${WEB}/trade`);
+
+    await expect(page.getByText(/No feed is signed right now/)).toBeVisible();
+  });
+});
+
+/**
  * Pairing is the first thing anyone does and nothing works without it: with no
  * vault address, neither /trade nor /basket can build an order. For a while
  * the only way in was a webcam, which is the one part of this flow a machine

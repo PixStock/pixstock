@@ -31,12 +31,35 @@ what this product does **not** protect you from.
 
 | Claim | Where it is checked |
 |---|---|
-| The vault never reaches the network | A lint rule fails the build on `fetch`, `XMLHttpRequest`, `WebSocket` or `EventSource` anywhere under `apps/vault/src`. The built bundle greps clean. |
+| The vault never reaches the network | A lint rule fails the build on `fetch`, `XMLHttpRequest`, `WebSocket` or `EventSource` anywhere under `apps/vault/src`, and the shipped bundle carries no call to any of them — [the command is below](#checking-the-air-gap-yourself). |
 | The phone verifies the price offline | `packages/pyth-verify` checks Pyth's ed25519 signature over the exact bytes that travelled. A forged attestation is refused with no checkbox to override it. |
 | The order shown is the order signed | Every figure on the ticket is decompiled from the transaction's own instructions. The manifest that travels alongside is only ever cross-checked against them. |
 | Your vault holds no SOL | The relayer pays every fee and every rent. Rule P1 refuses to sign a transaction that makes the vault the fee payer; P10 refuses one that moves a lamport out of it. |
 | Three swaps, one signature | `apps/relayer/test/jupiter.live.test.ts` puts a three-leg basket in one transaction, against real Jupiter routes. |
 | Every rule the site claims is a rule the engine runs | `/protocol` renders its table from `EVALUATED_RULES`, so the page cannot advertise a check the code skips. |
+
+### Checking the air-gap yourself
+
+```bash
+npm run build -w @pixstock/vault
+
+grep -rE '(^|[^A-Za-z0-9_.$])(fetch|XMLHttpRequest|WebSocket|EventSource|sendBeacon)[[:space:]]*\(' \
+  apps/vault/dist/assets/
+# no output, and exit status 1
+```
+
+Grepping for the bare word `fetch` instead will find some, and they are worth
+knowing about before you conclude anything: they are `fetchPriority`,
+`prefetch` and `prefetchDNS`, three React DOM properties that name a browser
+hint and call nothing. The pattern above is anchored to an actual call —
+`fetch(` not preceded by an identifier character, a dot or a `$` — which is
+why it comes back empty.
+
+One file legitimately does call `fetch`, and it sits beside that directory
+rather than in it: `apps/vault/dist/workbox-*.js`, the runtime Workbox
+generates for the service worker. Serving its own precache is how a PWA works
+offline at all, and it has no remote origin to reach — see
+[THREAT-MODEL.md](THREAT-MODEL.md).
 
 ## Running it
 

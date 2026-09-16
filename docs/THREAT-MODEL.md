@@ -16,11 +16,24 @@ vulnerability disclosure policy.
 | `apps/web` | hold a private key; sign anything |
 
 The first of these is enforced by a lint rule that fails the build, not by
-review — see `apps/vault/eslint.config.mjs`. The built bundle is checked again:
-`apps/vault/dist/assets/*.js` contains no `fetch`, `XMLHttpRequest`,
-`WebSocket`, `EventSource` or `navigator.sendBeacon`. The service worker
-Workbox generates does use `fetch`, which is how a PWA serves its own
-precache offline at all; it never has a remote origin to reach.
+review — see `apps/vault/eslint.config.mjs`. The built bundle is checked
+again: `apps/vault/dist/assets/*.js` contains no *call* to `fetch`,
+`XMLHttpRequest`, `WebSocket`, `EventSource` or `navigator.sendBeacon`. The
+exact command, and why grepping for the bare word `fetch` finds React DOM
+properties that call nothing, is in [README.md](README.md#checking-the-air-gap-yourself).
+
+The Workbox runtime beside it, `apps/vault/dist/workbox-*.js`, does call
+`fetch` — that is how a PWA serves its own precache offline at all.
+
+Say plainly what holds that one down, because it is not the CSP: a service
+worker is governed by the policy served with *its own* script response, and
+ours is sent with the HTML document only. So `connect-src 'none'` constrains
+every script running in the page and does not constrain the worker. What
+constrains the worker is that we do not write it — Workbox generates it from
+the precache manifest at build time, its handlers resolve from that cache,
+and no code of ours runs there to give it an origin. It is the one component
+whose air-gap rests on reading the generated file rather than on the browser
+refusing.
 
 ## What this product does not protect you from
 

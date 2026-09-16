@@ -373,7 +373,9 @@ export function applyPolicy({ message, decoded, manifest, vault }: PolicyInput):
 
   return {
     // An unimplemented rule is an unchecked rule, and an unchecked rule is not
-    // a pass. This stays false until P8 is enforced.
+    // a pass. UNEVALUATED_RULES is empty today — every rule P1..P12 is run —
+    // so this term is a no-op, and it stays because the day someone adds a
+    // rule they have not written yet is the day it has to bite.
     ok: violations.length === 0 && UNEVALUATED.length === 0,
     evaluated: EVALUATED,
     unevaluated: UNEVALUATED,

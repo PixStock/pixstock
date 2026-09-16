@@ -17,7 +17,7 @@ import {
  * really built.
  *
  * These rules protect the hot key from whoever is talking to it, where
- * P1..P10 protect the holder from the relayer. Both are needed: neither party
+ * P1..P12 protect the holder from the relayer. Both are needed: neither party
  * is asked to trust the other.
  */
 const fixture = JSON.parse(

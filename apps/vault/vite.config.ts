@@ -5,7 +5,7 @@ import { VitePWA } from "vite-plugin-pwa";
 // The vault must work with the phone in airplane mode, forever. Everything is
 // precached; nothing is fetched at runtime. `connect-src 'none'` is set in the
 // deployment headers so the air-gap is visible in devtools — see
-// docs/SECURITY.md.
+// docs/THREAT-MODEL.md (the root SECURITY.md is the disclosure policy).
 export default defineConfig({
   plugins: [
     react(),
