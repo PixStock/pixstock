@@ -73,7 +73,7 @@ test("the three vault screens", async ({ page, context }) => {
   await page.getByRole("heading", { name: "Hold this up to the webcam" }).waitFor({
     timeout: 20_000,
   });
-  await page.locator("canvas.qr").waitFor();
+  await page.locator("img.qr").waitFor();
   const reply = await shot(page, "vault-3-signature");
 
   // Composed in the browser rather than with an image library, for the same
