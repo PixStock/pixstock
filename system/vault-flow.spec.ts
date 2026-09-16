@@ -123,9 +123,9 @@ test.describe("the vault, end to end in a browser", () => {
     await expect(page.getByText("paid by the relayer, not you")).toBeVisible();
     await expect(page.getByText("Most you can lose to slippage")).toBeVisible();
 
-    // No price travelled with this order — our Pyth grant does not cover
-    // these three — so the vault says so and will not sign until the holder
-    // says they accept it. Approve exists here, unlike on a refusal: this is
+    // No price travelled with this order — the fixture cannot sign as Pyth —
+    // so the vault says so and will not sign until the holder says they
+    // accept it. Approve exists here, unlike on a refusal: this is
     // a decision the holder is allowed to make.
     await expect(page.getByRole("button", { name: "Approve" })).toBeDisabled();
     await page.getByRole("checkbox").check();

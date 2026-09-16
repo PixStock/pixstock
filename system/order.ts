@@ -71,9 +71,12 @@ export interface OrderOptions {
   /**
    * What price travels with the order.
    *
-   * `none` is the honest default for this fixture: our Pyth grant does not
-   * cover Apple, Nvidia or Microsoft, so a real order for them arrives
-   * unattested and the vault asks the holder to say so out loud.
+   * `none` is the default because this fixture cannot produce a real one. A
+   * valid attestation is Pyth's signature over Pyth's bytes, and no test
+   * harness can forge that, so the order takes the path of one that arrived
+   * with no price: the vault says so and asks the holder to accept it out
+   * loud. It used to say the grant was the reason; the grant widened on 16
+   * Sept 2026 and this reason did not move, because it never depended on it.
    *
    * `forged` is 205 bytes of noise — what a relayer that wanted a green tick
    * would attach if attaching bytes were enough.
