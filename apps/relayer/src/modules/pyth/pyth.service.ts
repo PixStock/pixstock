@@ -286,7 +286,14 @@ export class PythService implements OnModuleInit, OnModuleDestroy {
           formats: ['solana'],
           deliveryFormat: 'json',
           jsonBinaryEncoding: 'hex',
-          channel: 'real_time',
+          // Not 'real_time'. Only 33 of Pyth's ~3,700 symbols publish on that
+          // channel and no xStock is among them, so asking for it is refused
+          // outright: "Feeds do not support channel real_time". The feeds
+          // themselves allow 200ms; the grant is what caps it at 1000ms
+          // ("Channel fixed_rate@200ms violates rate limit"). One second is
+          // far inside what a price check needs — the freshness rule is
+          // MAX_AGE_SECONDS, not milliseconds.
+          channel: 'fixed_rate@1000ms',
         }),
       );
     });

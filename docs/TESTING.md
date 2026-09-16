@@ -11,7 +11,7 @@ npm run test:system # Playwright, both apps in a browser · ~50 s
 npm run test:all    # all three
 ```
 
-Today: **309 unit and integration tests**, **17 live**, **36 system**.
+Today: **310 unit and integration tests**, **17 live**, **36 system**.
 
 One more command shares the system suite's machinery without being part of
 it. `npm run screenshots` drives the vault through a real order and writes the

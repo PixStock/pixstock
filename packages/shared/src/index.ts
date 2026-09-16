@@ -33,9 +33,35 @@ export interface Asset {
   mint: string;
   decimals: number;
   tokenProgram: string;
-  /** Pyth Pro feed id, regular session. */
+  /**
+   * Pyth Pro feed id for the xStock itself — `Crypto.TSLAX/USD`, never
+   * `Equity.US.TSLA/USD`.
+   *
+   * These are two different prices and the difference is the whole point. The
+   * token being swapped is Backed Finance's xStock, which trades against its
+   * underlying at a premium or a discount; Pyth publishes a redemption-rate
+   * feed (`Crypto.TSLAX/TSLA.RR`) precisely because the two diverge. Pricing
+   * a TSLAx swap off TSLA compares the order to an asset nobody is trading,
+   * and a gap past MAX_DEVIATION would refuse an honest order or wave a
+   * dishonest one through.
+   *
+   * It also decides whether there is any price at all. The equity feeds keep
+   * the New York session and publish nothing at the weekend; `Crypto.*X/USD`
+   * runs seven days, which is when the token actually trades. An order placed
+   * on a Saturday had no price to check against, and that was invisible
+   * because only one feed was ever entitled.
+   *
+   * Read from Pyth's own catalogue on 16 Sept 2026:
+   * <https://history.pyth-lazer.dourolabs.app/history/v1/symbols>.
+   */
   pythFeedId: number;
-  /** Pyth Pro feed id, extended hours. `null` where no `.EXT` feed exists. */
+  /**
+   * Pyth Pro feed id for extended hours, `null` where none applies.
+   *
+   * Null for every asset here: a seven-day feed has no out-of-session window
+   * to fall back from. The field and the fallback in `pyth-verify` stay for
+   * an asset that has to be priced off an `Equity.US.*` feed.
+   */
   pythExtFeedId: number | null;
   /**
    * The mint carries the Token-2022 ScaledUiAmount extension, so its real
@@ -67,8 +93,8 @@ export const ASSETS: readonly Asset[] = [
     mint: "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB",
     decimals: 8,
     tokenProgram: PROGRAM_IDS.token2022,
-    pythFeedId: 1435,
-    pythExtFeedId: 1746,
+    pythFeedId: 1847,
+    pythExtFeedId: null,
     scaledUiAmount: true,
     hasPermanentDelegate: true,
   },
@@ -78,8 +104,8 @@ export const ASSETS: readonly Asset[] = [
     mint: "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
     decimals: 8,
     tokenProgram: PROGRAM_IDS.token2022,
-    pythFeedId: 1314,
-    pythExtFeedId: 1720,
+    pythFeedId: 1833,
+    pythExtFeedId: null,
     scaledUiAmount: true,
     hasPermanentDelegate: true,
   },
@@ -89,8 +115,8 @@ export const ASSETS: readonly Asset[] = [
     mint: "XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp",
     decimals: 8,
     tokenProgram: PROGRAM_IDS.token2022,
-    pythFeedId: 922,
-    pythExtFeedId: 1671,
+    pythFeedId: 1792,
+    pythExtFeedId: null,
     scaledUiAmount: true,
     hasPermanentDelegate: true,
   },
@@ -100,8 +126,8 @@ export const ASSETS: readonly Asset[] = [
     mint: "XspzcW1PRtgf6Wj92HCiZdjzKCyFekVD8P5Ueh3dRMX",
     decimals: 8,
     tokenProgram: PROGRAM_IDS.token2022,
-    pythFeedId: 1292,
-    pythExtFeedId: 1716,
+    pythFeedId: 3116,
+    pythExtFeedId: null,
     scaledUiAmount: true,
     hasPermanentDelegate: true,
   },
@@ -111,7 +137,7 @@ export const ASSETS: readonly Asset[] = [
     mint: "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
     decimals: 8,
     tokenProgram: PROGRAM_IDS.token2022,
-    pythFeedId: 1398,
+    pythFeedId: 1843,
     pythExtFeedId: null,
     scaledUiAmount: true,
     hasPermanentDelegate: true,
