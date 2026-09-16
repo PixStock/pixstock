@@ -11,6 +11,7 @@ import { makeDecoder } from "@/lib/qr-decoder";
 import { openCamera } from "@/lib/camera";
 import { content } from "@/content/site";
 import { usePairedVault } from "@/lib/vault";
+import { VaultField } from "@/components/VaultField";
 
 type State =
   | { status: "idle" }
@@ -32,6 +33,15 @@ type State =
  * interface that claimed a vault was paired when it had decoded something
  * else would be the first lie in a product whose argument is that it does
  * not tell them.
+ *
+ * There is a typed way in as well, and it is not a nicety. Pairing is the
+ * first thing anyone does here and nothing downstream works without it: with
+ * no address, `/trade` and `/basket` cannot build an order at all. A camera
+ * is the one part of this flow the machine might simply not have — a desktop
+ * with no webcam, a browser that refuses the permission, a laptop whose
+ * camera another application already holds — and every other optical step in
+ * this product already keeps a paste channel beside it for exactly that.
+ * This one did not, which made a missing webcam the end of the demo.
  */
 export function PairingScanner() {
   const v = content.vault;
@@ -39,7 +49,7 @@ export function PairingScanner() {
   const stream = useRef<MediaStream | null>(null);
   const running = useRef(false);
   const assembler = useRef(new FrameAssembler());
-  const { setVault } = usePairedVault();
+  const { vault, setVault } = usePairedVault();
   const [state, setState] = useState<State>({ status: "idle" });
 
   const stop = useCallback(() => {
@@ -196,6 +206,26 @@ export function PairingScanner() {
           </button>
         )}
       </div>
+
+      {/*
+        Open already when the camera is the thing that failed. Someone who has
+        just been told the webcam is unavailable should not then have to find
+        a disclosure triangle to discover there was another way in.
+      */}
+      <details open={state.status === "error"}>
+        <summary>{v.pairing.manualSummary}</summary>
+        <div className="stack-24" style={{ marginTop: 12 }}>
+          <p className="copy">{v.pairing.manualBody}</p>
+          {/*
+            Writes through the same store the scanner writes to, so the two
+            paths cannot end up meaning different things. A half-typed address
+            is kept rather than rejected — you are mid-keystroke — and it is
+            `isValid` that holds the send button on /trade and /basket shut
+            until it is a real one. The field says which it is as you type.
+          */}
+          <VaultField vault={vault} onChange={setVault} />
+        </div>
+      </details>
     </div>
   );
 }
