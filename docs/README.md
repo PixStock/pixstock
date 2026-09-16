@@ -4,10 +4,12 @@ An air-gapped Solana signer for tokenized stocks. A spare phone in airplane
 mode reads an order as animated QR codes, checks the price against Pyth's own
 signature with no network of its own, and answers with sixty-four bytes.
 
-**It works on mainnet.** One confirmed swap, real money, zero SOL in the
-vault:
-[`3NEPTtAB…1sB52`](https://solscan.io/tx/3NEPTtABYDpJaWge3rL5jD5AngtWysZJqMyPfMqozCDtwd7RbhBgeGfvFYGyBShPbKBq9uZQKXXm68rcL1Y1sB52)
-— slot 446957081, `err: None`.
+**It works on mainnet.** One confirmed swap, real money, and a vault that has
+never held a lamport:
+[`mXU5gcq9…uZvir`](https://solscan.io/tx/mXU5gcq9zUxr4twZzcRCfagwZgSSk3fZcsMAXURddMhBCAJ3auzFnEoNNDYgbpZndNCjSKcrkmEetbKaKUuZvir)
+— slot 447518920, `err: None`, signed by
+[`5EhC1QpR…iJLJH`](https://solscan.io/account/5EhC1QpRm8BuLBJi6sqikvp8a7jYf6oLjZBtn9kiJLJH),
+balance zero.
 
 In a hurry, or judging: [**PITCH.md**](../PITCH.md) maps each must-have in
 the brief to the file that implements it, the test that proves it, and the

@@ -14,15 +14,18 @@ the test that proves it, and the thirty-second way to see it yourself.
 
 ## Start here, if you only have one minute
 
-One confirmed mainnet swap, real money, and **zero SOL in the vault** — the
-account that signed it has never held any:
+One confirmed mainnet swap, real money, and a vault that has **never held a
+lamport**:
 
-> [`3NEPTtAB…1sB52`](https://solscan.io/tx/3NEPTtABYDpJaWge3rL5jD5AngtWysZJqMyPfMqozCDtwd7RbhBgeGfvFYGyBShPbKBq9uZQKXXm68rcL1Y1sB52)
-> — slot 446957081, `err: None`, two signatures.
+> [`mXU5gcq9…uZvir`](https://solscan.io/tx/mXU5gcq9zUxr4twZzcRCfagwZgSSk3fZcsMAXURddMhBCAJ3auzFnEoNNDYgbpZndNCjSKcrkmEetbKaKUuZvir)
+> — slot 447518920, `err: None`, two signatures. 0.5 USDC into TSLAx.
+> The vault: [`5EhC1QpR…iJLJH`](https://solscan.io/account/5EhC1QpRm8BuLBJi6sqikvp8a7jYf6oLjZBtn9kiJLJH), balance zero.
 
-The fee payer is the relayer. The other signature came off a phone in
-airplane mode and crossed the room as QR codes. That one link is the whole
-claim; everything below is how it was built and how to verify each part.
+The fee payer is the relayer, and the vault signs as a **non-writable**
+account — it could not have paid even if the policy had let it. The other
+signature came off a phone in airplane mode and crossed the room as QR codes.
+That one link is the whole claim; everything below is how it was built and how
+to verify each part.
 
 **Try it:** [dApp](https://web-production-502d1.up.railway.app) ·
 [vault](https://pixstock-production.up.railway.app) ·
@@ -60,7 +63,7 @@ instead of asking you to be careful.
 |---|---|
 | **Where** | `packages/tx-policy/src/policy.ts` — rule **P1** refuses a transaction that makes the vault the fee payer, **P10** refuses one that moves a lamport out of it. The relayer signs as fee payer and nonce authority only: `apps/relayer/src/modules/relayer/`. |
 | **Proved by** | `refuses to build an order the vault would pay for` and `never makes the vault the fee payer` (`apps/relayer/test/jupiter.live.test.ts`, against real Jupiter routes). |
-| **See it** | Open the transaction above on Solscan. The fee payer is `2oQgk1TC…cSfof`; the vault appears as a signer and pays nothing. |
+| **See it** | Open the transaction above on Solscan. The fee payer is `2oQgk1TC…cSfof`; the vault appears as a signer marked **not writable**, with a balance of zero before and after. Paying was not refused — it was impossible. |
 
 The enforcement is on the **phone**, not in the web app. A compromised
 browser cannot make the vault pay, because the vault checks for itself and
