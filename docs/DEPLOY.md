@@ -6,6 +6,19 @@ with a database and a hot key.
 Each has a Dockerfile that builds from the repository root, and each has been
 built and run locally before being written about here.
 
+**What is actually running.** The `pixstock.xyz` names in the headings below
+are the intended ones; the deployment a judge can open today is on Railway's
+own domains:
+
+| | |
+|---|---|
+| dApp | <https://web-production-502d1.up.railway.app> |
+| Vault | <https://pixstock-production.up.railway.app> |
+| Relayer | <https://relayer-production-b097.up.railway.app/healthz> |
+
+`/healthz` carries the commit it was built from, so "is my fix live?" is a
+question anyone can answer from outside.
+
 ---
 
 ## All three on Railway
@@ -128,6 +141,13 @@ Security Policy"*.
 
 **HTTPS is not optional here.** The camera and WebAuthn both require a secure
 context; on plain HTTP the vault cannot scan or ask for a fingerprint.
+
+> On Vercel the header block is scoped `"/(.*)"` and not `"/"`. A source of
+> `"/"` matches the document alone, which would have left every sub-route of
+> the vault without the one header this product is an argument about. The
+> Railway container has no such trap — `scripts/serve-vault.mjs` applies the
+> document headers whatever the path — which is exactly why the Vercel file
+> had been wrong for a while without anything noticing.
 
 Any static host works. On Vercel, point the project's root directory at
 `apps/vault`.

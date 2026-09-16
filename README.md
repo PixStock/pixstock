@@ -9,8 +9,8 @@ The only signer that checks the market price offline before it signs.
 [![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](./LICENSE)
 [![Built on Solana](https://img.shields.io/badge/Built%20on-Solana-14F195.svg)](https://solana.com)
 
-[AGQP spec](./docs/AGQP-SPEC.md) · [Threat model](./docs/THREAT-MODEL.md) ·
-[Reproduce the demo](./docs/DEMO.md)
+**[What to check, and where](./PITCH.md)** · [AGQP spec](./docs/AGQP-SPEC.md) ·
+[Threat model](./docs/THREAT-MODEL.md) · [Reproduce the demo](./docs/DEMO.md)
 
 **[Open the dApp](https://web-production-502d1.up.railway.app)** ·
 **[Open the vault](https://pixstock-production.up.railway.app)** ·
@@ -229,6 +229,7 @@ spec section that defines it, so nothing fails silently.
 
 | File | Contents |
 |---|---|
+| [`PITCH.md`](./PITCH.md) | Each must-have → the file that implements it → the test that proves it |
 | [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) | Components, end-to-end flow, target timings |
 | [`docs/AGQP-SPEC.md`](./docs/AGQP-SPEC.md) | The optical protocol, frame by frame |
 | [`docs/THREAT-MODEL.md`](./docs/THREAT-MODEL.md) | What each component may never do, policies P1..P12 |
