@@ -22,7 +22,8 @@ async function createVault(page: Page): Promise<string> {
     page.getByRole("heading", { name: "Print this. It is the way back." }),
   ).toBeVisible({ timeout: 15_000 });
   // The Paper-Vault must be shown before anything else can happen.
-  await expect(page.locator("canvas.qr")).toBeVisible();
+  await expect(page.locator("img.qr")).toBeVisible();
+  await expectSquare(page, "the Paper-Vault sheet");
 
   // The public key sits at a fixed offset in the stored blob — see
   // packages/vault-crypto/src/blob.ts.
@@ -53,6 +54,24 @@ async function installFixtureVault(page: Page) {
   );
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Point at the laptop" })).toBeVisible();
+}
+
+/**
+ * The rendered box, not the bitmap — the bitmap was always square.
+ *
+ * Every code in the vault drew 358 wide by 480 tall on a phone: stretched, so
+ * the modules were taller than they were wide. A decoder expects square
+ * modules, and this reached the Paper-Vault sheet that is the only way back
+ * into a vault, and the reply a webcam has to read to finish an order.
+ * Measured rather than eyeballed, because nobody noticed: it looked like a QR
+ * code, and it mostly still scanned.
+ */
+async function expectSquare(page: Page, what: string) {
+  const box = await page.locator("img.qr").boundingBox();
+  expect(box, `${what} must have a box`).not.toBeNull();
+  const ratio = box!.width / box!.height;
+  expect(ratio, `${what} is drawn ${Math.round(box!.width)}x${Math.round(box!.height)}`).toBeGreaterThan(0.98);
+  expect(ratio, `${what} is drawn ${Math.round(box!.width)}x${Math.round(box!.height)}`).toBeLessThan(1.02);
 }
 
 /** Feeds frames through the glued channel — the same path as the camera. */
@@ -140,7 +159,8 @@ test.describe("the vault, end to end in a browser", () => {
     await expect(page.getByRole("heading", { name: "Hold this up to the webcam" })).toBeVisible({
       timeout: 15_000,
     });
-    await expect(page.locator("canvas.qr")).toBeVisible();
+    await expect(page.locator("img.qr")).toBeVisible();
+    await expectSquare(page, "the signature reply");
     await expect(page.getByText("Nothing left this phone but a signature.")).toBeVisible();
   });
 
@@ -182,7 +202,8 @@ test.describe("the vault, end to end in a browser", () => {
     await page.getByRole("button", { name: "My address" }).click();
 
     await expect(page.getByRole("heading", { name: "Show this to the laptop" })).toBeVisible();
-    await expect(page.locator("canvas.qr")).toBeVisible();
+    await expect(page.locator("img.qr")).toBeVisible();
+    await expectSquare(page, "the pairing code");
     // The address in full, so it can be checked against the laptop by eye.
     await expect(page.getByText(FIXTURE_VAULT)).toBeVisible();
 
