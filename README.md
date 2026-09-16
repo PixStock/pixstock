@@ -29,16 +29,22 @@ the running app by `npm run screenshots`, so it cannot drift from the product.</
 
 ## It has already happened, on mainnet
 
-One confirmed swap, real money, and **zero SOL in the vault** — the account
-that signed it has never held any:
+One confirmed swap, real money, and a vault that has **never held a lamport**:
 
-> [`3NEPTtAB…1sB52`](https://solscan.io/tx/3NEPTtABYDpJaWge3rL5jD5AngtWysZJqMyPfMqozCDtwd7RbhBgeGfvFYGyBShPbKBq9uZQKXXm68rcL1Y1sB52)
-> — slot 446957081, `err: None`, two signatures.
+> [`mXU5gcq9…uZvir`](https://solscan.io/tx/mXU5gcq9zUxr4twZzcRCfagwZgSSk3fZcsMAXURddMhBCAJ3auzFnEoNNDYgbpZndNCjSKcrkmEetbKaKUuZvir)
+> — slot 447518920, `err: None`, two signatures. 0.5 USDC into TSLAx.
 
-Open it. The fee payer is `2oQgk1TC…cSfof`, the relayer; the other signature
-is the vault's, produced on a phone in airplane mode and carried back across
-the room as sixty-four bytes of QR. Nothing in between could have moved a
-token, and nothing in between ever saw the key.
+The vault is [`5EhC1QpR…iJLJH`](https://solscan.io/account/5EhC1QpRm8BuLBJi6sqikvp8a7jYf6oLjZBtn9kiJLJH). Its
+balance is zero, and it is zero on both sides of the only two transactions it
+has ever appeared in. So this is not a vault that was emptied for the
+screenshot — it is one that has never been funded.
+
+Open the transaction. The fee payer is `2oQgk1TC…cSfof`, the relayer. The
+vault is listed as a signer that is **not writable**, which is the part worth
+pausing on: this is not merely a transaction that did not take the vault's
+SOL, it is one that could not have. The other signature came off a phone in
+airplane mode and crossed the room as sixty-four bytes of QR. Nothing in
+between could have moved a token, and nothing in between ever saw the key.
 
 And the vault is deployed, so the claim everything else rests on is one you
 can check in your own browser rather than take from us. Open
