@@ -16,7 +16,7 @@ The only signer that checks the market price offline before it signs.
 **[Open the vault](https://pixstock-production.up.railway.app)** ·
 [Relayer health](https://relayer-production-b097.up.railway.app/healthz)
 
-**[▶ Watch the two-minute demo](https://github.com/PixStock/pixstock/releases/download/v0.1.3/pixstock-stocklana-demo.mp4)**
+**[▶ Watch the two-minute demo](https://github.com/PixStock/pixstock/releases/download/v0.1.4/pixstock-stocklana-demo.mp4)**
 — 1080p, 13 MB, hosted on the release rather than a video platform.
 <sub>The interfaces in it are recreated from the running app; the transaction
 it ends on is [real](https://solscan.io/tx/mXU5gcq9zUxr4twZzcRCfagwZgSSk3fZcsMAXURddMhBCAJ3auzFnEoNNDYgbpZndNCjSKcrkmEetbKaKUuZvir).</sub>
@@ -277,10 +277,25 @@ arguments, so neither reaches your shell history or the process list, and it
 performs no network I/O. What it prints is the account itself: anyone holding
 it can move everything, with no password and no second step.
 
+## Watch the film
+
+[![Seven seconds: the order crossing as QR frames, and the phone refusing a price that moved three percent](./docs/img/demo-preview.gif)](https://github.com/PixStock/pixstock/releases/download/v0.1.4/pixstock-stocklana-demo.mp4)
+
+<sub>Seven seconds of it, silent and looping: the order leaving the laptop as
+five QR frames, and the phone refusing an order whose price moved three
+percent. **[The whole two minutes, with sound](https://github.com/PixStock/pixstock/releases/download/v0.1.4/pixstock-stocklana-demo.mp4)**
+— 1080p, 13 MB. GitHub strips `<video>` from a README, so the film itself is a
+download; this loop is here so you can see what it is before deciding to spend
+two minutes on it.</sub>
+
 ## Open source components
 
 Jupiter Swap API · Pyth Pro (ex-Lazer) · Backed Finance xStocks ·
-`@solana/web3.js` · `zxing-wasm` · `@noble/curves` · `@noble/hashes`
+`@solana/web3.js` · `@noble/curves` · `@noble/hashes` · `hash-wasm` (Argon2id) ·
+`@scure/base` (Base45) · `cbor-x` · `jsqr` (the dApp reads the reply) · `qrcode`
+
+The vault decodes QR with the browser's own `BarcodeDetector`, not a library:
+the app that may never fetch anything ships no scanner of its own.
 
 ## Contributing
 
