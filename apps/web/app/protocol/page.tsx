@@ -3,6 +3,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { SiteScript } from "@/components/SiteScript";
 import { content } from "@/content/site";
+import { SITE_URL } from "@/lib/site-url";
 import {
   CHUNK_SIZES,
   DEFAULT_FPS,
@@ -45,8 +46,8 @@ export default function ProtocolPage() {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: dict.site.siteName, item: "https://pixstock.xyz/" },
-      { "@type": "ListItem", position: 2, name: p.breadcrumbName, item: "https://pixstock.xyz/protocol" },
+      { "@type": "ListItem", position: 1, name: dict.site.siteName, item: `${SITE_URL}/` },
+      { "@type": "ListItem", position: 2, name: p.breadcrumbName, item: `${SITE_URL}/protocol` },
     ],
   };
 

@@ -3,6 +3,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { SiteScript } from "@/components/SiteScript";
 import { content } from "@/content/site";
+import { SITE_URL } from "@/lib/site-url";
 
 export function generateMetadata(): Metadata {
   const m = content.legal.meta;
@@ -22,8 +23,8 @@ export default function LegalPage() {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: dict.site.siteName, item: "https://pixstock.xyz/" },
-      { "@type": "ListItem", position: 2, name: l.breadcrumbName, item: "https://pixstock.xyz/legal" },
+      { "@type": "ListItem", position: 1, name: dict.site.siteName, item: `${SITE_URL}/` },
+      { "@type": "ListItem", position: 2, name: l.breadcrumbName, item: `${SITE_URL}/legal` },
     ],
   };
 

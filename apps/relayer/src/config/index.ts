@@ -7,8 +7,13 @@ export const appConfig = registerAs('app', () => ({
   env: process.env.NODE_ENV ?? 'development',
   port: parseInt(process.env.PORT ?? '4000', 10),
   allowedOrigins: process.env.ALLOWED_ORIGINS?.split(',') ?? [],
-  /** Shown on the vault's order ticket. Never trusted by it. */
-  dapp: process.env.DAPP_ORIGIN ?? 'app.pixstock.xyz',
+  /**
+   * Shown on the vault's order ticket. Never trusted by it — but the ticket
+   * exists to tell the holder where the order came from, so the default is
+   * the host that actually serves the dApp rather than the domain we own and
+   * have not pointed here yet. Set DAPP_ORIGIN when that changes.
+   */
+  dapp: process.env.DAPP_ORIGIN ?? 'web-production-502d1.up.railway.app',
 }));
 
 export const databaseConfig = registerAs('database', () => ({
