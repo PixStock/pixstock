@@ -11,7 +11,7 @@ early and privately than read about it on-chain.
 Report it privately through GitHub: go to the **Security** tab of this
 repository and choose **Report a vulnerability** (GitHub Private
 Vulnerability Reporting). If that is unavailable, email
-**security@pixstock.xyz**.
+**xgasikara@gmail.com**.
 
 Please include:
 

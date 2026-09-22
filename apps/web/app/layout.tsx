@@ -3,13 +3,14 @@ import Script from "next/script";
 import { SkipLink } from "@/components/SkipLink";
 import { content } from "@/content/site";
 import { markSvgDocument } from "@/lib/qr-mark";
+import { SITE_URL } from "@/lib/site-url";
 import "./globals.css";
 
 export function generateMetadata(): Metadata {
   const dict = content;
 
   return {
-    metadataBase: new URL("https://pixstock.xyz"),
+    metadataBase: new URL(SITE_URL),
     title: {
       default: dict.site.titleDefault,
       template: dict.site.titleTemplate,
@@ -45,21 +46,21 @@ function orgJsonLd(dict: typeof content) {
     "@graph": [
       {
         "@type": "Organization",
-        "@id": "https://pixstock.xyz/#org",
+        "@id": `${SITE_URL}/#org`,
         name: dict.site.siteName,
-        url: "https://pixstock.xyz/",
-        logo: "https://pixstock.xyz/og.jpg",
-        email: "hello@pixstock.xyz",
+        url: `${SITE_URL}/`,
+        logo: `${SITE_URL}/og.jpg`,
+        email: "xgasikara@gmail.com",
         description: dict.site.orgDescription,
         sameAs: ["https://github.com/PixStock"],
       },
       {
         "@type": "WebSite",
-        "@id": "https://pixstock.xyz/#site",
+        "@id": `${SITE_URL}/#site`,
         name: dict.site.siteName,
-        url: "https://pixstock.xyz/",
+        url: `${SITE_URL}/`,
         inLanguage: "en",
-        publisher: { "@id": "https://pixstock.xyz/#org" },
+        publisher: { "@id": `${SITE_URL}/#org` },
       },
     ],
   };

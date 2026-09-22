@@ -96,7 +96,7 @@ export class OrdersService {
       })),
       slippageBps: dto.slippageBps,
       feePayer: relayer,
-      dapp: this.config.get<string>('app.dapp') ?? 'app.pixstock.xyz',
+      dapp: this.config.get<string>('app.dapp') ?? 'web-production-502d1.up.railway.app',
       quotedAt: Math.floor(Date.now() / 1000),
       mints: facts,
     };
