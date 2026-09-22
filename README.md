@@ -16,6 +16,11 @@ The only signer that checks the market price offline before it signs.
 **[Open the vault](https://pixstock-production.up.railway.app)** ·
 [Relayer health](https://relayer-production-b097.up.railway.app/healthz)
 
+**[▶ Watch the two-minute demo](https://github.com/PixStock/pixstock/releases/download/v0.1.3/pixstock-stocklana-demo.mp4)**
+— 1080p, 13 MB, hosted on the release rather than a video platform.
+<sub>The interfaces in it are recreated from the running app; the transaction
+it ends on is [real](https://solscan.io/tx/mXU5gcq9zUxr4twZzcRCfagwZgSSk3fZcsMAXURddMhBCAJ3auzFnEoNNDYgbpZndNCjSKcrkmEetbKaKUuZvir).</sub>
+
 ![The vault: waiting for the laptop, the order ticket, and the signature going back](./docs/img/vault-demo-loop.png)
 
 <sub>The signer, on a phone with its radios off. It waits, it shows what it
